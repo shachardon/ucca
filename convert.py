@@ -17,7 +17,7 @@ import sys
 import xml.sax.saxutils
 import xml.etree.ElementTree as ET
 
-from ucca import core, layer0, layer1, util
+import core, layer0, layer1, util
 
 
 class SiteXMLUnknownElement(core.UCCAError):

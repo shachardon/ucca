@@ -2,7 +2,7 @@ import pickle
 import nltk
 import re
 
-from ucca import layer0, layer1, classify
+import layer0, layer1, classify
 
 
 def get_terminals_labels(passages):

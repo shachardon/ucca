@@ -12,8 +12,8 @@ import sys
 import re
 import nltk
 import pickle
-from ucca import lex, collins
-from ucca.postags import POSTags
+import lex, collins
+from postags import POSTags
 
 
 DEFAULT_CHUNK_SIZE = 2 ** 20

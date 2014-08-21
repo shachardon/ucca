@@ -4,8 +4,8 @@ import nltk
 import pickle
 import xml.etree.ElementTree as ETree
 
-from ucca import collins, wikt, core
-from ucca.postags import POSTags
+import collins, wikt, core
+from postags import POSTags
 
 
 class DixonVerbs:

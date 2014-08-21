@@ -8,7 +8,7 @@ some self-explained keys and values (and some errors too).
 import nltk
 import random
 
-from ucca.postags import POSTags
+from postags import POSTags
 
 KEY_CONTEXT_SEP = '#'
 

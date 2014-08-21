@@ -8,7 +8,7 @@ Layer 0 has only one type of node, :class:Terminal. This is a subtype of
 
 """
 
-from ucca import core
+import core
 
 # Layer ID
 LAYER_ID = '0'

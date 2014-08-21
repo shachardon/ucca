@@ -1,6 +1,6 @@
 """Utility functions for UCCA package."""
 
-from ucca import layer0, layer1
+import layer0, layer1
 
 
 SENTENCE_END_MARKS = ('.', '?', '!')

@@ -1,8 +1,8 @@
 """Wiktionary-related classes and functionality."""
 
 import re
-from ucca.core import UCCAError
-from ucca.postags import POSTags
+from core import UCCAError
+from postags import POSTags
 
 
 class MultipleLemmasError(UCCAError):

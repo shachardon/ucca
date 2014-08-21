@@ -1,7 +1,7 @@
 import mlpy
 import random
 import numpy as np
-from ucca import lex
+import lex
 
 from sklearn.cross_validation import cross_val_score
 from sklearn.ensemble import GradientBoostingClassifier
