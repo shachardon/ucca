@@ -9,9 +9,9 @@ from postags import POSTags
 
 
 class DixonVerbs:
-    """Holds the different verb categories according to Dixon's theory (BTL).
+    """Holds the different verb categories according to Dixon's theory (BLT).
 
-    The verb categories are hierarichal, and contain a group, type and
+    The verb categories are hierarchical, and contain a group, type and
     usually a subtype. Each verb can be part of numerous groups, with or
     without phrasal verbs (e.g. put NP on) and required prepositions
     (e.g. refer to), passivisation, and other transformations.

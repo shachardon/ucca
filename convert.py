@@ -36,7 +36,7 @@ class SiteCfg:
         Paths:
             Paths (from the XML root) to different parts of the annotation -
             the main units part, the discontiguous units, the paragraph
-            elements and the annoation units.
+            elements and the annotation units.
 
         Types:
             Possible types for the Type attribute, which is roughly equivalent
@@ -50,7 +50,7 @@ class SiteCfg:
              because we set it for every unit that was already converted, and
              it's not present in the original XML.
 
-        TBD: XML tag used for wrapping words (non-puntuation) and unit groups
+        TBD: XML tag used for wrapping words (non-punctuation) and unit groups
 
         TRUE, FALSE: values for True/False in the site XML (strings)
 
@@ -167,7 +167,7 @@ def _from_site_terminals(elem, passage, elem2node):
         words = list(paragraph.iter(SiteCfg.Tags.Terminal))
         wrappers = []
         for word in words:
-            # the list added has only one element, because XML is hierarichal
+            # the list added has only one element, because XML is hierarchical
             wrappers.extend([x for x in paragraph.iter(SiteCfg.Tags.Unit)
                              if word in list(x)])
         for word, wrapper in zip(words, wrappers):
