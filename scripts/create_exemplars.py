@@ -1,7 +1,8 @@
 """Creates new examplers from Collins entries."""
 import pickle
-import sys
 import random
+import sys
+
 from ucca import collins
 from ucca.postags import POSTags
 

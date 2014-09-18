@@ -1,10 +1,11 @@
+from itertools import combinations_with_replacement as comb_repeat
 import pickle
 import random
 import sys
-import numpy as np
-from itertools import combinations_with_replacement as comb_repeat
 
+import numpy as np
 from ucca import classify, tokeneval
+
 
 METHOD = sys.argv[1]
 CLS_PRM = float(sys.argv[2])

@@ -5,8 +5,8 @@ in the foundational layer of UCCA.
 
 """
 
-import re
 import layer0, layer1
+import re
 
 
 def extract_possible_scenes(passage):
@@ -29,16 +29,16 @@ def extract_possible_scenes(passage):
     """
     l1 = passage.layer(layer1.LAYER_ID)
     ret = []
-    for scene in (x for x in l1.all if x.tag == layer1.NodeTags.Foundational
-                  and x.is_scene()):
-        for p in (e.child for e in scene
-                  if e.tag == layer1.EdgeTags.Participant and
-                  not e.attrib.get('remote')):
-            if p.is_scene() or (len(p.centers) == 1 and p.elaborators):
-                ret.append(p)
-            else:  # if there are more than one center, add all of them
-                ret.extend(c for c in p.centers)
-            ret.extend(e for e in p.elaborators if len(e) > 1)
+    for scene in l1.all:
+        if scene.tag == layer1.NodeTags.Foundational and scene.is_scene():
+            for p in (e.child for e in scene
+                      if e.tag == layer1.EdgeTags.Participant and
+                      not e.attrib.get('remote')):
+                if p.is_scene() or (len(p.centers) == 1 and p.elaborators):
+                    ret.append(p)
+                else:  # if there are more than one center, add all of them
+                    ret.extend(c for c in p.centers)
+                ret.extend(e for e in p.elaborators if len(e) > 1)
     return ret
 
 

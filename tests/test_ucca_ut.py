@@ -1,11 +1,11 @@
 """Testing code for the ucca package, unit-testing only."""
 
-import unittest
 import operator
 import pickle
-import xml.etree.ElementTree as ETree
+import unittest
 
 from ucca import core, layer0, layer1, convert, util, scenes, collins, lex
+import xml.etree.ElementTree as ETree
 
 
 class CoreTests(unittest.TestCase):
@@ -306,7 +306,7 @@ class Layer1Tests(unittest.TestCase):
                 15 ==> Adverbial #2, remote Process is Process #1
             16: Linker #2, links Parallel scenes #2 and #3
             17-19: Parallel scene #3, 17-18 ==> Process #3,
-                19 ==> Participant #3, implicit Pariticpant
+                19 ==> Participant #3, implicit Participant
             20: Punctuation (under the head)
 
         """
@@ -523,7 +523,7 @@ class Layer1Tests(unittest.TestCase):
         f1.add(layer1.EdgeTags.Terminal, terms[8])
         l1.add_punct(p1, terms[9])
 
-        # Second paralel scene, stretching on terminals 11-14 + 18-20
+        # Second parallel scene, stretching on terminals 11-14 + 18-20
         # [PS- [D IMPLICIT] [G IMPLICIT] [P 10 11 12 13]]
         # [-PS [A 17 18 [U 19]]]
         ps2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)

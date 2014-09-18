@@ -1,10 +1,11 @@
-import mlpy
-import random
-import numpy as np
 import lex
-
+import random
 from sklearn.cross_validation import cross_val_score
 from sklearn.ensemble import GradientBoostingClassifier
+
+import mlpy
+
+import numpy as np
 
 
 # number which means the label is undecisive

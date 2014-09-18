@@ -3,6 +3,7 @@
 to a numpy feature matrix which can be used to classification."""
 import pickle
 import sys
+
 import numpy as np
 
 

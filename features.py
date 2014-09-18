@@ -8,12 +8,13 @@ UCCA passages is also covered.
 """
 
 import argparse
-import sys
-import re
-import nltk
-import pickle
 import lex, collins
+import pickle
 from postags import POSTags
+import re
+import sys
+
+import nltk
 
 
 DEFAULT_CHUNK_SIZE = 2 ** 20

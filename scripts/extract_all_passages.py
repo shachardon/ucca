@@ -1,8 +1,9 @@
+import pickle
 import sqlite3
 import sys
-import xml.etree.ElementTree as ETree
-import pickle
+
 from ucca import convert
+import xml.etree.ElementTree as ETree
 
 
 def main():

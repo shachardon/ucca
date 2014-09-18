@@ -1,11 +1,12 @@
 """Contains lexical-related methods and classes."""
 
-import nltk
-import pickle
-import xml.etree.ElementTree as ETree
-
 import collins, wikt, core
+import pickle
 from postags import POSTags
+
+import nltk
+
+import xml.etree.ElementTree as ETree
 
 
 class DixonVerbs:

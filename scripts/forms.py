@@ -1,8 +1,8 @@
 import argparse
-import xml.etree.ElementTree as ETree
 
 from ucca import lex, convert
 from ucca.postags import POSTags
+import xml.etree.ElementTree as ETree
 
 
 def main():

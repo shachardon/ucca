@@ -1,8 +1,8 @@
-import pickle
 import argparse
+import pickle
 import random
-import numpy as np
 
+import numpy as np
 from ucca import classify
 
 

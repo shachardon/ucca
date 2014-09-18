@@ -1,6 +1,7 @@
 """Tags words (as types, not tokens) as scene-evoking nouns."""
 import pickle
 import sys
+
 from ucca import collins
 from ucca.postags import POSTags
 

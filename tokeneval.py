@@ -1,8 +1,8 @@
+import layer0, layer1, classify
 import pickle
-import nltk
 import re
 
-import layer0, layer1, classify
+import nltk
 
 
 def get_terminals_labels(passages):

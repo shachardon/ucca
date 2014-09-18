@@ -10,14 +10,14 @@ The possible other formats are:
 
 """
 
+import core, layer0, layer1, util
 import operator
 import re
 import string
 import sys
 import xml.sax.saxutils
-import xml.etree.ElementTree as ET
 
-import core, layer0, layer1, util
+import xml.etree.ElementTree as ET
 
 
 class SiteXMLUnknownElement(core.UCCAError):
@@ -299,19 +299,19 @@ def _from_site_annotation(elem, passage, elem2node):
     l1head = l1.heads[0]
     groups_root = elem.find(SiteCfg.Paths.Discontiguous)
 
-    # this takes care of the heirarichal annotation
+    # this takes care of the hierarchical annotation
     for subelem in elem.iterfind(SiteCfg.Paths.Annotation):
         tbd.extend(_parse_site_units(subelem, l1head, passage, groups_root,
                                      elem2node))
 
-    # Hadnling remotes and linkages, which usually contain IDs from all over
+    # Handling remotes and linkages, which usually contain IDs from all over
     # the annotation, hence must be taken care of after all elements are
     # converted
     for parent, elem in tbd:
         if elem.tag == SiteCfg.Tags.Remote:
             edge_tag = SiteCfg.TagConversion[elem.get(SiteCfg.Attr.ElemTag)]
             child = SiteUtil.get_node(elem, elem2node)
-            if child is None:  # big in XML, points to an invalid ID
+            if child is None:  # bug in XML, points to an invalid ID
                 sys.stderr.write(
                     "Warning: remoteUnit with ID {} is invalid - skipping\n".
                     format(elem.get(SiteCfg.Attr.SiteID)))
@@ -486,7 +486,7 @@ def to_site(passage):
     # after we create the elements, we may end with something like:
     # <unit ... unitGroupID='3'> ... </unit> <unit ... unitGroupID='3'> ...
     # which we would like to merge under one element.
-    # Becasue we keep changing the tree, we must break and re-iterate each time
+    # Because we keep changing the tree, we must break and re-iterate each time
     while True:
         for elems_root in para_elems:
             for parent in elems_root.iter():
@@ -625,7 +625,7 @@ def from_standard(root, extra_funcs={}):
         add_extra(layer, layer_elem)
         # some nodes are created automatically, skip creating them when found
         # in the XML (they should have 'constant' IDs) but take their edges
-        # and attributes/extra from the XML (may have changed from the defualt)
+        # and attributes/extra from the XML (may have changed from the default)
         created_nodes = {x.ID: x for x in layer.all}
         for node_elem in layer_elem.findall('node'):
             nodeID = node_elem.get('ID')

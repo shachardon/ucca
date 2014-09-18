@@ -1,6 +1,8 @@
-import sys
 import pickle
+import sys
+
 from ucca import classify, tokeneval
+
 
 DB_PATH = "/home/beka/thesis/db/"
 _, LABELS = pickle.load(open(DB_PATH + "nouns2/targets-labels.nouns2.pickle",

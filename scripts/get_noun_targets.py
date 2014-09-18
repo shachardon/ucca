@@ -10,10 +10,12 @@ Output: both prints the targets with num_instances and ratio to stdout,
 and saves the targets and labels in a pickle file.
 
 """
-from ucca import scenes
-import sys
 import pickle
+import sys
+
 import numpy as np
+from ucca import scenes
+
 
 dbfile = sys.argv[1]
 appear_thresh = int(sys.argv[2])

@@ -1,7 +1,8 @@
-from ucca import convert
-import pickle
 import os
+import pickle
 import sys
+
+from ucca import convert
 
 
 def main():

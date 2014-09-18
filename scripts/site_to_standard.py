@@ -12,12 +12,13 @@ or using filename of a site-formatted XML file.
 
 """
 
-import sys
-import ucca.convert
 import argparse
 import pickle
 import sqlite3
+import sys
 from xml.etree.ElementTree import ElementTree, tostring, fromstring
+
+import ucca.convert
 
 
 def file2passage(filename):

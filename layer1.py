@@ -8,9 +8,8 @@ the type of relation between the Nodes.
 
 """
 
-import operator
-
 import core, layer0
+import operator
 
 
 # Layer ID

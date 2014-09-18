@@ -5,10 +5,11 @@ some self-explained keys and values (and some errors too).
 
 """
 
-import nltk
+from postags import POSTags
 import random
 
-from postags import POSTags
+import nltk
+
 
 KEY_CONTEXT_SEP = '#'
 
