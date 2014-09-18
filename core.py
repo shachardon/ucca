@@ -8,7 +8,6 @@ are connected between themselves and to Nodes in other layers using
 
 """
 
-import operator
 import functools
 
 
@@ -62,7 +61,7 @@ class FrozenPassageError(UCCAError):
 class DuplicateIdError(UCCAError):
     """Exception raised when trying to add an element with an existing ID.
 
-    For each element, a unique ID must be assiged. If the ID of the new element
+    For each element, a unique ID must be assigned. If the ID of the new element
     is already present in the :class:Passage in some way, this exception is
     raised.
 
@@ -201,7 +200,7 @@ class Edge:
         ID: ID of the Edge, constructed from the IDs of the two Nodes
         root: the Passage this object is linked with
         attrib: attribute dictionary of the Edge
-        extra: temporary storage space for undocumented attribues and data
+        extra: temporary storage space for undocumented attributes and data
         tag: the string label of the Edge
         parent: the originating Node of the Edge
         child: the target Node of the Edge
@@ -268,12 +267,12 @@ class Edge:
         """Returns whether self and other are Edge-equals.
 
         Edge-equality is determined by having the same tag and attributes.
-        Recursive Edge-equality means that the Edgesa are equal, and their
+        Recursive Edge-equality means that the Edges are equal, and their
         children are recursively Node-equal.
 
         Args:
             other: an Edge object to compare to
-            recursive: whether to compare recuresively, deafults to True
+            recursive: whether to compare recursively, defaults to True
             ordered: if recursive, whether the children are Node-equivalent
                 w.r.t order (see Node.equals())
 
@@ -300,7 +299,7 @@ class Node:
             a separator, and a unique alphanumeric ID in the layer.
         root: the Passage this object is linked with
         attrib: attribute dictionary of the Node
-        extra: temporary storage space for undocumented attribues and data
+        extra: temporary storage space for undocumented attributes and data
         tag: the string label of the Node
         layer: the Layer this Node belongs to
         incoming: a copy of the incoming Edges to this object
@@ -493,7 +492,7 @@ class Node:
         Args:
             other: the Node object to compare to
             recursive: whether comparison is recursive, defaults to True.
-            ordered: whther comparison should include strict ordering,
+            ordered: whether comparison should include strict ordering,
                 defaults to False
 
         Returns:
@@ -529,7 +528,7 @@ class Node:
         Args:
             obj: yield Node objects (use value "nodes", default) or Edge
                 objects (use values "edges")
-            method: do breadth-first iteration (use value "bfs") or depth-dirst
+            method: do breadth-first iteration (use value "bfs") or depth-first
                 iteration (value "dfs", default).
             duplicates: If True, may return the same object twice if it is
                 encountered twice, because of the DAG structure which isn't
@@ -573,13 +572,13 @@ class Layer:
     A Layer in UCCA annotation graph is a subgraph of the whole :class:Passage
     annotation graph which consists of similar Nodes and :class:Edge objects
     between them. The Nodes and the Layer itself has some formal definition for
-    being grouped togehter.
+    being grouped together.
 
     Attributes:
         ID: ID of the Layer, must be alphanumeric.
         root: the Passage this object is linked with
         attrib: attribute dictionary of the Layer
-        extra: temporary storage space for undocumented attribues and data
+        extra: temporary storage space for undocumented attributes and data
         orderkey: the key function for ordering the Nodes in the layer.
             Note that it must rely only on the Nodes and/or Edges in the Layer.
             If it, for example, rely on Edges added between Nodes in the Layer
@@ -647,7 +646,7 @@ class Layer:
     def equals(self, other, *, ordered=False):
         """Returns whether two Layer objects are equal.
 
-        Layers are considered Layer-equal if their attribure dictionaries are
+        Layers are considered Layer-equal if their attribute dictionaries are
         equal and all their heads are recursively Node-equal.
         Ordered Layer-equality implies that the heads should be
         ordered the same for the Layers to be considered equal, and the
@@ -655,7 +654,7 @@ class Layer:
 
         Args:
             other: the Layer object to compare to
-            ordered: whther strict-order equality is used, defaults to False
+            ordered: whether strict-order equality is used, defaults to False
 
         Returns:
             True iff self and other are Layer-equal.
@@ -753,7 +752,7 @@ class Layer:
 
 
 class Passage:
-    """An annotated text with UCCA annotatation graph.
+    """An annotated text with UCCA annotation graph.
 
     A Passage is an object representing a text annotated with UCCA annotation.
     UCCA annotation is a directed acyclic graph of :class:Node and :class:Edge
@@ -763,7 +762,7 @@ class Passage:
         ID: ID of the Passage
         root: simply self, for API similarity with other UCCA objects
         attrib: attribute dictionary of the Passage
-        extra: temporary storage space for undocumented attribues and data
+        extra: temporary storage space for undocumented attributes and data
         layers: all Layers of the Passage, no order guaranteed
         nodes: dictionary of ID-node pairs for all the nodes in the Passage
         frozen: indicates whether the Passage can be modified or not, boolean.
@@ -824,7 +823,7 @@ class Passage:
 
         Args:
             other: the Passage object to compare to
-            ordered: is Layer-equivalency should be ordered (see there)
+            ordered: is Layer-equivalence should be ordered (see there)
 
         Returns:
             True iff self is Passage-equivalent to other.
@@ -844,7 +843,7 @@ class Passage:
         return True
 
     def copy(self, layers):
-        """Copies the Passage and specificied layers to a new object.
+        """Copies the Passage and specified layers to a new object.
 
         The main "building block" of copying is the Layer, so copying is
         truly copying the Passage attributes (attrib, extra, ID, frozen)
