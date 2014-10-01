@@ -62,7 +62,7 @@ def run_kfold_evaluation(orig_targets, orig_labels, orig_fmat, method,
                                        c_param, nu_param, learn_rate,
                                        n_estimators)
     # We use zip(*stats) because stats are [(prec1, rec1, acc1), ((prec2 ...))]
-    # and this turns them into [(prec1, prec2 ..), (rec1, rec2 ..)] which is
+    # and this turns them into [(prec1, prec2 ...), (rec1, rec2 ..)] which is
     # what we want to use mean() on
     results = [np.mean([x for x in stat if x is not None])
                for stat in zip(*stats)]

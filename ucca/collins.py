@@ -5,9 +5,9 @@ some self-explained keys and values (and some errors too).
 
 """
 
-from postags import POSTags
 import random
 
+from ucca.postags import POSTags
 import nltk
 
 

@@ -8,12 +8,12 @@ UCCA passages is also covered.
 """
 
 import argparse
-import lex, collins
 import pickle
-from postags import POSTags
 import re
 import sys
 
+from ucca import lex, collins
+from ucca.postags import POSTags
 import nltk
 
 

@@ -1,14 +1,15 @@
-import lex
 import random
-from sklearn.cross_validation import cross_val_score
-from sklearn.ensemble import GradientBoostingClassifier
-
-import mlpy
 
 import numpy as np
 
+from sklearn.ensemble import GradientBoostingClassifier
+import mlpy
+
+
 
 # number which means the label is undecisive
+from ucca import lex
+
 UNDECISIVE_LABEL = 2
 
 

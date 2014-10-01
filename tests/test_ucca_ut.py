@@ -651,7 +651,7 @@ class ConversionTests(unittest.TestCase):
         l1 = passage.layer('1')
 
         # The Terminals in the passage are just like in test_site_terminals,
-        # with this layer1 heirarchy: [[1 C] [2 E] L] [3 4 . H]
+        # with this layer1 hierarchy: [[1 C] [2 E] L] [3 4 . H]
         # with the linker having a remark and the parallel scene is uncertain
         head = l1.heads[0]
         self.assertEqual(len(head), 12)  # including all 'unused' terminals
@@ -685,7 +685,7 @@ class ConversionTests(unittest.TestCase):
         # test. In addition, it has the following annotation:
         # [6 7 8 9 H] [10 F] .
         # the 6-9 H has remote D which is [10 F]. Inside of 6-9, we have [8 S]
-        # and [6 7 .. 9 A], where [6 E] and [7 .. 9 C].
+        # and [6 7 ... 9 A], where [6 E] and [7 ... 9 C].
         # [12 H] [13 H] [14 H] [15 L], where 15 linkage links 12, 13 and 14 and
         # [15 L] has an implicit Center unit
         head, lkg = l1.heads

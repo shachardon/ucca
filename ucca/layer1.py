@@ -8,11 +8,16 @@ the type of relation between the Nodes.
 
 """
 
-import core, layer0
 import operator
+
+from ucca import layer0
+
+
 
 
 # Layer ID
+from ucca import core
+
 LAYER_ID = '1'
 
 

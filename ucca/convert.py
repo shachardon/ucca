@@ -10,14 +10,14 @@ The possible other formats are:
 
 """
 
-import core, layer0, layer1, util
 import operator
 import re
 import string
 import sys
 import xml.sax.saxutils
-
 import xml.etree.ElementTree as ET
+
+from ucca import util, core, layer0, layer1
 
 
 class SiteXMLUnknownElement(core.UCCAError):
@@ -154,7 +154,7 @@ def _from_site_terminals(elem, passage, elem2node):
     :class:layer0.Terminal objects.
 
     Args:
-        elem: root element of the XML heirarchy
+        elem: root element of the XML hierarchy
         passage: passage to add the Terminals to, already with Layer0 object
         elem2node: dictionary whose keys are site IDs and values are the
             created UCCA Nodes which are equivalent. This function updates the
@@ -253,7 +253,7 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
         else:
             # Creating a new node, either regular or discontiguous.
             # Note that for discontiguous units we have a different work_elem,
-            # because all the data on them are stored outside the heirarchy
+            # because all the data on them are stored outside the hierarchy
             work_elem = _get_work_elem(elem)
             edge_tag = SiteCfg.TagConversion[work_elem.get(
                 SiteCfg.Attr.ElemTag)]
@@ -261,7 +261,7 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
             SiteUtil.set_node(work_elem, node, elem2node)
             _fill_attributes(work_elem, node)
             # For iterating the subelements, we don't use work_elem, as it may
-            # out of the current XML heirarchy we are processing (discont..)
+            # out of the current XML hierarchy we are processing (discont...)
             for subelem in elem:
                 tbd.extend(_parse_site_units(subelem, node, passage,
                                              groups, elem2node))
