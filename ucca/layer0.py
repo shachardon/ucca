@@ -155,8 +155,8 @@ class Layer0(core.Layer):
 
         Args:
             text: the text of the Terminal
-            punct: boolen, whether it's a punctuation mark
-            paragraph: paragraph number, defualts to 1
+            punct: boolean, whether it's a punctuation mark
+            paragraph: paragraph number, defaults to 1
 
         Returns:
             the created Terminal

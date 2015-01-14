@@ -154,7 +154,7 @@ class FormIdentifier:
     def lemmatize_noun(self, phrase):
         """Tries to lemmatize the noun (plurals, capitalization), returns
         a lemma or the same phrase if not found."""
-        # If Witkionary had an exact match, take it
+        # If Wiktionary had an exact match, take it
         try:
             wikt_lemma = self.wikt.lemmatize(phrase, POSTags.Noun)
             return wikt_lemma

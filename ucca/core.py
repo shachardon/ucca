@@ -280,9 +280,10 @@ class Edge:
             True iff the Edges are equal.
 
         """
-        if self.tag != other.tag or not self._attrib.equals(other._attrib):
-            return False
-        return self.child.equals(other.child, ordered=ordered)
+        return self.tag == other.tag and \
+               self._attrib.equals(other._attrib) and \
+               (not recursive or \
+                self.child.equals(other.child, ordered=ordered))
 
 
 class Node:
@@ -510,7 +511,7 @@ class Node:
                        for e1, e2 in zip(self, other))
         # For unordered equality, I try to find & remove an equivalent
         # Edge + Node couple from other's Edges until exhausted.
-        # Because both Edge-equality and Node-equiality are equivalence
+        # Because both Edge-equality and Node-equality are equivalence
         # classes, I can just take the first I found and remove it w/o
         # trying to iterate through possible orders.
         edges = list(other)
