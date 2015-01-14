@@ -7,6 +7,7 @@ conversions.
 The possible other formats are:
     site XML form
     standard XML form
+    CoNLL-X form
 
 """
 
@@ -681,7 +682,7 @@ def to_text(passage, sentences=True):
 
     """
     tokens = [x.text for x in sorted(passage.layer(layer0.LAYER_ID).all,
-                                     key=lambda x: x.position)]
+                                     key=operator.attrgetter('position'))]
     # break2sentences return the positions of the end tokens, which is
     # always the index into tokens incremented by ones (tokens index starts
     # with 0, positions with 1). So in essence, it returns the index to start
@@ -692,3 +693,97 @@ def to_text(passage, sentences=True):
         starts = [0, len(tokens)]
     return [' '.join(tokens[starts[i]:starts[i + 1]])
             for i in range(len(starts) - 1)]
+
+
+def from_conll(text, passage_id='1'):
+    """Converts from parsed text in CoNLL format to a Passage object.
+
+    Args:
+        text: a multi-line string in CoNLL format, describing a single passage.
+
+    Returns:
+        a Passage object.
+
+    """
+    p = core.Passage(passage_id)
+    l0 = layer0.Layer0(p)
+
+    for line in text.split("\n"):
+        position, text, _, tag, _, _, head, deprel = line.split()
+        l0.add_terminal(text=text, punct=(tag == layer0.NodeTags.Punct),
+                        paragraph=passage_id)
+        # TODO add layer1 nodes and edges according to head and deprel
+    return p
+
+
+def to_conll(passage, test=False):
+    # for layer in sorted(passage.layers, key=operator.attrgetter('ID')):
+    #     for node in layer.all:
+    #         for edge in node:
+    """ Convert from a Passage object to a string in CoNLL-X format (conll)
+
+    Args:
+        passage: the Passage object to convert
+
+    Returns:
+        a multi-line string representing the dependencies in the passage
+    """
+    ordered_tags = [
+        layer1.EdgeTags.Center,
+        layer1.EdgeTags.Connector,
+        layer1.EdgeTags.ParallelScene,
+        layer1.EdgeTags.Process,
+        layer1.EdgeTags.State,
+        layer1.EdgeTags.Participant,
+        layer1.EdgeTags.Adverbial,
+        layer1.EdgeTags.Elaborator,
+        layer1.EdgeTags.Relator,
+        layer1.EdgeTags.Function,
+        layer1.EdgeTags.Punctuation,
+        layer1.EdgeTags.Terminal,
+        layer1.EdgeTags.Linker,
+        layer1.EdgeTags.LinkRelation,
+        layer1.EdgeTags.LinkArgument,
+        layer1.EdgeTags.Ground,
+    ]
+
+    def find_head(node):
+        if node.layer.ID == layer0.LAYER_ID:
+            return node
+        elif node.layer.ID == layer1.LAYER_ID:
+            for tag in ordered_tags:
+                for edge in node.outgoing:
+                    child = edge.child
+                    if edge.tag == tag and \
+                            not child.attrib.get("implicit"):
+                        return child
+        raise Exception("Cannot find head for node ID " + node.ID)
+
+    def find_head_terminal(node):
+        if node.layer.ID == layer0.LAYER_ID:
+            return node
+        elif node.layer.ID == layer1.LAYER_ID:
+            return find_head_terminal(find_head(node))
+        return None
+
+    def find_parent_head(node):
+        if not node.parents:
+            return node, 'ROOT'
+        edge = node.incoming[0]
+        if node == find_head(edge.parent):
+            return find_parent_head(edge.parent)
+        return edge.parent, edge.tag
+
+    lines = []
+    for node in sorted(passage.layer(layer0.LAYER_ID).all,
+                       key=operator.attrgetter('position')):
+        fields = [str(node.position), node.text, "_", node.tag, node.tag, "_"]
+        if not test:
+            parent, deprel = find_parent_head(node)
+            position = find_head_terminal(parent).position
+            if position == node.position:
+                position = 0
+            fields += [str(position), deprel]
+        fields += ["_", "_"]
+        lines.append("\t".join(fields))
+    return "\n".join(lines)
