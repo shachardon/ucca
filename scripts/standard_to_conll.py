@@ -24,13 +24,15 @@ def main():
     parser.add_argument('-o', '--outfile', help="output file for CoNLL")
     parser.add_argument('-t', '--test', type=bool, const=True, default=False, nargs='?',
                         help="omit head and deprel columns?")
+    parser.add_argument('-s', '--sentences', type=bool, const=True, default=False, nargs='?',
+                        help="split passages to sentences?")
     args = parser.parse_args()
 
     handle = open(args.outfile, 'w') if args.outfile else sys.stdout
     for filename in args.filenames:
         sys.stderr.write("Reading passage '%s'...\n" % filename)
         passage = file2passage(filename)
-        output = ucca.convert.to_conll(passage, args.test)
+        output = ucca.convert.to_conll(passage, args.test, args.sentences)
         handle.write(output)
         handle.write("\n\n")
     if handle is not sys.stdout:

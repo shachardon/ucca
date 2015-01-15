@@ -716,14 +716,13 @@ def from_conll(text, passage_id='1'):
     return p
 
 
-def to_conll(passage, test=False):
-    # for layer in sorted(passage.layers, key=operator.attrgetter('ID')):
-    #     for node in layer.all:
-    #         for edge in node:
+def to_conll(passage, test=False, sentences=False):
     """ Convert from a Passage object to a string in CoNLL-X format (conll)
 
     Args:
         passage: the Passage object to convert
+        test: whether to omit the head and deprel columns. Defaults to False
+        sentences: whether to break the Passage to sentences. Defaults to False
 
     Returns:
         a multi-line string representing the dependencies in the passage
@@ -747,43 +746,57 @@ def to_conll(passage, test=False):
         layer1.EdgeTags.Ground,
     ]
 
-    def find_head(node):
-        if node.layer.ID == layer0.LAYER_ID:
-            return node
-        elif node.layer.ID == layer1.LAYER_ID:
-            for tag in ordered_tags:
-                for edge in node.outgoing:
-                    child = edge.child
-                    if edge.tag == tag and \
-                            not child.attrib.get("implicit"):
-                        return child
-        raise Exception("Cannot find head for node ID " + node.ID)
+    excluded_tags = [
+        layer1.EdgeTags.LinkRelation,
+        layer1.EdgeTags.LinkArgument,
+    ]
 
-    def find_head_terminal(node):
-        if node.layer.ID == layer0.LAYER_ID:
-            return node
-        elif node.layer.ID == layer1.LAYER_ID:
-            return find_head_terminal(find_head(node))
-        return None
+    def explicit(es):
+        return [e for e in es if
+                e.tag not in excluded_tags and
+                not e.child.attrib.get("implicit")]
 
-    def find_parent_head(node):
-        if not node.parents:
-            return node, 'ROOT'
-        edge = node.incoming[0]
-        if node == find_head(edge.parent):
-            return find_parent_head(edge.parent)
-        return edge.parent, edge.tag
+    def child_head_edge(n):
+        if n.layer.ID == layer0.LAYER_ID:
+            return n
+        for t in ordered_tags:
+            for e in explicit(n.outgoing):
+                if e.tag == t:
+                    return e
+        raise Exception("Cannot find head for node ID " + n.ID)
+
+    def child_head_terminal(n):
+        return n if n.layer.ID == layer0.LAYER_ID else \
+            child_head_terminal(child_head_edge(n).child)
+
+    def parent_heads(n):
+        es = []
+        for e in explicit(n.incoming):
+            if e == child_head_edge(e.parent):
+                es += parent_heads(e.parent)
+            else:
+                es.append(e)
+        return es
 
     lines = []
+    ends = util.break2sentences(passage) if sentences else []
+    last_end = 0
     for node in sorted(passage.layer(layer0.LAYER_ID).all,
                        key=operator.attrgetter('position')):
-        fields = [str(node.position), node.text, "_", node.tag, node.tag, "_"]
+        # counter, form, lemma, coarse POS tag, fine POS tag, features
+        fields = [node.position, node.text, "_", node.tag, node.tag, "_"]
         if not test:
-            parent, deprel = find_parent_head(node)
-            position = find_head_terminal(parent).position
-            if position == node.position:
-                position = 0
-            fields += [str(position), deprel]
-        fields += ["_", "_"]
-        lines.append("\t".join(fields))
+            edges = parent_heads(node)
+            heads = [(child_head_terminal(edge.parent).position, edge.tag)
+                     for edge in edges]
+            if sentences:
+                heads = [(pos, rel) for pos, rel in heads if pos > last_end]
+            if not heads or any([True for pos, rel in heads if pos == node.position]):
+                heads = [(0, "ROOT")]
+            fields += heads[0]   # head, dependency relation
+        fields += ["_", "_"]   # projective head, projective dependency relation (optional)
+        lines.append("\t".join([str(field) for field in fields]))
+        if node.position in ends:
+            lines.append("")
+            last_end = node.position
     return "\n".join(lines)
