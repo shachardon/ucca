@@ -632,9 +632,9 @@ def from_standard(root, extra_funcs={}):
         for node_elem in layer_elem.findall('node'):
             nodeID = node_elem.get('ID')
             tag = node_elem.get('type')
-            node = created_nodes.get(nodeID,
-                                     node_objs[tag](root=passage, ID=nodeID, tag=tag,
-                                                    attrib=get_attrib(node_elem)))
+            node = created_nodes[nodeID] if nodeID in created_nodes else \
+                node_objs[tag](root=passage, ID=nodeID, tag=tag,
+                               attrib=get_attrib(node_elem))
             add_extra(node, node_elem)
             edge_elems.extend((node, x) for x in node_elem.findall('edge'))
 
