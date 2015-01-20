@@ -835,6 +835,7 @@ class CollinsTests(unittest.TestCase):
 
 class LexTests(unittest.TestCase):
 
+    @unittest.skip
     def test_dixon(self):
         with open("./dixon-verbs.xml") as f:
             root = ETree.ElementTree().parse(f)
