@@ -17,6 +17,7 @@ import string
 import sys
 import xml.sax.saxutils
 import xml.etree.ElementTree as ET
+from collections import defaultdict
 
 from ucca import util, core, layer0, layer1
 
@@ -631,9 +632,9 @@ def from_standard(root, extra_funcs={}):
         for node_elem in layer_elem.findall('node'):
             nodeID = node_elem.get('ID')
             tag = node_elem.get('type')
-            node = (created_nodes[nodeID] if nodeID in created_nodes else
-                    node_objs[tag](root=passage, ID=nodeID, tag=tag,
-                                   attrib=get_attrib(node_elem)))
+            node = created_nodes.get(nodeID,
+                                     node_objs[tag](root=passage, ID=nodeID, tag=tag,
+                                                    attrib=get_attrib(node_elem)))
             add_extra(node, node_elem)
             edge_elems.extend((node, x) for x in node_elem.findall('edge'))
 
@@ -705,14 +706,42 @@ def from_conll(text, passage_id='1'):
         a Passage object.
 
     """
+
     p = core.Passage(passage_id)
     l0 = layer0.Layer0(p)
+    l1 = layer1.Layer1(p)
+    edges = defaultdict(list)
+    nodes = {}
+    terminals = {}
+
+    def add_nodes(head, parent):
+        node = l1.add_fnode(parent, layer1.EdgeTags.Center)
+        for position, parents in edges.items():
+            for h, deprel in parents:
+                if h == head:
+                    child = l1.add_fnode(node, deprel)
+                    nodes[position] = add_nodes(position, child)
+        return node
 
     for line in text.split("\n"):
-        position, text, _, tag, _, _, head, deprel = line.split()
-        l0.add_terminal(text=text, punct=(tag == layer0.NodeTags.Punct),
-                        paragraph=passage_id)
-        # TODO add layer1 nodes and edges according to head and deprel
+        fields = line.split()
+        if not fields:
+            continue
+        position, text, _, tag, _, _, head, deprel = fields[:8]
+        position, head = int(position), int(head)
+        punct = (tag == layer0.NodeTags.Punct)
+        terminals[position] = l0.add_terminal(text=text,
+                                              punct=punct,
+                                              paragraph=passage_id)
+        edges[position].append((head, deprel))
+
+    add_nodes(0, None)
+    for position, node in nodes.items():
+        terminal = terminals[position]
+        node.add(layer1.EdgeTags.Terminal, terminal)
+        if layer0.is_punct(terminal):
+            node.tag = layer1.NodeTags.Punctuation
+
     return p
 
 
@@ -791,7 +820,7 @@ def to_conll(passage, test=False, sentences=False):
                      for edge in edges]
             if sentences:
                 heads = [(pos, rel) for pos, rel in heads if pos > last_end]
-            if not heads or any([True for pos, rel in heads if pos == node.position]):
+            if not heads or any(pos == node.position for pos, rel in heads):
                 heads = [(0, "ROOT")]
             fields += heads[0]   # head, dependency relation
         fields += ["_", "_"]   # projective head, projective dependency relation (optional)
