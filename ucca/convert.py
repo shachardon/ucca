@@ -812,20 +812,25 @@ def to_conll(passage, test=False, sentences=False):
     last_end = 0
     for node in sorted(passage.layer(layer0.LAYER_ID).all,
                        key=operator.attrgetter('position')):
+        position = node.position - last_end
         # counter, form, lemma, coarse POS tag, fine POS tag, features
-        fields = [node.position, node.text, "_", node.tag, node.tag, "_"]
+        fields = [position, node.text, "_", node.tag, node.tag, "_"]
         if not test:
             edges = parent_heads(node)
-            heads = [(child_head_terminal(edge.parent).position, edge.tag)
+            heads = [(child_head_terminal(edge.parent).position - last_end, edge.tag)
                      for edge in edges]
-            if sentences:
-                heads = [(pos, rel) for pos, rel in heads if pos > last_end]
-            if not heads or any(pos == node.position for pos, rel in heads):
+            if last_end > 0:
+                heads = [(pos, rel) if pos > 0 else (last_root, rel)
+                         for pos, rel in heads
+                         if pos > 0 or last_root]
+            if not heads or any(pos == position for pos, rel in heads):
                 heads = [(0, "ROOT")]
+                last_root = position
             fields += heads[0]   # head, dependency relation
         fields += ["_", "_"]   # projective head, projective dependency relation (optional)
         lines.append("\t".join([str(field) for field in fields]))
         if node.position in ends:
             lines.append("")
             last_end = node.position
+            last_root = None
     return "\n".join(lines)
