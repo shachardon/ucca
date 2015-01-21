@@ -34,7 +34,6 @@ def main():
         passage = file2passage(filename)
         output = ucca.convert.to_conll(passage, args.test, args.sentences)
         handle.write(output)
-        handle.write("\n")
     if handle is not sys.stdout:
         handle.close()
 

@@ -807,10 +807,20 @@ def to_conll(passage, test=False, sentences=False):
                 es.append(e)
         return es
 
+    def filter_heads(heads, last_end, next_end, last_root):
+        for pos, rel in heads:
+            if pos > 0 and (not next_end or pos <= next_end - last_end):
+                yield (pos, rel)
+            elif last_root:
+                yield (last_root, rel)
+
     lines = []
-    ends = util.break2sentences(passage) if sentences else []
+    terminals = passage.layer(layer0.LAYER_ID).all
+    ends = util.break2sentences(passage) if sentences else [len(terminals) - 1]
     last_end = 0
-    for node in sorted(passage.layer(layer0.LAYER_ID).all,
+    next_end = ends[0]
+    last_root = None
+    for node in sorted(terminals,
                        key=operator.attrgetter('position')):
         position = node.position - last_end
         # counter, form, lemma, coarse POS tag, fine POS tag, features
@@ -819,10 +829,7 @@ def to_conll(passage, test=False, sentences=False):
             edges = parent_heads(node)
             heads = [(child_head_terminal(edge.parent).position - last_end, edge.tag)
                      for edge in edges]
-            if last_end > 0:
-                heads = [(pos, rel) if pos > 0 else (last_root, rel)
-                         for pos, rel in heads
-                         if pos > 0 or last_root]
+            heads = list(filter_heads(heads, last_end, next_end, last_root))
             if not heads or any(pos == position for pos, rel in heads):
                 heads = [(0, "ROOT")]
                 last_root = position
@@ -832,5 +839,7 @@ def to_conll(passage, test=False, sentences=False):
         if node.position in ends:
             lines.append("")
             last_end = node.position
+            index = ends.index(node.position)
+            next_end = ends[index + 1] if index < len(ends) - 1 else None
             last_root = None
     return "\n".join(lines)
