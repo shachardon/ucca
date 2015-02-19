@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 from collections import Counter
+import matplotlib.pyplot as plt
 
 import argparse
 import sys
@@ -10,10 +11,27 @@ desc = """Parses XML files in UCCA standard format, and creates a histogram for 
 from util import file2passage
 
 
+def plot_histogram(histogram):
+    parents = list(histogram.keys())
+    counts = histogram.values()
+    bars = plt.bar(parents, counts, align='center')
+    plt.xticks(parents)
+    top = 1.06 * max(counts)
+    plt.ylim(min(counts), top)
+    plt.title('Histogram: Number of Parents Per Unit')
+    plt.xlabel('number of parents')
+    plt.ylabel('count')
+    for bar in bars:
+        count = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2., count, '%.1f%%' % (100.0 * count / sum(counts)),
+                 ha='center', va='bottom')
+
+
 def main():
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('filenames', nargs='+', help="XML file names to convert")
     parser.add_argument('-o', '--outfile', help="output file for histogram")
+    parser.add_argument('-p', '--plot', help="output file for bar plot image file")
     args = parser.parse_args()
 
     histogram = Counter();
@@ -27,6 +45,12 @@ def main():
     handle.writelines(["%d,%d\n" % (parents, count) for parents, count in histogram.items()])
     if handle is not sys.stdout:
         handle.close()
+
+    plot_histogram(histogram)
+    if args.plot:
+        plt.savefig(args.plot)
+    else:
+        plt.show()
 
     sys.exit(0)
 
