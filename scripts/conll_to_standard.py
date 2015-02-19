@@ -12,7 +12,7 @@ import ucca.convert
 from site_to_standard import tostring, indent_xml
 
 
-def file2passages(filename):
+def conll2passages(filename):
     "Opens a file and returns its parsed Passage objects"
     with open(filename) as f:
         for text in f.read().split("\n\n"):
@@ -27,7 +27,7 @@ def main():
     parser.add_argument('-b', '--binary', help="output file for binary pickel")
     args = parser.parse_args()
 
-    passages = file2passages(args.filename)
+    passages = conll2passages(args.filename)
     if args.binary:
         sys.stderr.write("Writing binary file '%s'...\n" % args.binary)
         with open(args.binary, 'wb') as handle:

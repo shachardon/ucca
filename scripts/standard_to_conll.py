@@ -6,16 +6,9 @@ desc = """Parses an XML in UCCA standard format, and writes as CoNLL-X format.
 
 import argparse
 import sys
-from xml.etree.ElementTree import ElementTree
 
 import ucca.convert
-
-
-def file2passage(filename):
-    "Opens a file and returns its parsed Passage object"
-    with open(filename) as f:
-        etree = ElementTree().parse(f)
-    return ucca.convert.from_standard(etree)
+from util import file2passage
 
 
 def main():

@@ -21,7 +21,7 @@ from xml.etree.ElementTree import ElementTree, tostring, fromstring
 import ucca.convert
 
 
-def file2passage(filename):
+def site2passage(filename):
     "Opens a file and returns its parsed Passage object"
     with open(filename) as f:
         etree = ElementTree().parse(f)
@@ -79,7 +79,7 @@ def main():
         parser.error("Can't use user and passage ID options without DB file")
 
     if args.filename:
-        passage = file2passage(args.filename)
+        passage = site2passage(args.filename)
     else:
         conn = sqlite3.connect(args.db)
         c = conn.cursor()
