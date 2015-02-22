@@ -714,14 +714,14 @@ def from_conll(text, passage_id='1'):
     nodes = {}
     terminals = {}
 
-    def add_nodes(head, parent):
-        node = l1.add_fnode(parent, layer1.EdgeTags.Center)
-        for position, parents in edges.items():
-            for h, deprel in parents:
-                if h == head:
-                    child = l1.add_fnode(node, deprel)
-                    nodes[position] = add_nodes(position, child)
-        return node
+    def add_nodes(head_position, parent):
+        new_node = l1.add_fnode(parent, layer1.EdgeTags.Center)
+        for node_position, parents in edges.items():
+            for h, rel in parents:
+                if h == head_position:
+                    child = l1.add_fnode(new_node, rel)
+                    nodes[node_position] = add_nodes(node_position, child)
+        return new_node
 
     for line in text.split("\n"):
         fields = line.split()
@@ -756,7 +756,7 @@ def to_conll(passage, test=False, sentences=False):
     Returns:
         a multi-line string representing the dependencies in the passage
     """
-    ordered_tags = [
+    ordered_tags = [    # ordered list of edge labels for head selection
         layer1.EdgeTags.Center,
         layer1.EdgeTags.Connector,
         layer1.EdgeTags.ParallelScene,
@@ -775,65 +775,67 @@ def to_conll(passage, test=False, sentences=False):
         layer1.EdgeTags.Ground,
     ]
 
-    excluded_tags = [
+    excluded_tags = [   # edge labels excluded from word dependencies
         layer1.EdgeTags.LinkRelation,
         layer1.EdgeTags.LinkArgument,
     ]
 
-    def explicit(es):
-        return [e for e in es if
-                e.tag not in excluded_tags and
-                not e.child.attrib.get("implicit")]
+    lines = []  # list of output lines to return
+    terminals = passage.layer(layer0.LAYER_ID).all  # terminal units from the passage
+    ends = util.break2sentences(passage) if sentences else [len(terminals) - 1]
+    last_end = 0    # position of last encountered sentence end
+    next_end = ends[0]  # position of next sentence end to come
+    last_root = None    # position of word in this sentence with ROOT relation
 
-    def child_head_edge(n):
-        if n.layer.ID == layer0.LAYER_ID:
-            return n
-        for t in ordered_tags:
-            for e in explicit(n.outgoing):
-                if e.tag == t:
-                    return e
-        raise Exception("Cannot find head for node ID " + n.ID)
+    def filter_explicit(edges_to_filter):
+        """ filter out all implicit nodes and nodes with excluded tags """
+        return [edge for edge in edges_to_filter if
+                edge.tag not in excluded_tags and
+                not edge.child.attrib.get("implicit")]
 
-    def child_head_terminal(n):
-        return n if n.layer.ID == layer0.LAYER_ID else \
-            child_head_terminal(child_head_edge(n).child)
+    def find_head_child_edge(unit):
+        """ find the outgoing edge to the head child of this unit """
+        for edge_tag in ordered_tags:   # head selection by priority order
+            for edge in filter_explicit(unit.outgoing):
+                if edge.tag == edge_tag:
+                    return edge
+        raise Exception("Cannot find head for node ID " + unit.ID)
 
-    def parent_heads(n):
-        es = []
-        for e in explicit(n.incoming):
-            if e == child_head_edge(e.parent):
-                es += parent_heads(e.parent)
+    def find_head_terminal(unit):
+        """ find the head terminal of this unit, by recursive descent """
+        return unit if unit.layer.ID == layer0.LAYER_ID else \
+            find_head_terminal(find_head_child_edge(unit).child)
+
+    def find_ancestor_head_child_edge(unit):
+        """ find uppermost edges above here, from a head child to its parent """
+        for edge in filter_explicit(unit.incoming):
+            if edge == find_head_child_edge(edge.parent):
+                yield from find_ancestor_head_child_edge(edge.parent)
             else:
-                es.append(e)
-        return es
+                yield edge
 
-    def filter_heads(heads, last_end, next_end, last_root):
-        for pos, rel in heads:
+    def filter_heads():
+        """ filter out heads that are outside the current sentence """
+        for pos, rel in head_positions:
             if pos > 0 and (not next_end or pos <= next_end - last_end):
                 yield (pos, rel)
             elif last_root:
                 yield (last_root, rel)
 
-    lines = []
-    terminals = passage.layer(layer0.LAYER_ID).all
-    ends = util.break2sentences(passage) if sentences else [len(terminals) - 1]
-    last_end = 0
-    next_end = ends[0]
-    last_root = None
     for node in sorted(terminals,
                        key=operator.attrgetter('position')):
         position = node.position - last_end
         # counter, form, lemma, coarse POS tag, fine POS tag, features
         fields = [position, node.text, "_", node.tag, node.tag, "_"]
         if not test:
-            edges = parent_heads(node)
-            heads = [(child_head_terminal(edge.parent).position - last_end, edge.tag)
+            edges = find_ancestor_head_child_edge(node)
+            head_positions = [(find_head_terminal(edge.parent).position - last_end, edge.tag)
                      for edge in edges]
-            heads = list(filter_heads(heads, last_end, next_end, last_root))
-            if not heads or any(pos == position for pos, rel in heads):
-                heads = [(0, "ROOT")]
+            head_positions = list(filter_heads())
+            if not head_positions or any(pos == position for pos, rel in head_positions):
+                head_positions = [(0, "ROOT")]
                 last_root = position
-            fields += heads[0]   # head, dependency relation
+            fields += head_positions[0]   # head, dependency relation
         fields += ["_", "_"]   # projective head, projective dependency relation (optional)
         lines.append("\t".join([str(field) for field in fields]))
         if node.position in ends:
