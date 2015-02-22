@@ -1,4 +1,5 @@
 #! /usr/bin/python3
+from util import indent_xml
 
 
 desc = """Parses an XML in UCCA site format.
@@ -36,25 +37,6 @@ def db2passage(handle, pid, user):
                    "ORDER BY ts DESC", (pid, uid))
     raw_xml = handle.fetchone()[0]
     return ucca.convert.from_site(fromstring(raw_xml))
-
-
-def indent_xml(xml_as_string):
-    """Indents a string of XML-like objects.
-
-    This works only for units with no text or tail members, and only for
-    strings whose leaves are written as <tag /> and not <tag></tag>.
-
-    """
-    tabs = 0
-    lines = str(xml_as_string).replace('><', '>\n<').splitlines()
-    s = ''
-    for line in lines:
-        if line.startswith('</'):
-            tabs -= 1
-        s += ("  " * tabs) + line + '\n'
-        if not (line.endswith('/>') or line.startswith('</')):
-            tabs += 1
-    return s
 
 
 def main():

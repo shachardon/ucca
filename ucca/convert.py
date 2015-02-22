@@ -696,7 +696,7 @@ def to_text(passage, sentences=True):
             for i in range(len(starts) - 1)]
 
 
-def from_conll(text, passage_id='1'):
+def from_conll(lines, passage_id):
     """Converts from parsed text in CoNLL format to a Passage object.
 
     Args:
@@ -723,17 +723,19 @@ def from_conll(text, passage_id='1'):
                     nodes[node_position] = add_nodes(node_position, child)
         return new_node
 
-    for line in text.split("\n"):
+    paragraph = 1
+    for line in lines:
         fields = line.split()
-        if not fields:
-            continue
-        position, text, _, tag, _, _, head, deprel = fields[:8]
-        position, head = int(position), int(head)
-        punct = (tag == layer0.NodeTags.Punct)
-        terminals[position] = l0.add_terminal(text=text,
-                                              punct=punct,
-                                              paragraph=passage_id)
-        edges[position].append((head, deprel))
+        if fields:
+            position, text, _, tag, _, _, head, deprel = fields[:8]
+            position, head = int(position), int(head)
+            punct = (tag == layer0.NodeTags.Punct)
+            terminals[position] = l0.add_terminal(text=text,
+                                                  punct=punct,
+                                                  paragraph=paragraph)
+            edges[position].append((head, deprel))
+        else:
+            paragraph += 1
 
     add_nodes(0, None)
     for position, node in nodes.items():
