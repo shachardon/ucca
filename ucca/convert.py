@@ -10,6 +10,8 @@ The possible other formats are:
     CoNLL-X form
 
 """
+from itertools import takewhile
+from itertools import count
 
 import operator
 import re
@@ -706,43 +708,96 @@ def from_conll(lines, passage_id):
         a Passage object.
 
     """
+    class DependencyNode:
+        def __init__(self, head_position=None, rel=None, terminal=None, node=None, head=None):
+            self.head_position = head_position
+            self.rel = rel
+            self.terminal = terminal
+            self.node = node
+            self.head = head
+            self.children = []
+            self.level = None
+
+        def __repr__(self):
+            return self.terminal.text if self.terminal else "ROOT"
+
+    def topological_sort(dep_nodes):
+        # sort into topological ordering to create parents before children
+        dep_nodes_by_level = defaultdict(set)
+
+        remaining = [dep_nodes[0]]
+        while remaining:
+            dep_node = remaining.pop()
+            if dep_node.level:  # done already
+                continue
+
+            if not dep_node.children:    # leaf
+                dep_node.level = 0
+                dep_nodes_by_level[0].add(dep_node)
+                continue
+
+            remaining_children = [child for child in dep_node.children if child.level is None]
+            if remaining_children:
+                remaining.append(dep_node)
+                remaining.extend(remaining_children)
+            else:   # done all children
+                dep_node.level = 1 + max(child.level for child in dep_node.children)
+                dep_nodes_by_level[dep_node.level].add(dep_node)
+
+        return [dep_node for level, level_nodes in sorted(dep_nodes_by_level.items(),
+                                                          reverse=True)
+                for dep_node in level_nodes]
+
+    def create_nodes(dep_nodes):
+        # create nodes starting from the root and going down to pre-terminals
+        for dep_node in topological_sort(dep_nodes):
+            if dep_node.head is None or dep_node.head.head is None:
+                continue
+            dep_node.node = l1.add_fnode(dep_node.head.node, dep_node.rel)
+            if dep_node.children:    # non-leaf, must add child node as pre-terminal
+                dep_node.node = l1.add_fnode(dep_node.node, layer1.EdgeTags.Center)
+                # TODO generalize to not just center
+
+            # link pre-terminal to terminal
+            dep_node.node.add(layer1.EdgeTags.Terminal, dep_node.terminal)
+            if layer0.is_punct(dep_node.terminal):
+                dep_node.node.tag = layer1.NodeTags.Punctuation
+
+    def read_paragraph(it):
+        dep_nodes = [DependencyNode()]   # root
+        for line_number, line in enumerate(it):
+            fields = line.split()
+            if not fields:
+                break
+            position, text, _, tag, _, _, head_position, rel = fields[:8]
+            if line_number + 1 != int(position):
+                raise Exception("line number and position do not match: %d != %s" %
+                                (line_number + 1, position))
+            punctuation = (tag == layer0.NodeTags.Punct)
+            dep_nodes.append(DependencyNode(int(head_position), rel,
+                                            l0.add_terminal(text=text,
+                                                            punct=punctuation,
+                                                            paragraph=paragraph)))
+
+        for node in dep_nodes[1:]:
+            node.head = dep_nodes[node.head_position]
+            dep_nodes[node.head_position].children.append(node)
+
+        return dep_nodes if len(dep_nodes) > 1 else False
 
     p = core.Passage(passage_id)
     l0 = layer0.Layer0(p)
     l1 = layer1.Layer1(p)
-    edges = defaultdict(list)
-    nodes = {}
-    terminals = {}
-
-    def add_nodes(head_position, parent):
-        new_node = l1.add_fnode(parent, layer1.EdgeTags.Center)
-        for node_position, parents in edges.items():
-            for h, rel in parents:
-                if h == head_position:
-                    child = l1.add_fnode(new_node, rel)
-                    nodes[node_position] = add_nodes(node_position, child)
-        return new_node
-
     paragraph = 1
-    for line in lines:
-        fields = line.split()
-        if fields:
-            position, text, _, tag, _, _, head, deprel = fields[:8]
-            position, head = int(position), int(head)
-            punct = (tag == layer0.NodeTags.Punct)
-            terminals[position] = l0.add_terminal(text=text,
-                                                  punct=punct,
-                                                  paragraph=paragraph)
-            edges[position].append((head, deprel))
-        else:
-            paragraph += 1
 
-    add_nodes(0, None)
-    for position, node in nodes.items():
-        terminal = terminals[position]
-        node.add(layer1.EdgeTags.Terminal, terminal)
-        if layer0.is_punct(terminal):
-            node.tag = layer1.NodeTags.Punctuation
+    # read dependencies and terminals from lines and create nodes based upon them
+    line_iterator = iter(lines)
+    while True:
+        line_dep_nodes = read_paragraph(line_iterator)
+        if not line_dep_nodes:
+            break
+        create_nodes(line_dep_nodes)
+        paragraph += 1
 
     return p
 
@@ -775,7 +830,7 @@ def to_conll(passage, test=False, sentences=False):
         layer1.EdgeTags.LinkRelation,
         layer1.EdgeTags.LinkArgument,
         layer1.EdgeTags.Ground,
-    ]
+    ]   # TODO find optimal ordering
 
     excluded_tags = [   # edge labels excluded from word dependencies
         layer1.EdgeTags.LinkRelation,
@@ -784,7 +839,7 @@ def to_conll(passage, test=False, sentences=False):
 
     lines = []  # list of output lines to return
     terminals = passage.layer(layer0.LAYER_ID).all  # terminal units from the passage
-    ends = util.break2sentences(passage) if sentences else [len(terminals) - 1]
+    ends = util.break2sentences(passage) if sentences else [len(terminals)]
     last_end = 0    # position of last encountered sentence end
     next_end = ends[0]  # position of next sentence end to come
     last_root = None    # position of word in this sentence with ROOT relation
@@ -832,7 +887,7 @@ def to_conll(passage, test=False, sentences=False):
         if not test:
             edges = find_ancestor_head_child_edge(node)
             head_positions = [(find_head_terminal(edge.parent).position - last_end, edge.tag)
-                     for edge in edges]
+                              for edge in edges]
             head_positions = list(filter_heads())
             if not head_positions or any(pos == position for pos, rel in head_positions):
                 head_positions = [(0, "ROOT")]

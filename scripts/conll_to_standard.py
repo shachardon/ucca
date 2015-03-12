@@ -13,10 +13,11 @@ Each passage is written to the file:
 <outdir>/<prefix><passage_id>.<extension>
 """
 
+
 def conll2passage(filename, passage_id):
     """Opens a CONLL file and returns its parsed Passage objects"""
     with open(filename) as f:
-        return ucca.convert.from_conll(f.readlines(), passage_id)
+        return ucca.convert.from_conll(f, passage_id)
 
 
 def main():

@@ -9,6 +9,7 @@ from util import file2passage
 desc = """Parses an XML in UCCA standard format, and writes as CoNLL-X format.
 """
 
+
 def main():
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('filenames', nargs='+', help="passage file names to convert")
