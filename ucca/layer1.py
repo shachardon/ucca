@@ -439,7 +439,7 @@ class Layer1(core.Layer):
             if ID not in self._all:
                 return ID
             else:
-                n = n + 1
+                n += 1
 
     def add_fnode(self, parent, edge_tag, *, implicit=False):
         """Adds a new :class:FNode whose parent and Edge tag are given.
