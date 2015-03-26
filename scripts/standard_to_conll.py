@@ -31,7 +31,7 @@ def main():
         outfile = "%s/%s%s.conll" % (args.outdir, args.prefix, passage.ID)
         sys.stderr.write("Writing CONLL file '%s'...\n" % outfile)
         with open(outfile, 'w') as h:
-            h.write(output)
+            h.write(output + "\n")
 
     sys.exit(0)
 
