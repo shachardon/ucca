@@ -697,6 +697,7 @@ def to_text(passage, sentences=True):
     return [' '.join(tokens[starts[i]:starts[i + 1]])
             for i in range(len(starts) - 1)]
 
+ROOT = "ROOT"
 
 def from_conll(lines, passage_id):
     """Converts from parsed text in CoNLL format to a Passage object.
@@ -723,40 +724,35 @@ def from_conll(lines, passage_id):
 
     def topological_sort(dep_nodes):
         # sort into topological ordering to create parents before children
-        dep_nodes_by_level = defaultdict(set)
+        dep_nodes_by_level = defaultdict(set)   # levels start from 0 (root)
 
-        remaining = [dep_nodes[0]]
+        remaining = [dep_node for dep_node in dep_nodes if not dep_node.children]  # leaves
         while remaining:
             dep_node = remaining.pop()
             if dep_node.level:  # done already
-                continue
-
-            if not dep_node.children:    # leaf
+                pass
+            elif dep_node.head is None:    # root
                 dep_node.level = 0
                 dep_nodes_by_level[0].add(dep_node)
-                continue
-
-            remaining_children = [child for child in dep_node.children if child.level is None]
-            if remaining_children:
+            elif dep_node.head.level is None:
                 remaining.append(dep_node)
-                remaining.extend(remaining_children)
-            else:   # done all children
-                dep_node.level = 1 + max(child.level for child in dep_node.children)
+                remaining.append(dep_node.head)
+            else:   # done with head
+                dep_node.level = 1 + dep_node.head.level
                 dep_nodes_by_level[dep_node.level].add(dep_node)
 
-        return [dep_node for level, level_nodes in sorted(dep_nodes_by_level.items(),
-                                                          reverse=True)
-                for dep_node in level_nodes]
+        return [dep_node for level, level_nodes in sorted(dep_nodes_by_level.items())
+                if level > 0
+                for dep_node in sorted(level_nodes, key=lambda x: x.terminal.position)]
 
     def create_nodes(dep_nodes):
         # create nodes starting from the root and going down to pre-terminals
         for dep_node in topological_sort(dep_nodes):
-            if dep_node.head is None or dep_node.head.head is None:
-                continue
             if dep_node.rel == layer1.EdgeTags.Terminal:  # part of non-analyzable expression
                 dep_node.node = dep_node.head.node  # only edges to layer 0 can have tag T
             else:
-                dep_node.node = l1.add_fnode(dep_node.head.node, dep_node.rel)
+                if dep_node.rel != ROOT:
+                    dep_node.node = l1.add_fnode(dep_node.head.node, dep_node.rel)
                 if dep_node.children:    # non-leaf, must add child node as pre-terminal
                     dep_node.node = l1.add_fnode(dep_node.node, layer1.EdgeTags.Center)
                     # TODO generalize to not just center
@@ -893,7 +889,7 @@ def to_conll(passage, test=False, sentences=False):
                               for edge in edges]
             head_positions = list(filter_heads())
             if not head_positions or any(pos == position for pos, rel in head_positions):
-                head_positions = [(0, "ROOT")]
+                head_positions = [(0, ROOT)]
                 last_root = position
             fields += head_positions[0]   # head, dependency relation
         fields += ["_", "_"]   # projective head, projective dependency relation (optional)
