@@ -196,4 +196,4 @@ class Layer0(core.Layer):
 
 def is_punct(node):
     """Returns whether the unit is a layer0 punctuation (for all Units)."""
-    return (node.punct if node.layer == LAYER_ID else False)
+    return node.punct if node.layer.ID == LAYER_ID else False
