@@ -753,10 +753,13 @@ def from_conll(lines, passage_id):
         for dep_node in topological_sort(dep_nodes):
             if dep_node.head is None or dep_node.head.head is None:
                 continue
-            dep_node.node = l1.add_fnode(dep_node.head.node, dep_node.rel)
-            if dep_node.children:    # non-leaf, must add child node as pre-terminal
-                dep_node.node = l1.add_fnode(dep_node.node, layer1.EdgeTags.Center)
-                # TODO generalize to not just center
+            if dep_node.rel == layer1.EdgeTags.Terminal:  # part of non-analyzable expression
+                dep_node.node = dep_node.head.node  # only edges to layer 0 can have tag T
+            else:
+                dep_node.node = l1.add_fnode(dep_node.head.node, dep_node.rel)
+                if dep_node.children:    # non-leaf, must add child node as pre-terminal
+                    dep_node.node = l1.add_fnode(dep_node.node, layer1.EdgeTags.Center)
+                    # TODO generalize to not just center
 
             # link pre-terminal to terminal
             dep_node.node.add(layer1.EdgeTags.Terminal, dep_node.terminal)
@@ -825,11 +828,11 @@ def to_conll(passage, test=False, sentences=False):
         layer1.EdgeTags.Relator,
         layer1.EdgeTags.Function,
         layer1.EdgeTags.Punctuation,
-        layer1.EdgeTags.Terminal,
         layer1.EdgeTags.Linker,
         layer1.EdgeTags.LinkRelation,
         layer1.EdgeTags.LinkArgument,
         layer1.EdgeTags.Ground,
+        layer1.EdgeTags.Terminal,
     ]   # TODO find optimal ordering
 
     excluded_tags = [   # edge labels excluded from word dependencies
@@ -856,7 +859,7 @@ def to_conll(passage, test=False, sentences=False):
             for edge in filter_explicit(unit.outgoing):
                 if edge.tag == edge_tag:
                     return edge
-        raise Exception("Cannot find head for node ID " + unit.ID)
+        raise Exception("Cannot find head child for node ID " + unit.ID)
 
     def find_head_terminal(unit):
         """ find the head terminal of this unit, by recursive descent """
