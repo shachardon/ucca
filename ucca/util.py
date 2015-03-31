@@ -22,9 +22,6 @@ def break2sentences(passage):
     """
     l1 = passage.layer(layer1.LAYER_ID)
     terminals = passage.layer(layer0.LAYER_ID).all
-    paragraph_ends = [(t.position - 1) for t in terminals
-                      if t.position != 1 and t.para_pos == 1]
-    paragraph_ends.append(terminals[-1].position)
     ps_ends = [ps.end_position for ps in l1.top_scenes]
     ps_starts = [ps.start_position for ps in l1.top_scenes]
     marks = [t.position for t in terminals if t.text in SENTENCE_END_MARKS]
@@ -34,4 +31,24 @@ def break2sentences(passage):
     # in any way (hence it probably just "hangs" there), it's a sentence end
     marks = [x for x in marks
              if x in ps_ends or ((x - 1) in ps_ends and x not in ps_starts)]
-    return sorted(set(marks + paragraph_ends))
+    return sorted(set(marks + break2paragraphs(passage)))
+
+
+def break2paragraphs(passage):
+    """Breaks into paragraphs according to the annotation.
+
+    Uses the `paragraph' attribute of layer 0 to find paragraphs.
+
+    Args:
+        passage: the Passage object to operate on
+
+    Returns:
+        a list of positions in the Passage, each denotes a closing Terminal
+        of a paragraph.
+
+    """
+    terminals = passage.layer(layer0.LAYER_ID).all
+    paragraph_ends = [(t.position - 1) for t in terminals
+                      if t.position != 1 and t.para_pos == 1]
+    paragraph_ends.append(terminals[-1].position)
+    return paragraph_ends

@@ -851,7 +851,7 @@ def to_conll(passage, test=False, sentences=False):
 
     lines = []  # list of output lines to return
     terminals = passage.layer(layer0.LAYER_ID).all  # terminal units from the passage
-    ends = util.break2sentences(passage) if sentences else [len(terminals)]
+    ends = util.break2sentences(passage) if sentences else util.break2paragraphs(passage)
     last_end = 0    # position of last encountered sentence end
     next_end = ends[0]  # position of next sentence end to come
     last_root = None    # position of word in this sentence with ROOT relation
