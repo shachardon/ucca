@@ -724,50 +724,54 @@ def from_conll(lines, passage_id):
 
     def topological_sort(dep_nodes):
         # sort into topological ordering to create parents before children
-        dep_nodes_by_level = defaultdict(set)   # levels start from 0 (root)
-
+        levels = defaultdict(set)   # levels start from 0 (root)
         remaining = [dep_node for dep_node in dep_nodes if not dep_node.children]  # leaves
         while remaining:
             dep_node = remaining.pop()
-            if dep_node.level:  # done already
+            if dep_node.level is not None:  # done already
                 pass
-            elif dep_node.head is None:    # root
+            elif dep_node.head is None:  # root
                 dep_node.level = 0
-                dep_nodes_by_level[0].add(dep_node)
-            elif dep_node.head.level is None:
+                levels[0].add(dep_node)
+            elif dep_node.head.level is None:  # need to process head first
                 remaining.append(dep_node)
                 remaining.append(dep_node.head)
-            else:   # done with head
+            else:  # done with head
                 dep_node.level = 1 + dep_node.head.level
-                dep_nodes_by_level[dep_node.level].add(dep_node)
+                levels[dep_node.level].add(dep_node)
 
-        return [dep_node for level, level_nodes in sorted(dep_nodes_by_level.items())
-                if level > 0    # omit the artificial root
+        return [dep_node for level, level_nodes in sorted(levels.items())
+                if level > 0  # omit the dummy root
                 for dep_node in sorted(level_nodes, key=lambda x: x.terminal.position)]
 
     def create_nodes(dep_nodes):
         # create nodes starting from the root and going down to pre-terminals
         for dep_node in topological_sort(dep_nodes):
             if dep_node.rel == layer1.EdgeTags.Terminal:  # part of non-analyzable expression
-                dep_node.preterminal = dep_node.head.node  # only edges to layer 0 can have tag T
-            elif dep_node.rel == ROOT:    # a child of the artificial root will be a root itself
+                dep_node.preterminal = dep_node.head.preterminal  # only edges to layer 0 can be T
+            elif dep_node.rel == ROOT:  # a child of the dummy root will be a root itself
                 dep_node.preterminal = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
             else:
                 head = dep_node.head
-                if any(child.rel == layer1.EdgeTags.Terminal for child in head.children):
-                    head = head.head
+                # if any(child.rel == layer1.EdgeTags.Terminal for child in head.children):
+                #     head = head.head
                 dep_node.node = l1.add_fnode(head.node, dep_node.rel)
                 if dep_node.children:    # non-leaf, must add child node as pre-terminal
-                    dep_node.node = l1.add_fnode(dep_node.node, layer1.EdgeTags.Center)
-                dep_node.preterminal = dep_node.node
+                    dep_node.preterminal = l1.add_fnode(dep_node.node, layer1.EdgeTags.Center)
+                else:
+                    dep_node.preterminal = dep_node.node
 
             # link pre-terminal to terminal
             dep_node.preterminal.add(layer1.EdgeTags.Terminal, dep_node.terminal)
             if layer0.is_punct(dep_node.terminal):
                 dep_node.preterminal.tag = layer1.NodeTags.Punctuation
+            print("%-30s node=%-5s preterminal=%-5s head=%-5s" % (dep_node.terminal.text,
+                                                   "1.1" if dep_node.node is None else dep_node.node.ID,
+                                                   dep_node.preterminal.ID,
+                                                   "1.1" if dep_node.head.node is None else dep_node.head.node.ID))
 
     def read_paragraph(it):
-        dep_nodes = [DependencyNode()]   # root
+        dep_nodes = [DependencyNode()]  # dummy root
         for line_number, line in enumerate(it):
             fields = line.split()
             if not fields:
