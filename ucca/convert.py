@@ -742,25 +742,29 @@ def from_conll(lines, passage_id):
                 dep_nodes_by_level[dep_node.level].add(dep_node)
 
         return [dep_node for level, level_nodes in sorted(dep_nodes_by_level.items())
-                if level > 0
+                if level > 0    # omit the artificial root
                 for dep_node in sorted(level_nodes, key=lambda x: x.terminal.position)]
 
     def create_nodes(dep_nodes):
         # create nodes starting from the root and going down to pre-terminals
         for dep_node in topological_sort(dep_nodes):
             if dep_node.rel == layer1.EdgeTags.Terminal:  # part of non-analyzable expression
-                dep_node.node = dep_node.head.node  # only edges to layer 0 can have tag T
+                dep_node.preterminal = dep_node.head.node  # only edges to layer 0 can have tag T
+            elif dep_node.rel == ROOT:    # a child of the artificial root will be a root itself
+                dep_node.preterminal = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
             else:
-                if dep_node.rel != ROOT:
-                    dep_node.node = l1.add_fnode(dep_node.head.node, dep_node.rel)
+                head = dep_node.head
+                if any(child.rel == layer1.EdgeTags.Terminal for child in head.children):
+                    head = head.head
+                dep_node.node = l1.add_fnode(head.node, dep_node.rel)
                 if dep_node.children:    # non-leaf, must add child node as pre-terminal
                     dep_node.node = l1.add_fnode(dep_node.node, layer1.EdgeTags.Center)
-                    # TODO generalize to not just center
+                dep_node.preterminal = dep_node.node
 
             # link pre-terminal to terminal
-            dep_node.node.add(layer1.EdgeTags.Terminal, dep_node.terminal)
+            dep_node.preterminal.add(layer1.EdgeTags.Terminal, dep_node.terminal)
             if layer0.is_punct(dep_node.terminal):
-                dep_node.node.tag = layer1.NodeTags.Punctuation
+                dep_node.preterminal.tag = layer1.NodeTags.Punctuation
 
     def read_paragraph(it):
         dep_nodes = [DependencyNode()]   # root
@@ -843,16 +847,16 @@ def to_conll(passage, test=False, sentences=False):
     next_end = ends[0]  # position of next sentence end to come
     last_root = None    # position of word in this sentence with ROOT relation
 
-    def filter_explicit(edges_to_filter):
+    def is_valid(edge):
         """ filter out all implicit nodes and nodes with excluded tags """
-        return [edge for edge in edges_to_filter if
-                edge.tag not in excluded_tags and
-                not edge.child.attrib.get("implicit")]
+        return edge.tag not in excluded_tags and \
+            not edge.child.attrib.get("implicit") and \
+            not edge.attrib.get("remote")
 
     def find_head_child_edge(unit):
         """ find the outgoing edge to the head child of this unit """
         for edge_tag in ordered_tags:   # head selection by priority order
-            for edge in filter_explicit(unit.outgoing):
+            for edge in filter(is_valid, unit.outgoing):
                 if edge.tag == edge_tag:
                     return edge
         raise Exception("Cannot find head child for node ID " + unit.ID)
@@ -864,7 +868,7 @@ def to_conll(passage, test=False, sentences=False):
 
     def find_ancestor_head_child_edge(unit):
         """ find uppermost edges above here, from a head child to its parent """
-        for edge in filter_explicit(unit.incoming):
+        for edge in filter(is_valid, unit.incoming):
             if edge == find_head_child_edge(edge.parent):
                 yield from find_ancestor_head_child_edge(edge.parent)
             else:
