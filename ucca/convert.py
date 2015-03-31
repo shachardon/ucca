@@ -765,10 +765,10 @@ def from_conll(lines, passage_id):
             dep_node.preterminal.add(layer1.EdgeTags.Terminal, dep_node.terminal)
             if layer0.is_punct(dep_node.terminal):
                 dep_node.preterminal.tag = layer1.NodeTags.Punctuation
-            print("%-30s node=%-5s preterminal=%-5s head=%-5s" % (dep_node.terminal.text,
-                                                   "1.1" if dep_node.node is None else dep_node.node.ID,
-                                                   dep_node.preterminal.ID,
-                                                   "1.1" if dep_node.head.node is None else dep_node.head.node.ID))
+            # print("%-30s node=%-5s preterminal=%-5s head=%-5s" % (dep_node.terminal.text,
+            #                                        "1.1" if dep_node.node is None else dep_node.node.ID,
+            #                                        dep_node.preterminal.ID,
+            #                                        "1.1" if dep_node.head.node is None else dep_node.head.node.ID))
 
     def read_paragraph(it):
         dep_nodes = [DependencyNode()]  # dummy root
