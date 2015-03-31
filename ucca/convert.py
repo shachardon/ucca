@@ -744,20 +744,25 @@ def from_conll(lines, passage_id):
                 if level > 0  # omit the dummy root
                 for dep_node in sorted(level_nodes, key=lambda x: x.terminal.position)]
 
+    def label_edge(dep_node):
+        if any(child.rel == layer1.EdgeTags.ParallelScene for child in dep_node.children):
+            return layer1.EdgeTags.ParallelScene
+        elif any(child.rel == layer1.EdgeTags.Participant for child in dep_node.children):
+            return layer1.EdgeTags.Process
+        else:
+            return layer1.EdgeTags.Center
+
     def create_nodes(dep_nodes):
         # create nodes starting from the root and going down to pre-terminals
         for dep_node in topological_sort(dep_nodes):
             if dep_node.rel == layer1.EdgeTags.Terminal:  # part of non-analyzable expression
                 dep_node.preterminal = dep_node.head.preterminal  # only edges to layer 0 can be T
             elif dep_node.rel == ROOT:  # a child of the dummy root will be a root itself
-                dep_node.preterminal = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+                dep_node.preterminal = l1.add_fnode(None, label_edge(dep_node))
             else:
-                head = dep_node.head
-                # if any(child.rel == layer1.EdgeTags.Terminal for child in head.children):
-                #     head = head.head
-                dep_node.node = l1.add_fnode(head.node, dep_node.rel)
+                dep_node.node = l1.add_fnode(dep_node.head.node, dep_node.rel)
                 if dep_node.children:    # non-leaf, must add child node as pre-terminal
-                    dep_node.preterminal = l1.add_fnode(dep_node.node, layer1.EdgeTags.Center)
+                    dep_node.preterminal = l1.add_fnode(dep_node.node, label_edge(dep_node))
                 else:
                     dep_node.preterminal = dep_node.node
 
