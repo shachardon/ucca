@@ -1,8 +1,7 @@
 import argparse
 from glob import glob
 from posix import mkdir
-from os import rename, path
-from shutil import copyfile
+from os import rename, symlink, path
 
 desc = """Split a directory of files into 'train', 'dev' and 'test' directories.
 Moves existing files into 'all' directory.
@@ -18,13 +17,13 @@ def split_passages(filenames, train=TRAIN_DEFAULT, dev=DEV_DEFAULT):
         if not path.exists(directory):
             mkdir(directory)
     for f in filenames:
-        copyfile(f, 'all/' + f)
+        rename(f, 'all/' + f)
     for f in filenames[:train]:
-        rename(f, 'train/' + f)
+        symlink('../all/' + f, 'train/' + f)
     for f in filenames[train:train + dev]:
-        rename(f, 'dev/' + f)
+        symlink('../all/' + f, 'dev/' + f)
     for f in filenames[train + dev:]:
-        rename(f, 'test/' + f)
+        symlink('../all/' + f, 'test/' + f)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=desc)
