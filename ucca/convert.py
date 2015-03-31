@@ -756,7 +756,10 @@ def from_conll(lines, passage_id):
         # create nodes starting from the root and going down to pre-terminals
         for dep_node in topological_sort(dep_nodes):
             if dep_node.rel == layer1.EdgeTags.Terminal:  # part of non-analyzable expression
-                dep_node.preterminal = dep_node.head.preterminal  # only edges to layer 0 can be T
+                head = dep_node.head
+                if layer0.is_punct(head.terminal):
+                    head = head.head  # do not put terminals and punctuation together
+                dep_node.preterminal = head.preterminal  # only edges to layer 0 can be T
             elif dep_node.rel == ROOT:  # a child of the dummy root will be a root itself
                 dep_node.preterminal = l1.add_fnode(None, label_edge(dep_node))
             else:
@@ -836,12 +839,12 @@ def to_conll(passage, test=False, sentences=False):
         layer1.EdgeTags.Elaborator,
         layer1.EdgeTags.Relator,
         layer1.EdgeTags.Function,
-        layer1.EdgeTags.Punctuation,
         layer1.EdgeTags.Linker,
         layer1.EdgeTags.LinkRelation,
         layer1.EdgeTags.LinkArgument,
         layer1.EdgeTags.Ground,
         layer1.EdgeTags.Terminal,
+        layer1.EdgeTags.Punctuation,
     ]   # TODO find optimal ordering
 
     excluded_tags = [   # edge labels excluded from word dependencies
