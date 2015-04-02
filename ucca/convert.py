@@ -745,11 +745,12 @@ def from_conll(lines, passage_id):
                 for dep_node in sorted(level_nodes, key=lambda x: x.terminal.position)]
 
     def label_edge(dep_node):
+        child_rels = (child.rel for child in dep_node.children)
         if layer0.is_punct(dep_node.terminal):
             return layer1.EdgeTags.Punctuation
-        elif any(child.rel == layer1.EdgeTags.ParallelScene for child in dep_node.children):
+        elif layer1.EdgeTags.ParallelScene in child_rels:
             return layer1.EdgeTags.ParallelScene
-        elif any(child.rel == layer1.EdgeTags.Participant for child in dep_node.children):
+        elif layer1.EdgeTags.Participant in child_rels:
             return layer1.EdgeTags.Process
         else:
             return layer1.EdgeTags.Center
