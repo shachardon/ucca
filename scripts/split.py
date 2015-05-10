@@ -35,4 +35,4 @@ if __name__ == '__main__':
                         help="size of dev split (default: %d)" % DEV_DEFAULT)
     args = parser.parse_args()
 
-    split_passages(args.filenames, args.train, args.dev)
+    split_passages(sorted(args.filenames), args.train, args.dev)
