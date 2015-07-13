@@ -776,10 +776,6 @@ def from_conll(lines, passage_id):
             dep_node.preterminal.add(layer1.EdgeTags.Terminal, dep_node.terminal)
             if layer0.is_punct(dep_node.terminal):
                 dep_node.preterminal.tag = layer1.NodeTags.Punctuation
-            # print("%-30s node=%-5s preterminal=%-5s head=%-5s" % (dep_node.terminal.text,
-            #                                        "1.1" if dep_node.node is None else dep_node.node.ID,
-            #                                        dep_node.preterminal.ID,
-            #                                        "1.1" if dep_node.head.node is None else dep_node.head.node.ID))
 
     def read_paragraph(it):
         dep_nodes = [DependencyNode()]  # dummy root
@@ -881,11 +877,11 @@ def to_conll(passage, test=False, sentences=False):
         return unit if unit.layer.ID == layer0.LAYER_ID else \
             find_head_terminal(find_head_child_edge(unit).child)
 
-    def find_ancestor_head_child_edge(unit):
+    def find_top_headed_edges(unit):
         """ find uppermost edges above here, from a head child to its parent """
         for edge in filter(is_valid, unit.incoming):
             if edge == find_head_child_edge(edge.parent):
-                yield from find_ancestor_head_child_edge(edge.parent)
+                yield from find_top_headed_edges(edge.parent)
             else:
                 yield edge
 
@@ -903,7 +899,7 @@ def to_conll(passage, test=False, sentences=False):
         # counter, form, lemma, coarse POS tag, fine POS tag, features
         fields = [position, node.text, "_", node.tag, node.tag, "_"]
         if not test:
-            edges = find_ancestor_head_child_edge(node)
+            edges = find_top_headed_edges(node)
             head_positions = [(find_head_terminal(edge.parent).position - last_end, edge.tag)
                               for edge in edges]
             head_positions = list(filter_heads())
