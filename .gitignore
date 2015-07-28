@@ -10,5 +10,7 @@ __pycache__*
 /regression-*
 /toy/ucca_passage*
 /results_latest.csv
+/private
+/server
 /.project
 /.pydevproject
