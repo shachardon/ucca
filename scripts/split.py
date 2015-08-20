@@ -4,26 +4,22 @@ from posix import mkdir
 from os import rename, symlink, path
 
 desc = """Split a directory of files into 'train', 'dev' and 'test' directories.
-Moves existing files into 'all' directory.
 All files not in either 'train' or 'dev' will go into 'test'.
 """
-TRAIN_DEFAULT = 300
-DEV_DEFAULT = 30
+TRAIN_DEFAULT = 290
+DEV_DEFAULT = 35
 # TEST on all the rest
 
-
 def split_passages(filenames, train=TRAIN_DEFAULT, dev=DEV_DEFAULT):
-    for directory in 'all', 'train', 'dev', 'test':
+    for directory in 'train', 'dev', 'test':
         if not path.exists(directory):
             mkdir(directory)
-    for f in filenames:
-        rename(f, 'all/' + f)
     for f in filenames[:train]:
-        symlink('../all/' + f, 'train/' + f)
+        symlink('../' + f, 'train/' + f)
     for f in filenames[train:train + dev]:
-        symlink('../all/' + f, 'dev/' + f)
+        symlink('../' + f, 'dev/' + f)
     for f in filenames[train + dev:]:
-        symlink('../all/' + f, 'test/' + f)
+        symlink('../' + f, 'test/' + f)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=desc)

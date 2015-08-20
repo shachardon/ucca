@@ -760,9 +760,12 @@ def from_conll(lines, passage_id):
         for dep_node in topological_sort(dep_nodes):
             if dep_node.rel == layer1.EdgeTags.Terminal:  # part of non-analyzable expression
                 head = dep_node.head
-                if layer0.is_punct(head.terminal):
+                if layer0.is_punct(head.terminal) and head.head.head is not None:
                     head = head.head  # do not put terminals and punctuation together
-                dep_node.preterminal = head.preterminal  # only edges to layer 0 can be T
+                try:
+                    dep_node.preterminal = head.preterminal  # only edges to layer 0 can be T
+                except AttributeError:
+                    raise Exception("Node '%s' has no preterminal" % head)
             elif dep_node.rel == ROOT:  # a child of the dummy root will be a root itself
                 dep_node.preterminal = l1.add_fnode(None, label_edge(dep_node))
             else:
