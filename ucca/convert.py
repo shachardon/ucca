@@ -697,6 +697,52 @@ def to_text(passage, sentences=True):
     return [' '.join(tokens[starts[i]:starts[i + 1]])
             for i in range(len(starts) - 1)]
 
+
+def to_sequence(passage, sentences=True):
+    """Converts from a Passage object to linearized text sequence.
+
+    Args:
+        passage: the Passage object to convert
+        sentences: whether to break the Passage to sentences (one for string)
+        or leave as one string. Defaults to True
+
+    Returns:
+        a list of strings - 1 if sentences=False, # of sentences otherwise
+
+    """
+    def position(edge):
+        while edge.child.layer.ID != layer0.LAYER_ID:
+            edge = edge.child.outgoing[0]
+        return tuple(map(edge.child.attrib.get, ('paragraph', 'paragraph_position')))
+
+    seq = ''
+    done = []
+    stacks = []
+    edges = [e for u in passage.layer(layer1.LAYER_ID).all
+             if not u.incoming for e in u.outgoing
+             if e.tag[0] != 'L']
+    while True:
+        if edges:
+            stacks.append(sorted(edges, key=position, reverse=True))
+        else:
+            stacks[-1].pop()
+            while not stacks[-1]:
+                stacks.pop()
+                if not stacks:
+                    return seq.rstrip()
+                seq += ']_'
+                seq += stacks[-1][-1].tag
+                seq += ' '
+                stacks[-1].pop()
+        e = stacks[-1][-1]
+        done.append(e.child)
+        edges = [c for c in e.child.outgoing if c.child not in done]
+        if edges:
+            seq += '['
+        seq += e.child.attrib.get('text') or e.tag
+        seq += ' '
+
+
 ROOT = "ROOT"
 
 def from_conll(lines, passage_id):

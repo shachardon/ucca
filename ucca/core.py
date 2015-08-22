@@ -285,6 +285,9 @@ class Edge:
                (not recursive or \
                 self.child.equals(other.child, ordered=ordered))
 
+    def __repr__(self):
+        return self.ID
+
 
 class Node:
     """Labeled Node in UCCA annotation graph.
