@@ -7,31 +7,38 @@ Implements the arc-eager algorithm.
 
 class Oracle:
     def __init__(self, passage):
-        self.edges_done = set()
+        self.nodes_created = set(["1.1"])
+        self.edges_created = set()
         self.passage = passage
 
-    def filter_edges_done(self, edges):
-        return [e for e in edges if e not in self.edges_done]
-
     def get_action(self, config):
-        if config.stack and config.buffer:
+        if not config.stack and not config.buffer or \
+                self.nodes_created == set(self.passage.nodes):  # FIXME handle missing edges
+            return "FINISH", None
+        if config.stack:
             s = self.passage.by_id(config.stack[-1].node_id)
-            b = self.passage.by_id(config.buffer[0].node_id)
-            for edge in self.filter_edges_done(s.incoming):
-                if len(edge.parent.outgoing) == 1:
-                    self.edges_done.add(edge)
-                    return "UNARY-" + edge.tag, edge.parent.ID
-            for edge in self.filter_edges_done(b.outgoing):  # FIXME not possible since only terminals are on buffer
-                if edge.child.ID == s.ID:
-                    self.edges_done.add(edge)
-                    return "LEFT-ARC-" + edge.tag, edge.parent.ID
-            for edge in self.filter_edges_done(s.outgoing):
-                if edge.child.ID == b.ID:
-                    self.edges_done.add(edge)
-                    return "RIGHT-ARC-" + edge.tag, edge.parent.ID
-            if not self.filter_edges_done(s.outgoing + s.incoming):
+            if not self.filter_created(s.incoming + s.outgoing):
                 return "REDUCE", None
+        if config.buffer:
+            b = self.passage.by_id(config.buffer[0].node_id)
+            for edge in self.filter_created(b.incoming):
+                if edge.parent.ID not in self.nodes_created:
+                    self.edges_created.add(edge)
+                    self.nodes_created.add(edge.parent.ID)
+                    return "NODE-" + edge.tag, edge.parent.ID
+        else:
+            return "WRAP", None
+        if config.stack and config.buffer:
+            for edge in self.filter_created(s.outgoing):
+                if edge.child.ID == b.ID:
+                    self.edges_created.add(edge)
+                    return "EDGE-" + edge.tag, edge.parent.ID
+        # TODO return "SWAP", None if there is an edge to create from s to something further along the buffer.
         return "SHIFT", None
+
+    def filter_created(self, edges):
+        return [e for e in edges if e not in self.edges_created and e.tag[0] != "L"]  # FIXME handle linkage
+
 
 """
 def get_action(passage, config):

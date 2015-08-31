@@ -50,29 +50,27 @@ class Configuration:
         self.stack = [self.add_node("1.1")]
         self.passage_id = passage_id
 
-    def is_terminal(self):
-        return not self.buffer
-
     def apply_action(self, action, node_id=None):
         m = re.match("(.*)-(.*)", action)
         if m:
             action_type, tag = m.groups()
-            if action_type == "UNARY":
+            if action_type == "NODE":
                 parent = self.add_node(node_id)
-                parent.add_edge(self.stack.pop(), tag)
+                parent.add_edge(self.buffer[0], tag)
                 self.stack.append(parent)
-            elif action_type == "LEFT-ARC":
-                self.buffer[0].add_edge(self.stack.pop(), tag)
-            elif action_type == "RIGHT-ARC":
-                b = self.buffer[0]
-                self.stack[-1].add_edge(b, tag)
-                self.stack.append(b)
+            elif action_type == "EDGE":
+                self.stack[-1].add_edge(self.buffer[0], tag)
             else:
                 raise Exception("Invalid action: " + action_type)
         elif action == "REDUCE":
             self.stack.pop()
         elif action == "SHIFT":
             self.stack.append(self.buffer.popleft())
+        elif action == "WRAP":
+            self.buffer = deque(self.stack)
+            self.stack = []
+        elif action == "FINISH":
+            pass
         else:
             raise Exception("Invalid action: " + action)
 
@@ -97,8 +95,8 @@ class Configuration:
                 child = self.nodes[child_index]
                 child.node = self.add_layer1_node(child, child_index, l1, n, tag, terminals)
         for n in linkage:
-            link_relation = (self.nodes[i].node for i, t in n.outgoing.items()
-                             if t == layer1.EdgeTags.LinkRelation)[0]
+            link_relation = [self.nodes[i].node for i, t in n.outgoing.items()
+                             if t == layer1.EdgeTags.LinkRelation][0]
             link_args = (self.nodes[i].node for i, t in n.outgoing.items()
                          if t == layer1.EdgeTags.LinkArgument)
             n.node = l1.add_linkage(link_relation, link_args)
@@ -120,10 +118,10 @@ class Configuration:
 class Parser:
     def __init__(self):
         self.config = None
-        self.actions = [action + relation for action in ("UNARY-", "LEFT-ARC-", "RIGHT-ARC-")
+        self.actions = [action + relation for action in ("NODE-", "EDGE-")
                         for name, relation in layer1.EdgeTags.__dict__.items()
                         if isinstance(relation, str) and not name.startswith('__')] +\
-                       ["REDUCE", "SHIFT"]
+                       ["REDUCE", "SHIFT", "WRAP", "FINISH"]
         self.actions_reverse = {action: i for i, action in enumerate(self.actions)}
         self.features = [lambda config: len(config.stack),
                          lambda config: len(config.buffer)]
@@ -138,21 +136,25 @@ class Parser:
             for passage in passages:
                 self.config = Configuration(passage, passage.ID)
                 oracle = Oracle(passage)
-                while not self.config.is_terminal():
+                while True:
                     pred_action = self.predict_action()
                     true_action, node_id = oracle.get_action(self.config)
                     if pred_action != true_action:
                         self.update(pred_action, true_action)
                     else:
                         correct += 1
-                    # print("  pred: %-15s true: %-15s stack: %-20s buffer: %-70s" %
-                    print("  %-15s stack: %-20s buffer: %-70s" %
+                    # print("  predicted: %-15s true: %-15s stack: %-20s buffer: %-70s" %
+                    print("  %-15s stack: %-40s buffer: %-70s" %
                           (true_action, self.config.stack, list(self.config.buffer)))
                     self.config.apply_action(true_action, node_id)
                     actions += 1
-                outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, passage.ID)
-                sys.stderr.write("Writing passage '%s'...\n" % outfile)
-                passage2file(self.config.passage, outfile)
+                    if true_action == "FINISH":
+                        break
+                print("  stack: %-40s buffer: %-70s" %
+                      (self.config.stack, list(self.config.buffer)))
+                out_f = "%s/%s%s.xml" % (args.outdir, args.prefix, passage.ID)
+                sys.stderr.write("Writing passage '%s'...\n" % out_f)
+                passage2file(self.config.passage, out_f)
                 assert passage.equals(self.config.passage), "Oracle failed to produce true passage"
             print("Accuracy: %.3f (%d/%d)\n" % (correct/actions, correct, actions)
                   if actions else "No actions done")
@@ -161,8 +163,11 @@ class Parser:
         print("%d passages to parse" % len(passages))
         for passage in passages:
             self.config = Configuration(passage, passage.ID)
-            while not self.config.is_terminal():
-                self.config.apply_action(self.predict_action())
+            while True:
+                action = self.predict_action()
+                self.config.apply_action(action)
+                if action == "FINISH":
+                    break
             yield self.config.passage
 
     def predict_action(self):
