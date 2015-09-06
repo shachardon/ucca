@@ -1,6 +1,3 @@
-desc = """Transition-based parser for UCCA.
-"""
-
 import re
 from collections import deque, defaultdict
 import argparse
@@ -15,6 +12,9 @@ from ucca.core import Passage
 from ucca.convert import from_text
 from scripts.util import file2passage, passage2file
 from oracle import Oracle, ROOT_ID
+
+desc = """Transition-based parser for UCCA.
+"""
 
 
 class Configuration:
@@ -49,6 +49,10 @@ class Configuration:
                 self.node = l1.add_punct(parent.node, terminals[self.outgoing[0][1].index])
             else:
                 self.node = l1.add_fnode(parent.node, tag)
+
+        def is_linkage(self):
+            return self.outgoing and all(t in (layer1.EdgeTags.LinkRelation, layer1.EdgeTags.LinkArgument)
+                                         for t, _ in self.outgoing)
 
     def __init__(self, passage, passage_id):
         if isinstance(passage, Passage):
@@ -108,17 +112,24 @@ class Configuration:
         l1 = layer1.Layer1(passage)
         order = Configuration.topological_sort(self.nodes)
         print(order)
-        for n in order:
-            # if n.outgoing and all(t[0] in (layer1.EdgeTags.LinkRelation, layer1.EdgeTags.LinkArgument)
-            #                       for t, _ in n.outgoing):
-            #     link_relation = [r.node for t, r in n.outgoing if t == layer1.EdgeTags.LinkRelation][0]
-            #     link_args = (a.node for t, a in n.outgoing if t == layer1.EdgeTags.LinkArgument)
-            #     n.node = l1.add_linkage(link_relation, *link_args)
-            # else:
-            assert n.text or n.outgoing
-            assert n.node or n == self.root
-            for tag, child in sorted(n.outgoing, key=lambda x: x[1].node_index or order.index(x[1])):
-                child.add_layer1_node(l1, n, tag, terminals)
+        for node in order:
+            assert node.text or node.outgoing
+            assert node.node or node == self.root or node.is_linkage()
+            link_relation = None
+            link_args = []
+            for tag, child in sorted(node.outgoing, key=lambda x: x[1].node_index or order.index(x[1])):
+                if tag == layer1.EdgeTags.LinkRelation:
+                    assert link_relation is None
+                    link_relation = child.node
+                elif tag == layer1.EdgeTags.LinkArgument:
+                    link_args.append(child.node)
+                else:
+                    child.add_layer1_node(l1, node, tag, terminals)
+            if node.is_linkage():
+                assert link_relation is not None
+                assert len(link_args) > 1
+                node.node = l1.add_linkage(link_relation, *link_args)
+
         return passage
 
     @staticmethod
@@ -129,7 +140,7 @@ class Configuration:
         while stack:
             node = stack.pop()
             if node.index not in level_by_index:
-                parents = [parent for tag, parent in node.incoming]
+                parents = [parent for _, parent in node.incoming]
                 if parents:
                     unexplored_parents = [parent for parent in parents if parent.index not in level_by_index]
                     if unexplored_parents:
@@ -188,7 +199,9 @@ class Parser:
                 sys.stderr.write("Writing passage '%s'...\n" % out_f)
                 pred_passage = self.config.passage
                 passage2file(pred_passage, out_f)
-                assert passage.equals(pred_passage), "Oracle failed to produce true passage"
+                assert passage.equals(pred_passage), "Oracle failed to produce true passage" +\
+                    "\nRedundant nodes: %s" % pred_passage.missing_nodes(passage) +\
+                    "\nMissing nodes: %s" % passage.missing_nodes(pred_passage)
             print("Accuracy: %.3f (%d/%d)\n" % (correct/actions, correct, actions)
                   if actions else "No actions done")
 

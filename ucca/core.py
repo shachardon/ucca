@@ -397,6 +397,9 @@ class Node:
     def __getitem__(self, index):
         return self._outgoing[index]
 
+    def __repr__(self):
+        return Node.__name__ + "(" + self.ID + ")"
+
     @ModifyPassage
     def add(self, edge_tag, node, *, edge_attrib=None):
         """Adds another :class:Node object as a child of self.
@@ -524,7 +527,19 @@ class Node:
                               if e1.equals(e2, recursive=True)][0])
         except IndexError:
             return False
-        return True
+        return not edges
+
+    def missing_edges(self, other):
+        """Returns edges present in this node but missing in the other.
+
+        Args:
+            other: the Node object to compare to
+
+        Returns:
+            List of edges present in this node but missing in the other.
+
+        """
+        return [e1 for e1 in self if not any(e1.equals(e2) for e2 in other)]
 
     def iter(self, obj="nodes", method="dfs", duplicates=False, key=None):
         """Iterates the :class:Node objects in the subtree of self.
@@ -679,7 +694,7 @@ class Layer:
                 heads.remove([h2 for h2 in heads if h1.equals(h2)][0])
         except IndexError:
             return False
-        return True
+        return not heads
 
     def _add_edge(self, edge):
         """Alters self.heads if an :class:Edge has been added to the subgraph.
@@ -845,6 +860,19 @@ class Passage:
         except KeyError:  # no layer with same ID found
             return False
         return True
+
+    def missing_nodes(self, other):
+        """Returns nodes present in this passage but missing in the other.
+
+        Args:
+            other: the Passage object to compare to
+
+        Returns:
+            List of nodes present in this passage but missing in the other.
+
+        """
+        return [n1 for n1 in self.nodes.values()
+                if not any(n1.equals(n2) for n2 in other.nodes.values())]
 
     def copy(self, layers):
         """Copies the Passage and specified layers to a new object.
