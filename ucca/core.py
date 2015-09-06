@@ -539,7 +539,8 @@ class Node:
             List of edges present in this node but missing in the other.
 
         """
-        return [e1 for e1 in self if not any(e1.equals(e2) for e2 in other)]
+        return sorted([e1 for e1 in self if not any(e1.equals(e2) for e2 in other)],
+                      key=edge_id_orderkey)
 
     def iter(self, obj="nodes", method="dfs", duplicates=False, key=None):
         """Iterates the :class:Node objects in the subtree of self.
@@ -871,8 +872,9 @@ class Passage:
             List of nodes present in this passage but missing in the other.
 
         """
-        return [n1 for n1 in self.nodes.values()
-                if not any(n1.equals(n2) for n2 in other.nodes.values())]
+        return sorted([n1 for n1 in self.nodes.values()
+                       if not any(n1.equals(n2) for n2 in other.nodes.values())],
+                      key=id_orderkey)
 
     def copy(self, layers):
         """Copies the Passage and specified layers to a new object.

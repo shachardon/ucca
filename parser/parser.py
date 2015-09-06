@@ -34,21 +34,27 @@ class Configuration:
 
         def add_edge(self, child, tag):
             assert self != child
+            assert (tag, child) not in self.outgoing
+            assert (tag, self) not in child.incoming
             self.outgoing.append((tag, child))
             child.incoming.append((tag, self))
             print("    %s->%s" % (tag, child))
 
         def add_layer1_node(self, l1, parent, tag, terminals):
             if self.text:
-                self.node = parent.node.add(layer1.EdgeTags.Terminal,
-                                            terminals[self.index]).child
+                if not self.node:
+                    self.node = parent.node.add(layer1.EdgeTags.Terminal,
+                                                terminals[self.index]).child
             elif len(self.outgoing) == 1 and self.outgoing[0][1].text and \
                     layer0.is_punct(terminals[self.outgoing[0][1].index]):
                 assert tag == layer1.EdgeTags.Punctuation
                 assert self.outgoing[0][0] == layer1.EdgeTags.Terminal
                 self.node = l1.add_punct(parent.node, terminals[self.outgoing[0][1].index])
+                self.outgoing[0][1].node = self.node[0].child
             else:
                 self.node = l1.add_fnode(parent.node, tag)
+            if self.node and self.node_id:
+                self.node.extra['remarks'] = self.node_id
 
         def is_linkage(self):
             return self.outgoing and all(t in (layer1.EdgeTags.LinkRelation, layer1.EdgeTags.LinkArgument)
@@ -110,6 +116,7 @@ class Configuration:
         passage = from_text(paragraphs, self.passage_id)
         terminals = passage.layer(layer0.LAYER_ID).all
         l1 = layer1.Layer1(passage)
+        passage.nodes[ROOT_ID].extra['remarks'] = ROOT_ID
         order = Configuration.topological_sort(self.nodes)
         print(order)
         for node in order:
@@ -129,6 +136,8 @@ class Configuration:
                 assert link_relation is not None
                 assert len(link_args) > 1
                 node.node = l1.add_linkage(link_relation, *link_args)
+                if node.node_id:
+                    node.node.extra['remarks'] = node.node_id
 
         return passage
 
@@ -199,11 +208,44 @@ class Parser:
                 sys.stderr.write("Writing passage '%s'...\n" % out_f)
                 pred_passage = self.config.passage
                 passage2file(pred_passage, out_f)
-                assert passage.equals(pred_passage), "Oracle failed to produce true passage" +\
-                    "\nRedundant nodes: %s" % pred_passage.missing_nodes(passage) +\
-                    "\nMissing nodes: %s" % passage.missing_nodes(pred_passage)
+                assert passage.equals(pred_passage), "Oracle failed to produce true passage\n" + \
+                                                     Parser.diff_passages(passage, pred_passage)
             print("Accuracy: %.3f (%d/%d)\n" % (correct/actions, correct, actions)
                   if actions else "No actions done")
+
+    @staticmethod
+    def diff_passages(true_passage, pred_passage):
+        """
+        Debug method to print missing or mistaken nodes and edges
+        """
+        lines = list()
+        pred_ids = {node.extra['remarks']: node
+                    for node in pred_passage.missing_nodes(true_passage)}
+        true_ids = {node.ID: node
+                    for node in true_passage.missing_nodes(pred_passage)}
+        for pred_id, pred_node in list(pred_ids.items()):
+            true_node = true_ids.get(pred_id)
+            if true_node:
+                pred_ids.pop(pred_id)
+                true_ids.pop(pred_id)
+                pred_edges = {edge.tag + "->" + edge.child.ID: edge for edge in
+                              pred_node.missing_edges(true_node)}
+                true_edges = {edge.tag + "->" + edge.child.ID: edge for edge in
+                              true_node.missing_edges(pred_node)}
+                intersection = set(pred_edges).intersection(set(true_edges))
+                pred_edges = {s: edge for s, edge in pred_edges.items() if s not in intersection}
+                true_edges = {s: edge for s, edge in true_edges.items() if s not in intersection}
+                if pred_edges or true_edges:
+                    lines.append("For node " + pred_id + ":")
+                    if pred_edges:
+                        lines.append("  Mistake edges: %s" % ", ".join(pred_edges))
+                    if true_edges:
+                        lines.append("  Missing edges: %s" % ", ".join(true_edges))
+        if pred_ids:
+            lines.append("Mistake nodes: %s" % ", ".join(pred_ids))
+        if true_ids:
+            lines.append("Missing nodes: %s" % ", ".join(true_ids))
+        return "\n".join(lines)
 
     def parse(self, passages):
         print("%d passages to parse" % len(passages))

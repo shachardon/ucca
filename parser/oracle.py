@@ -4,8 +4,6 @@ To be used for creating training and test data for a transition-based UCCA parse
 Implements the arc-eager algorithm.
 """
 
-import layer1
-
 ROOT_ID = "1.1"
 
 
@@ -15,16 +13,16 @@ class Oracle:
         self.edges_created = set()
         self.passage = passage
 
-    def get_action(self, config):
+    def get_action(self, config):  # TODO return dictionary with (type, tag, node_id)
         if not config.stack and not config.buffer or \
-                self.nodes_created == set(self.passage.nodes):  # FIXME handle missing edges
+                self.nodes_created == set(self.passage.nodes):
             return "FINISH", None
         if config.stack:
             s = self.passage.by_id(config.stack[-1].node_id)
             remaining = self.remaining(s.incoming + s.outgoing)
             if not remaining:
                 return "REDUCE", None
-            if len(remaining) == 1 and not remaining[0].parent.incoming:
+            if len(remaining) == 1 and remaining[0].parent.ID == ROOT_ID:
                 self.edges_created.add(remaining[0])
                 return "ROOT-" + remaining[0].tag, ROOT_ID
         if config.buffer:
@@ -49,7 +47,6 @@ class Oracle:
 
     def remaining(self, edges):
         return [e for e in edges if e not in self.edges_created and
-                e.tag not in (layer1.EdgeTags.LinkRelation, layer1.EdgeTags.LinkArgument) and
                 not e.attrib.get('remote')]  # FIXME handle remote and linkage?
 
     def cmp(self, nodes):
@@ -71,23 +68,3 @@ class Oracle:
                 else:
                     levels[u.ID] = 0
         return lambda id1, id2: levels[id1] - levels[id2]
-
-
-"""
-def get_action(passage, config):
-    if config.stack and config.buffer:
-        s = config.stack[-1]
-        b = config.buffer[0]
-        if len(s.incoming) == 1:
-            return "UNARY-" + s.incoming.itervalues().next()
-        for child_index, edge in b.outgoing.items():
-            if child_index == s.index:
-                return "LEFT-ARC-" + edge
-        for child_index, edge in s.outgoing.items():
-            if child_index == b.index:
-                return "RIGHT-ARC-" + edge
-        for child_index, edge in b.outgoing.items():# + b.incoming.items():
-            if child_index < s.index:
-                return "REDUCE"
-    return "SHIFT"
-"""
