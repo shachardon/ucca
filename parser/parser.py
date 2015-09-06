@@ -2,7 +2,7 @@ desc = """Transition-based parser for UCCA.
 """
 
 import re
-from collections import deque
+from collections import deque, defaultdict
 import argparse
 import sys
 from operator import attrgetter
@@ -14,7 +14,7 @@ from ucca import layer0, layer1
 from ucca.core import Passage
 from ucca.convert import from_text
 from scripts.util import file2passage, passage2file
-from oracle import Oracle
+from oracle import Oracle, ROOT_ID
 
 
 class Configuration:
@@ -24,17 +24,31 @@ class Configuration:
             self.index = index
             self.text = text
             self.node_id = node_id
-            self.outgoing = {}
-            self.incoming = {}
+            self.node_index = int(node_id.split(".")[1]) if node_id else None
+            self.outgoing = []  # (tag, child) pairs
+            self.incoming = []  # (tag, parent) pairs
             self.node = None
 
         def __repr__(self):
             return self.text or self.node_id or "Node(%d)" % self.index
 
         def add_edge(self, child, tag):
-            self.outgoing[child.index] = tag
-            child.incoming[self.index] = tag
+            assert self != child
+            self.outgoing.append((tag, child))
+            child.incoming.append((tag, self))
             print("    %s->%s" % (tag, child))
+
+        def add_layer1_node(self, l1, parent, tag, terminals):
+            if self.text:
+                self.node = parent.node.add(layer1.EdgeTags.Terminal,
+                                            terminals[self.index]).child
+            elif len(self.outgoing) == 1 and self.outgoing[0][1].text and \
+                    layer0.is_punct(terminals[self.outgoing[0][1].index]):
+                assert tag == layer1.EdgeTags.Punctuation
+                assert self.outgoing[0][0] == layer1.EdgeTags.Terminal
+                self.node = l1.add_punct(parent.node, terminals[self.outgoing[0][1].index])
+            else:
+                self.node = l1.add_fnode(parent.node, tag)
 
     def __init__(self, passage, passage_id):
         if isinstance(passage, Passage):
@@ -47,7 +61,8 @@ class Configuration:
             self.tokens = [token for paragraph in passage for token in paragraph]
             self.nodes = [Configuration.Node(i, text=x) for i, x in enumerate(self.tokens)]
         self.buffer = deque(self.nodes)
-        self.stack = [self.add_node("1.1")]
+        self.stack = []
+        self.root = self.add_node(ROOT_ID)
         self.passage_id = passage_id
 
     def apply_action(self, action, node_id=None):
@@ -60,12 +75,16 @@ class Configuration:
                 self.stack.append(parent)
             elif action_type == "EDGE":
                 self.stack[-1].add_edge(self.buffer[0], tag)
+            elif action_type == "ROOT":
+                self.root.add_edge(self.stack.pop(), tag)
             else:
                 raise Exception("Invalid action: " + action_type)
         elif action == "REDUCE":
             self.stack.pop()
         elif action == "SHIFT":
             self.stack.append(self.buffer.popleft())
+        elif action == "SWAP":
+            self.buffer.appendleft(self.stack.pop(-2))
         elif action == "WRAP":
             self.buffer = deque(self.stack)
             self.stack = []
@@ -73,6 +92,7 @@ class Configuration:
             pass
         else:
             raise Exception("Invalid action: " + action)
+        assert not set(self.stack).intersection(self.buffer)
 
     def add_node(self, node_id=None):
         n = Configuration.Node(len(self.nodes), node_id=node_id)
@@ -86,42 +106,54 @@ class Configuration:
         passage = from_text(paragraphs, self.passage_id)
         terminals = passage.layer(layer0.LAYER_ID).all
         l1 = layer1.Layer1(passage)
-        linkage = []
-        for n in reversed(self.nodes):
-            if all(t[0] == "L" for t in n.outgoing.values()):
-                linkage.append(n)
-                continue
-            for child_index, tag in n.outgoing.items():
-                child = self.nodes[child_index]
-                child.node = self.add_layer1_node(child, child_index, l1, n, tag, terminals)
-        for n in linkage:
-            link_relation = [self.nodes[i].node for i, t in n.outgoing.items()
-                             if t == layer1.EdgeTags.LinkRelation][0]
-            link_args = (self.nodes[i].node for i, t in n.outgoing.items()
-                         if t == layer1.EdgeTags.LinkArgument)
-            n.node = l1.add_linkage(link_relation, link_args)
+        order = Configuration.topological_sort(self.nodes)
+        print(order)
+        for n in order:
+            # if n.outgoing and all(t[0] in (layer1.EdgeTags.LinkRelation, layer1.EdgeTags.LinkArgument)
+            #                       for t, _ in n.outgoing):
+            #     link_relation = [r.node for t, r in n.outgoing if t == layer1.EdgeTags.LinkRelation][0]
+            #     link_args = (a.node for t, a in n.outgoing if t == layer1.EdgeTags.LinkArgument)
+            #     n.node = l1.add_linkage(link_relation, *link_args)
+            # else:
+            assert n.text or n.outgoing
+            assert n.node or n == self.root
+            for tag, child in sorted(n.outgoing, key=lambda x: x[1].node_index or order.index(x[1])):
+                child.add_layer1_node(l1, n, tag, terminals)
         return passage
 
-    def add_layer1_node(self, child, child_index, l1, n, tag, terminals):
-        if child.text:
-            return n.node.add(layer1.EdgeTags.Terminal, terminals[child_index]).child
-        if len(child.outgoing) == 1:
-            grandchild_index = next(iter(child.outgoing))
-            grandchild = self.nodes[grandchild_index]
-            if grandchild.text:
-                t = terminals[grandchild_index]
-                if layer0.is_punct(t):
-                    return l1.add_punct(n.node, t)
-        return l1.add_fnode(n.node, tag)
+    @staticmethod
+    def topological_sort(nodes):
+        levels = defaultdict(list)
+        level_by_index = {}
+        stack = [node for node in nodes if not node.outgoing]
+        while stack:
+            node = stack.pop()
+            if node.index not in level_by_index:
+                parents = [parent for tag, parent in node.incoming]
+                if parents:
+                    unexplored_parents = [parent for parent in parents if parent.index not in level_by_index]
+                    if unexplored_parents:
+                        for parent in unexplored_parents:
+                            stack.append(node)
+                            stack.append(parent)
+                    else:
+                        level = 1 + max(level_by_index[parent.index] for parent in parents)
+                        levels[level].append(node)
+                        level_by_index[node.index] = level
+                else:
+                    levels[0].append(node)
+                    level_by_index[node.index] = 0
+        return [node for level, level_nodes in sorted(levels.items())
+                for node in sorted(level_nodes, key=lambda x: x.node_index or x.index)]
 
 
 class Parser:
     def __init__(self):
         self.config = None
-        self.actions = [action + relation for action in ("NODE-", "EDGE-")
+        self.actions = [action + relation for action in ("NODE-", "EDGE-", "ROOT-")
                         for name, relation in layer1.EdgeTags.__dict__.items()
                         if isinstance(relation, str) and not name.startswith('__')] +\
-                       ["REDUCE", "SHIFT", "WRAP", "FINISH"]
+                       ["REDUCE", "SHIFT", "SWAP", "WRAP", "FINISH"]
         self.actions_reverse = {action: i for i, action in enumerate(self.actions)}
         self.features = [lambda config: len(config.stack),
                          lambda config: len(config.buffer)]
@@ -154,8 +186,9 @@ class Parser:
                       (self.config.stack, list(self.config.buffer)))
                 out_f = "%s/%s%s.xml" % (args.outdir, args.prefix, passage.ID)
                 sys.stderr.write("Writing passage '%s'...\n" % out_f)
-                passage2file(self.config.passage, out_f)
-                assert passage.equals(self.config.passage), "Oracle failed to produce true passage"
+                pred_passage = self.config.passage
+                passage2file(pred_passage, out_f)
+                assert passage.equals(pred_passage), "Oracle failed to produce true passage"
             print("Accuracy: %.3f (%d/%d)\n" % (correct/actions, correct, actions)
                   if actions else "No actions done")
 
@@ -192,7 +225,7 @@ if __name__ == "__main__":
     test_passages = [file2passage(filename) for filename in args.test] if args.test else []
     parser = Parser()
     parser.train(train_passages)
-    for pred_passage in parser.parse(test_passages):
-        outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
-        sys.stderr.write("Writing passage '%s'...\n" % outfile)
-        passage2file(pred_passage, outfile)
+    # for pred_passage in parser.parse(test_passages):
+    #     outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
+    #     sys.stderr.write("Writing passage '%s'...\n" % outfile)
+    #     passage2file(pred_passage, outfile)
