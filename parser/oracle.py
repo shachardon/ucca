@@ -11,6 +11,7 @@ class Oracle:
     def __init__(self, passage):
         self.nodes_created = {ROOT_ID}
         self.edges_created = set()
+        self.swapped = set()
         self.passage = passage
 
     def get_action(self, config):  # TODO return dictionary with (type, tag, node_id)
@@ -33,38 +34,22 @@ class Oracle:
                     self.nodes_created.add(edge.parent.ID)
                     return "NODE-" + edge.tag, edge.parent.ID
         else:
+            self.swapped = set()
             return "WRAP", None
         if config.stack and config.buffer:
             for edge in self.remaining(s.outgoing):
                 if edge.child.ID == b.ID:
                     self.edges_created.add(edge)
-                    return "EDGE-" + edge.tag, edge.parent.ID
+                    action_type = "REMOTE-" if edge.attrib.get("remote") else "EDGE-"
+                    return action_type + edge.tag, edge.parent.ID
             if len(config.stack) > 1:
-                s2_id = config.stack[-2].node_id
-                # if self.cmp(config.stack + list(config.buffer))(s.ID, s2_id) < 0:
-                #     return "SWAP", None
+                s2 = self.passage.by_id(config.stack[-2].node_id)
+                if (s, s2) not in self.swapped and \
+                        set([c.ID for c in s2.children]).intersection(
+                        [c.node_id for c in config.buffer]):
+                    self.swapped.add((s, s2))
+                    return "SWAP", None
         return "SHIFT", None
 
     def remaining(self, edges):
-        return [e for e in edges if e not in self.edges_created and
-                not e.attrib.get('remote')]  # FIXME handle remote and linkage?
-
-    def cmp(self, nodes):
-        units = [self.passage.by_id(node.node_id) for node in nodes]
-        levels = {}
-        remaining = [u for u in units if not self.remaining(u.outgoing)]
-        while remaining:
-            u = remaining.pop()
-            if u.ID not in levels:
-                parents = [e.parent for e in self.remaining(u.incoming)]
-                if parents:
-                    unexplored_parents = [p for p in parents if p.ID not in levels]
-                    if unexplored_parents:
-                        for p in unexplored_parents:
-                            remaining.append(u)
-                            remaining.append(p)
-                    else:
-                        levels[u.ID] = 1 + max(levels[p.ID] for p in parents)
-                else:
-                    levels[u.ID] = 0
-        return lambda id1, id2: levels[id1] - levels[id2]
+        return [e for e in edges if e not in self.edges_created]
