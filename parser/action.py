@@ -1,7 +1,5 @@
 import re
 
-__author__ = 'danielh'
-
 
 class Action:
     def __init__(self, action_type, tag=None, node_id=None):

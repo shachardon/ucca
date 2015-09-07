@@ -8,8 +8,6 @@ from ucca import layer1
 from ucca import core
 from oracle import ROOT_ID
 
-__author__ = 'danielh'
-
 
 class Node:
     """
@@ -24,21 +22,6 @@ class Node:
         self.incoming = []  # Edge list
         self.node = None  # Instantiated when creating the final Passage: the associated core.Node
 
-    def __repr__(self):
-        return self.text or self.node_id or "Node(%d)" % self.index
-
-    def add_edge(self, child, tag, remote=False):
-        """
-        Called during parsing to add a new Edge (not core.Edge) to the temporary representation
-        """
-        assert tag is not None, "No tag given for new edge"
-        assert self != child, "Trying to create self-loop edge"
-        assert not any(e.node == child for e in self.outgoing), "Trying to create edge twice"
-        assert not any(e.node == self for e in child.incoming), "Trying to create edge twice"
-        self.outgoing.append(Edge(tag, child, remote))
-        child.incoming.append(Edge(tag, self, remote))
-        print("    %s->%s%s" % (tag, child, " (remote)" if remote else ""))
-
     def add_layer1_node(self, l1, parent, tag, terminals):
         """
         Called when creating final Passage to add a new core.Node
@@ -48,12 +31,12 @@ class Node:
             if not self.node:  # For punctuation, already created by add_punct for parent
                 self.node = parent.node.add(layer1.EdgeTags.Terminal,
                                             terminals[self.index]).child
-        elif len(self.outgoing) == 1 and self.outgoing[0].node.text and \
-                layer0.is_punct(terminals[self.outgoing[0].node.index]):
+        elif len(self.outgoing) == 1 and self.outgoing[0].child.text and \
+                layer0.is_punct(terminals[self.outgoing[0].child.index]):
             assert tag == layer1.EdgeTags.Punctuation
             assert self.outgoing[0].tag == layer1.EdgeTags.Terminal
-            self.node = l1.add_punct(parent.node, terminals[self.outgoing[0].node.index])
-            self.outgoing[0].node.node = self.node[0].child
+            self.node = l1.add_punct(parent.node, terminals[self.outgoing[0].child.index])
+            self.outgoing[0].child.node = self.node[0].child
         else:  # The usual case
             self.node = l1.add_fnode(parent.node, tag)
         if self.node and self.node_id:  # We are in training and we have a gold passage
@@ -68,15 +51,53 @@ class Node:
                                                layer1.EdgeTags.LinkArgument)
                                      for e in self.outgoing)
 
+    def __repr__(self):
+        return Node.__name__ + "(" + str(self.index) + \
+               ((", " + self.text) if self.text else "") + \
+               ((", " + self.node_id) if self.node_id else "") + ")"
+
+    def __str__(self):
+        return self.text or self.node_id or self.index
+
+    def __eq__(self, other):
+        return self.text == other.text and self.outgoing == other.outgoing
+
+    def __hash__(self):
+        return self.index
+
 
 class Edge:
     """
     Temporary representation for core.Edge with only relevant information for parsing
     """
-    def __init__(self, tag, node, remote=False):
-        self.tag = tag
-        self.node = node
-        self.remote = remote
+    def __init__(self, parent, child, tag, remote=False):
+        self.parent = parent  # Node object from which this edge comes
+        self.child = child  # Node object to which this edge goes
+        self.tag = tag  # String tag
+        self.remote = remote  # True or False
+
+    def add(self):
+        assert self.tag is not None, "No tag given for new edge"
+        assert self.parent != self.child, "Trying to create self-loop edge"
+        assert self not in self.parent.outgoing, "Trying to create edge twice"
+        assert self not in self.child.incoming, "Trying to create edge twice"
+        self.parent.outgoing.append(self)
+        self.child.incoming.append(self)
+        print("    " + str(self))
+
+    def __repr__(self):
+        return Edge.__name__ + "(" + self.tag + ", " + self.parent + ", " + self.child +\
+               ((", " + self.remote) if self.remote else "") + ")"
+
+    def __str__(self):
+        return "%s -%s-> %s%s" % (self.parent, self.tag, self.child,
+                                  " (remote)" if self.remote else "")
+
+    def __eq__(self, other):
+        return self.child == other.child and self.tag == other.tag and self.remote == other.remote
+
+    def __hash__(self):
+        return hash((self.parent, self.child, self.tag))
 
 
 class Configuration:
@@ -108,14 +129,14 @@ class Configuration:
         """
         if action.type == "NODE":  # Create new node and push to the stack
             parent = self.add_node(action.node_id)
-            parent.add_edge(self.buffer[0], action.tag)
+            Edge(parent, self.buffer[0], action.tag).add()
             self.stack.append(parent)
         elif action.type == "EDGE":  # Create edge between stack top and buffer head
-            self.stack[-1].add_edge(self.buffer[0], action.tag)
+            Edge(self.stack[-1], self.buffer[0], action.tag).add()
         elif action.type == "REMOTE":  # Same as EDGE but a remote edge is created
-            self.stack[-1].add_edge(self.buffer[0], action.tag, remote=True)
+            Edge(self.stack[-1], self.buffer[0], action.tag, remote=True).add()
         elif action.type == "ROOT":  # Create edge between stack top and ROOT; pop stack
-            self.root.add_edge(self.stack.pop(), action.tag)
+            Edge(self.root, self.stack.pop(), action.tag).add()
         elif action.type == "REDUCE":  # Pop stack (no more edges to create with this node)
             self.stack.pop()
         elif action.type == "SHIFT":  # Push buffer head to stack; shift buffer
@@ -138,7 +159,6 @@ class Configuration:
         """
         node = Node(len(self.nodes), node_id=node_id)
         self.nodes.append(node)
-        print("    %s" % node)
         return node
 
     @property
@@ -166,10 +186,10 @@ class Configuration:
                     if edge.remote:
                         remotes.append((node, edge))
                     else:
-                        edge.node.add_layer1_node(l1, node, edge.tag, terminals)
+                        edge.child.add_layer1_node(l1, node, edge.tag, terminals)
 
         for node, edge in remotes:  # Add remote edges
-            node.node.add(edge.tag, edge.node.node, edge_attrib={"remote": True})
+            node.node.add(edge.tag, edge.child.node, edge_attrib={"remote": True})
 
         for node in linkages:  # Add linkage nodes and edges
             link_relation = None
@@ -177,9 +197,9 @@ class Configuration:
             for edge in node.outgoing:
                 if edge.tag == layer1.EdgeTags.LinkRelation:
                     assert link_relation is None, "Multiple link relations"
-                    link_relation = edge.node.node
+                    link_relation = edge.child.node
                 elif edge.tag == layer1.EdgeTags.LinkArgument:
-                    link_args.append(edge.node.node)
+                    link_args.append(edge.child.node)
             assert link_relation is not None, "No link relations"
             assert len(link_args) > 1, "Less than two link arguments"
             node.node = l1.add_linkage(link_relation, *link_args)
@@ -199,7 +219,7 @@ class Configuration:
         while stack:
             node = stack.pop()
             if node.index not in level_by_index:
-                parents = [edge.node for edge in node.incoming]
+                parents = [edge.parent for edge in node.incoming]
                 if parents:
                     unexplored_parents = [parent for parent in parents
                                           if parent.index not in level_by_index]
@@ -217,5 +237,16 @@ class Configuration:
         self.nodes = [node for level, level_nodes in sorted(levels.items())
                       for node in sorted(level_nodes, key=lambda x: x.node_index or x.index)]
         for node in self.nodes:
-            node.outgoing.sort(key=lambda x: x.node.node_index or self.nodes.index(x.node))
-            node.incoming.sort(key=lambda x: x.node.node_index or self.nodes.index(x.node))
+            node.outgoing.sort(key=lambda x: x.child.node_index or self.nodes.index(x.child))
+            node.incoming.sort(key=lambda x: x.parent.node_index or self.nodes.index(x.parent))
+
+    def __str__(self):
+        return "stack: [%-20s] buffer: [%s]" % (" ".join(map(str, self.stack)),
+                                                " ".join(map(str, self.buffer)))
+
+    def __eq__(self, other):
+        return self.stack == other.stack and self.buffer == other.buffer and \
+               self.nodes == other.nodes
+
+    def __hash__(self):
+        return hash((tuple(self.stack), tuple(self.buffer), tuple(self.nodes)))

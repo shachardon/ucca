@@ -1,4 +1,5 @@
 import argparse
+from copy import deepcopy
 import sys
 
 import numpy as np
@@ -51,6 +52,7 @@ class Parser:
             actions = 0
             for passage in passages:
                 self.config = Configuration(passage, passage.ID)
+                history = set()
                 oracle = Oracle(passage)
                 while True:
                     pred_action = self.predict_action()
@@ -58,13 +60,14 @@ class Parser:
                     if not self.update(pred_action, true_action):
                         correct += 1
                     # print("  predicted: %-15s true: %-15s stack: %-20s buffer: %-70s" %
-                    print("  %-15s stack: %-40s buffer: %-70s" %
-                          (true_action, self.config.stack, list(self.config.buffer)))
+                    print("  %-15s %s" % (true_action, self.config))
                     actions += 1
                     if not self.config.apply_action(true_action):
                         break
-                print("  stack: %-40s buffer: %-70s" %
-                      (self.config.stack, list(self.config.buffer)))
+                    assert self.config not in history,\
+                        "Transition loop during training: %s" % self.config
+                    history.add(deepcopy(self.config))
+                print("  " + str(self.config))
                 out_f = "%s/%s%s.xml" % (args.outdir, args.prefix, passage.ID)
                 sys.stderr.write("Writing passage '%s'...\n" % out_f)
                 pred_passage = self.config.passage
@@ -83,8 +86,11 @@ class Parser:
         print("%d passages to parse" % len(passages))
         for passage in passages:
             self.config = Configuration(passage, passage.ID)
+            history = set()
             while self.config.apply_action(self.predict_action()):
-                pass
+                assert self.config not in history,\
+                    "Transition loop during parse: %s" % self.config
+                history.add(deepcopy(self.config))
             yield self.config.passage
 
     def predict_action(self):
