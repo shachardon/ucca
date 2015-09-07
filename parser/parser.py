@@ -68,7 +68,7 @@ class Parser:
                     h = hash(self.config)
                     assert h not in history, "Transition loop during training: %s" % self.config
                     history.add(h)
-                print("  " + str(self.config))
+                print(" " * 18 + str(self.config))
                 out_f = "%s/%s%s.xml" % (args.outdir, args.prefix, passage.ID)
                 sys.stderr.write("Writing passage '%s'...\n" % out_f)
                 pred_passage = self.config.passage
