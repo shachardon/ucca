@@ -1,5 +1,5 @@
 import argparse
-from copy import deepcopy
+import time
 import sys
 
 import numpy as np
@@ -48,6 +48,7 @@ class Parser:
         print("%d training passages" % len(passages))
         for iteration in range(iterations):
             print("Iteration %d" % iteration)
+            started = time.time()
             correct = 0
             actions = 0
             for passage in passages:
@@ -64,9 +65,9 @@ class Parser:
                     actions += 1
                     if not self.config.apply_action(true_action):
                         break
-                    assert self.config not in history,\
-                        "Transition loop during training: %s" % self.config
-                    history.add(deepcopy(self.config))
+                    h = hash(self.config)
+                    assert h not in history, "Transition loop during training: %s" % self.config
+                    history.add(h)
                 print("  " + str(self.config))
                 out_f = "%s/%s%s.xml" % (args.outdir, args.prefix, passage.ID)
                 sys.stderr.write("Writing passage '%s'...\n" % out_f)
@@ -74,8 +75,9 @@ class Parser:
                 passage2file(pred_passage, out_f)
                 assert passage.equals(pred_passage), "Oracle failed to produce true passage\n" + \
                                                      diff_passages(passage, pred_passage)
-            print("Accuracy: %.3f (%d/%d)\n" % (correct/actions, correct, actions)
+            print("Accuracy: %.3f (%d/%d)" % (correct/actions, correct, actions)
                   if actions else "No actions done")
+            print("Duration: %0.3fms" % (time.time() - started))
 
     def parse(self, passages):
         """
@@ -88,9 +90,10 @@ class Parser:
             self.config = Configuration(passage, passage.ID)
             history = set()
             while self.config.apply_action(self.predict_action()):
-                assert self.config not in history,\
+                h = hash(self.config)
+                assert h not in history,\
                     "Transition loop during parse: %s" % self.config
-                history.add(deepcopy(self.config))
+                history.add(h)
             yield self.config.passage
 
     def predict_action(self):

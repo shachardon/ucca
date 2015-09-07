@@ -1,5 +1,11 @@
 from action import Action
 
+SHIFT = Action("SHIFT")
+REDUCE = Action("REDUCE")
+SWAP = Action("SWAP")
+WRAP = Action("WRAP")
+FINISH = Action("FINISH")
+
 ROOT_ID = "1.1"  # ID of root node in UCCA passages
 
 
@@ -22,12 +28,12 @@ class Oracle:
         """
         if not config.stack and not config.buffer or \
                 self.nodes_created == set(self.passage.nodes):
-            return Action("FINISH")
+            return FINISH
         if config.stack:
             s = self.passage.by_id(config.stack[-1].node_id)
             remaining = self.remaining(s.incoming + s.outgoing)
             if not remaining:
-                return Action("REDUCE")
+                return REDUCE
             if len(remaining) == 1 and remaining[0].parent.ID == ROOT_ID:
                 self.edges_created.add(remaining[0])
                 return Action("ROOT", remaining[0].tag, ROOT_ID)
@@ -40,7 +46,7 @@ class Oracle:
                     return Action("NODE", edge.tag, edge.parent.ID)
         else:
             self.swapped = set()
-            return Action("WRAP")
+            return WRAP
         if config.stack and config.buffer:
             for edge in self.remaining(s.outgoing):
                 if edge.child.ID == b.ID:
@@ -53,8 +59,9 @@ class Oracle:
                         set([c.ID for c in s2.children]).intersection(
                         [c.node_id for c in config.buffer]):
                     self.swapped.add((s, s2))
-                    return Action("SWAP")
-        return Action("SHIFT")
+                    self.swapped.add((s2, s))
+                    return SWAP
+        return SHIFT
 
     def remaining(self, edges):
         return [e for e in edges if e not in self.edges_created]

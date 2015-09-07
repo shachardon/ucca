@@ -63,7 +63,7 @@ class Node:
         return self.text == other.text and self.outgoing == other.outgoing
 
     def __hash__(self):
-        return self.index
+        return hash((self.index, tuple(self.outgoing)))
 
 
 class Edge:
@@ -79,8 +79,8 @@ class Edge:
     def add(self):
         assert self.tag is not None, "No tag given for new edge"
         assert self.parent != self.child, "Trying to create self-loop edge"
-        assert self not in self.parent.outgoing, "Trying to create edge twice"
-        assert self not in self.child.incoming, "Trying to create edge twice"
+        assert self not in self.parent.outgoing, "Trying to create outgoing edge twice: " + str(self)
+        assert self not in self.child.incoming, "Trying to create incoming edge twice: " + str(self)
         self.parent.outgoing.append(self)
         self.child.incoming.append(self)
         print("    " + str(self))
@@ -94,10 +94,11 @@ class Edge:
                                   " (remote)" if self.remote else "")
 
     def __eq__(self, other):
-        return self.child == other.child and self.tag == other.tag and self.remote == other.remote
+        return self.parent.index == other.parent.index and self.child == other.child and \
+               self.tag == other.tag and self.remote == other.remote
 
     def __hash__(self):
-        return hash((self.parent, self.child, self.tag))
+        return hash((self.parent.index, self.child.index, self.tag))
 
 
 class Configuration:
