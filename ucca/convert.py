@@ -716,11 +716,9 @@ def to_sequence(passage, sentences=True):
         return tuple(map(edge.child.attrib.get, ('paragraph', 'paragraph_position')))
 
     seq = ''
-    done = []
     stacks = []
     edges = [e for u in passage.layer(layer1.LAYER_ID).all
-             if not u.incoming for e in u.outgoing
-             if e.tag[0] != 'L']
+             if not u.incoming for e in u.outgoing]
     while True:
         if edges:
             stacks.append(sorted(edges, key=position, reverse=True))
@@ -735,8 +733,7 @@ def to_sequence(passage, sentences=True):
                 seq += ' '
                 stacks[-1].pop()
         e = stacks[-1][-1]
-        done.append(e.child)
-        edges = [c for c in e.child.outgoing if c.child not in done]
+        edges = e.child.outgoing
         if edges:
             seq += '['
         seq += e.child.attrib.get('text') or e.tag
