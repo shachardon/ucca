@@ -159,13 +159,14 @@ class Configuration:
         for node in self.nodes:
             assert node.text or node.outgoing, "Non-terminal leaf node"
             assert node.node or node == self.root or node.is_linkage, "Non-root without incoming"
-            for edge in node.outgoing:
-                if edge.remote:
-                    remotes.append((node, edge))
-                elif node.is_linkage:
-                    linkages.append(node)
-                else:  # The usual case
-                    edge.node.add_layer1_node(l1, node, edge.tag, terminals)
+            if node.is_linkage:
+                linkages.append(node)
+            else:
+                for edge in node.outgoing:
+                    if edge.remote:
+                        remotes.append((node, edge))
+                    else:
+                        edge.node.add_layer1_node(l1, node, edge.tag, terminals)
 
         for node, edge in remotes:  # Add remote edges
             node.node.add(edge.tag, edge.node.node, edge_attrib={"remote": True})

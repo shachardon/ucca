@@ -1,8 +1,20 @@
 def diff_passages(true_passage, pred_passage):
     """
-    Debug method to print missing or mistaken nodes and edges
+    Debug method to print missing or mistaken attributes, nodes and edges
     """
     lines = list()
+    if not true_passage._attrib.equals(pred_passage._attrib):
+        lines.append("Passage attributes mismatch: %s, %s" %
+                     (true_passage._attrib, pred_passage._attrib))
+    try:
+        for lid, l1 in true_passage._layers.items():
+            l2 = true_passage.layer(lid)
+            if not l1._attrib.equals(l2._attrib):
+                lines.append("Layer %d attributes mismatch: %s, %s" %
+                             (lid, l1._attrib, l2._attrib))
+    except KeyError:  # no layer with same ID found
+        lines.append("Missing layer: %s, %s" %
+                     (true_passage._layers, pred_passage._layers))
     pred_ids = {node.extra["remarks"]: node
                 for node in pred_passage.missing_nodes(true_passage)}
     true_ids = {node.ID: node
