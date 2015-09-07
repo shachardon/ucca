@@ -35,6 +35,6 @@ Authors
 
 License
 -------
-This package is licensed under the GPLv3 or later license (see [`LICENSE.txt`](../LICENSE.txt)).
+This package is licensed under the GPLv3 or later license (see [`LICENSE.txt`](master/LICENSE.txt)).
 
 [1]: http://homepages.inf.ed.ac.uk/oabend/papers/ucca_acl.pdf
