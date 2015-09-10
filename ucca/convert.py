@@ -698,13 +698,11 @@ def to_text(passage, sentences=True):
             for i in range(len(starts) - 1)]
 
 
-def to_sequence(passage, sentences=True):
+def to_sequence(passage):
     """Converts from a Passage object to linearized text sequence.
 
     Args:
         passage: the Passage object to convert
-        sentences: whether to break the Passage to sentences (one for string)
-        or leave as one string. Defaults to True
 
     Returns:
         a list of strings - 1 if sentences=False, # of sentences otherwise
@@ -719,6 +717,9 @@ def to_sequence(passage, sentences=True):
     stacks = []
     edges = [e for u in passage.layer(layer1.LAYER_ID).all
              if not u.incoming for e in u.outgoing]
+    # TODO avoid printing the same node more than once, refer to it by ID
+    # TODO convert back to passage
+    # TODO use Node.__str__ as it already does this...
     while True:
         if edges:
             stacks.append(sorted(edges, key=position, reverse=True))
@@ -741,6 +742,7 @@ def to_sequence(passage, sentences=True):
 
 
 ROOT = "ROOT"
+
 
 def from_conll(lines, passage_id):
     """Converts from parsed text in CoNLL format to a Passage object.
