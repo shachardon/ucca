@@ -55,11 +55,10 @@ class Oracle:
                     return Action(action_type, edge.tag, edge.parent.ID)
             if len(config.stack) > 1:
                 s2 = self.passage.by_id(config.stack[-2].node_id)
-                if (s, s2) not in self.swapped and \
+                if frozenset((s, s2)) not in self.swapped and \
                         set([c.ID for c in s2.children]).intersection(
                         [c.node_id for c in config.buffer]):
-                    self.swapped.add((s, s2))
-                    self.swapped.add((s2, s))
+                    self.swapped.add(frozenset((s, s2)))
                     return SWAP
         return SHIFT
 
