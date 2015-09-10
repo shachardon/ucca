@@ -117,6 +117,18 @@ class PunctNode(core.Node):
     def terminals(self):
         return self.children
 
+    def get_terminals(self, punct=True, **kwargs):
+        """Returns a list of all terminals under the span of this PunctNode.
+
+        Args:
+            punct: whether to include punctuation Terminals, defaults to True
+
+        Returns:
+            a list of :class:layer0.Terminal objects
+
+        """
+        return self.children if punct else []
+
     @property
     def start_position(self):
         return self.children[0].position
@@ -352,7 +364,7 @@ class FoundationalNode(core.Node):
         return ' '.join(t.text for t in self.get_terminals())
 
     def is_scene(self):
-        return (self.state is not None or self.process is not None)
+        return self.state is not None or self.process is not None
 
     def str_sequences(self):
         """Returns a list of stringified sequences and positions of this FNode.
@@ -384,9 +396,9 @@ class FoundationalNode(core.Node):
             else:
                 edge_tag = edge.tag
                 if edge.attrib.get('remote'):
-                    edge_tag = edge_tag + '*'
+                    edge_tag += '*'
                 if edge.attrib.get('uncertain'):
-                    edge_tag = edge_tag + '?'
+                    edge_tag += '?'
                 if start(node) == -1:
                     output += "[{} IMPLICIT] ".format(edge_tag)
                 else:
