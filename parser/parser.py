@@ -39,7 +39,7 @@ class Parser:
         """
         return np.array([f() for f in self.features])
 
-    def train(self, passages, iterations=1):
+    def train(self, passages, iterations=1, check_loops=True):
         """
         Train parser on given passages
         :param passages: iterable of Passage objects to train on
@@ -65,9 +65,11 @@ class Parser:
                     actions += 1
                     if not self.config.apply_action(true_action):
                         break
-                    h = hash(self.config)
-                    assert h not in history, "Transition loop during training: %s" % self.config
-                    history.add(h)
+                    if check_loops:
+                        h = hash(self.config)
+                        assert h not in history, \
+                            "Transition loop during training:\n%s" % self.config.str("\n")
+                        history.add(h)
                 print(" " * 18 + str(self.config))
                 out_f = "%s/%s%s.xml" % (args.outdir, args.prefix, passage.ID)
                 sys.stderr.write("Writing passage '%s'...\n" % out_f)
@@ -79,7 +81,7 @@ class Parser:
                   if actions else "No actions done")
             print("Duration: %0.3fms" % (time.time() - started))
 
-    def parse(self, passages):
+    def parse(self, passages, check_loops=True):
         """
         Parse given passages
         :param passages: iterable of either Passage objects, or of lists of lists of tokens
@@ -90,10 +92,11 @@ class Parser:
             self.config = Configuration(passage, passage.ID)
             history = set()
             while self.config.apply_action(self.predict_action()):
-                h = hash(self.config)
-                assert h not in history,\
-                    "Transition loop during parse: %s" % self.config
-                history.add(h)
+                if check_loops:
+                    h = hash(self.config)
+                    assert h not in history,\
+                        "Transition loop during parse:\n%s" % self.config.str("\n")
+                    history.add(h)
             yield self.config.passage
 
     def predict_action(self):
