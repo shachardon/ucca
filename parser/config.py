@@ -241,9 +241,12 @@ class Configuration:
             node.outgoing.sort(key=lambda x: x.child.node_index or self.nodes.index(x.child))
             node.incoming.sort(key=lambda x: x.parent.node_index or self.nodes.index(x.parent))
 
+    def str(self, sep):
+        return "stack: [%-20s]%sbuffer: [%s]" % (" ".join(map(str, self.stack)), sep,
+                                                 " ".join(map(str, self.buffer)))
+
     def __str__(self):
-        return "stack: [%-20s] buffer: [%s]" % (" ".join(map(str, self.stack)),
-                                                " ".join(map(str, self.buffer)))
+        return self.str(" ")
 
     def __eq__(self, other):
         return self.stack == other.stack and self.buffer == other.buffer and \
