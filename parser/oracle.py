@@ -1,4 +1,5 @@
 from action import Action
+import layer1
 
 SHIFT = Action("SHIFT")
 REDUCE = Action("REDUCE")
@@ -15,8 +16,8 @@ class Oracle:
     To be used for creating training data for a transition-based UCCA parser
     """
     def __init__(self, passage):
-        self.nodes_created = {ROOT_ID}
-        self.edges_created = set()
+        self.nodes_left = {node.ID for node in passage.layer(layer1.LAYER_ID).all} - {ROOT_ID}
+        self.edges_left = {edge for node in passage.nodes.values() for edge in node}
         self.swapped = set()
         self.passage = passage
 
@@ -26,41 +27,44 @@ class Oracle:
         :param config: current Configuration of the parser
         :return: best Action to perform
         """
-        if not config.stack and not config.buffer or \
-                self.nodes_created == set(self.passage.nodes):
+        if not self.edges_left:
             return FINISH
         if config.stack:
             s = self.passage.by_id(config.stack[-1].node_id)
-            remaining = self.remaining(s.incoming + s.outgoing)
-            if not remaining:
+            edges = self.edges_left.intersection(s.incoming + s.outgoing)
+            if not edges:
                 return REDUCE
-            if len(remaining) == 1 and remaining[0].parent.ID == ROOT_ID:
-                self.edges_created.add(remaining[0])
-                return Action("ROOT", remaining[0].tag, ROOT_ID)
-        if config.buffer:
-            b = self.passage.by_id(config.buffer[0].node_id)
-            for edge in self.remaining(b.incoming):
-                if edge.parent.ID not in self.nodes_created:
-                    self.edges_created.add(edge)
-                    self.nodes_created.add(edge.parent.ID)
-                    return Action("NODE", edge.tag, edge.parent.ID)
-        else:
+            if len(edges) == 1:
+                edge = edges.pop()
+                if edge.parent.ID == ROOT_ID:
+                    self.edges_left.remove(edge)
+                    return Action("ROOT", edge.tag, ROOT_ID)
+        if not config.buffer:
             self.swapped = set()
             return WRAP
-        if config.stack and config.buffer:
-            for edge in self.remaining(s.outgoing):
+        b = self.passage.by_id(config.buffer[0].node_id)
+        for edge in self.edges_left.intersection(b.incoming):
+            if edge.parent.ID in self.nodes_left:
+                self.edges_left.remove(edge)
+                self.nodes_left.remove(edge.parent.ID)
+                return Action("NODE", edge.tag, edge.parent.ID)
+        if config.stack:
+            for edge in self.edges_left.intersection(s.outgoing):
                 if edge.child.ID == b.ID:
-                    self.edges_created.add(edge)
-                    action_type = "REMOTE" if edge.attrib.get("remote") else "EDGE"
-                    return Action(action_type, edge.tag, edge.parent.ID)
+                    self.edges_left.remove(edge)
+                    return Action("REMOTE" if edge.attrib.get("remote") else "EDGE",
+                                  edge.tag, edge.parent.ID)
             if len(config.stack) > 1:
                 s2 = self.passage.by_id(config.stack[-2].node_id)
-                if frozenset((s, s2)) not in self.swapped and \
-                        set([c.ID for c in s2.children]).intersection(
-                        [c.node_id for c in config.buffer]):
-                    self.swapped.add(frozenset((s, s2)))
-                    return SWAP
+                pair = frozenset((s, s2))
+                if pair not in self.swapped:
+                    children = [edge.child.ID for edge in self.edges_left.intersection(s2.outgoing)]
+                    parents = [edge.parent.ID for edge in self.edges_left.intersection(s2.incoming)]
+                    # FIXME the two lines above should make sense somehow
+                    if any(c.node_id in children for c in config.buffer) and not \
+                            any(c.node_id in children for c in config.stack) or \
+                            any(p.node_id in parents for p in config.stack) and not \
+                            any(p.node_id in parents for p in config.buffer):
+                        self.swapped.add(pair)
+                        return SWAP
         return SHIFT
-
-    def remaining(self, edges):
-        return [e for e in edges if e not in self.edges_created]

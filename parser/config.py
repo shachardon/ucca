@@ -83,7 +83,7 @@ class Edge:
         assert self not in self.child.incoming, "Trying to create incoming edge twice: " + str(self)
         self.parent.outgoing.append(self)
         self.child.incoming.append(self)
-        print("    " + str(self))
+        print("    %s" % self)
 
     def __repr__(self):
         return Edge.__name__ + "(" + self.tag + ", " + self.parent + ", " + self.child +\
@@ -121,6 +121,7 @@ class Configuration:
         self.stack = []
         self.root = self.add_node(self.root_id)  # The root is not part of the stack/buffer
         self.passage_id = passage_id
+        self.wraps = 0
 
     def apply_action(self, action):
         """
@@ -143,10 +144,12 @@ class Configuration:
         elif action.type == "SHIFT":  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
         elif action.type == "SWAP":  # Swap top two stack elements (to handle non-projective edge)
+            print("    %s <--> %s" % (self.stack[-2], self.stack[-1]))
             self.stack.append(self.stack.pop(-2))
         elif action.type == "WRAP":  # Buffer exhausted but not finished yet: wrap stack back to buffer
             self.buffer = deque(self.stack)
             self.stack = []
+            self.wraps += 1
         elif action.type == "FINISH":  # Nothing left to do
             return False
         else:
@@ -242,8 +245,9 @@ class Configuration:
             node.incoming.sort(key=lambda x: x.parent.node_index or self.nodes.index(x.parent))
 
     def str(self, sep):
-        return "stack: [%-20s]%sbuffer: [%s]" % (" ".join(map(str, self.stack)), sep,
-                                                 " ".join(map(str, self.buffer)))
+        return "stack: [%-20s]%sbuffer: [%s]%swraps: %d" % (" ".join(map(str, self.stack)), sep,
+                                                            " ".join(map(str, self.buffer)), sep,
+                                                            self.wraps)
 
     def __str__(self):
         return self.str(" ")

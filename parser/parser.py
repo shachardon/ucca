@@ -56,20 +56,20 @@ class Parser:
                 history = set()
                 oracle = Oracle(passage)
                 while True:
-                    pred_action = self.predict_action()
-                    true_action = oracle.get_action(self.config)
-                    if not self.update(pred_action, true_action):
-                        correct += 1
-                    # print("  predicted: %-15s true: %-15s stack: %-20s buffer: %-70s" %
-                    print("  %-15s %s" % (true_action, self.config))
-                    actions += 1
-                    if not self.config.apply_action(true_action):
-                        break
                     if check_loops:
                         h = hash(self.config)
                         assert h not in history, \
                             "Transition loop during training:\n%s" % self.config.str("\n")
                         history.add(h)
+                    # pred_action = self.predict_action()
+                    true_action = oracle.get_action(self.config)
+                    # if not self.update(pred_action, true_action):
+                    #     correct += 1
+                    # print("  predicted: %-15s true: %-15s stack: %-20s buffer: %-70s" %
+                    print("  %-15s %s" % (true_action, self.config))
+                    actions += 1
+                    if not self.config.apply_action(true_action):
+                        break
                 print(" " * 18 + str(self.config))
                 out_f = "%s/%s%s.xml" % (args.outdir, args.prefix, passage.ID)
                 sys.stderr.write("Writing passage '%s'...\n" % out_f)
