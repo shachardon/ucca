@@ -1,4 +1,4 @@
-from collections import deque, defaultdict
+from collections import deque, defaultdict, OrderedDict
 from itertools import groupby
 from operator import attrgetter
 
@@ -13,7 +13,7 @@ class Node:
     """
     Temporary representation for core.Node with only relevant information for parsing
     """
-    def __init__(self, index, text=None, node_id=None):
+    def __init__(self, index, text=None, node_id=None, implicit=False):
         self.index = index  # Index in the configuration's node list
         self.text = text  # Text for terminals, None for non-terminals
         self.node_id = node_id  # During training, the ID of the original node
@@ -21,12 +21,14 @@ class Node:
         self.outgoing = []  # Edge list
         self.incoming = []  # Edge list
         self.node = None  # Instantiated when creating the final Passage: the associated core.Node
+        self.implicit = implicit
 
     def add_layer1_node(self, l1, parent, tag, terminals):
         """
         Called when creating final Passage to add a new core.Node
         """
-        assert self.node is None or self.text, "Trying to create the same node twice"
+        assert self.node is None or self.text,\
+            "Trying to create the same node twice: %s, parent: %s" % (self.node_id, parent)
         if self.text:
             if not self.node:  # For punctuation, already created by add_punct for parent
                 self.node = parent.node.add(layer1.EdgeTags.Terminal,
@@ -38,7 +40,7 @@ class Node:
             self.node = l1.add_punct(parent.node, terminals[self.outgoing[0].child.index])
             self.outgoing[0].child.node = self.node[0].child
         else:  # The usual case
-            self.node = l1.add_fnode(parent.node, tag)
+            self.node = l1.add_fnode(parent.node, tag, implicit=self.implicit)
         if self.node and self.node_id:  # We are in training and we have a gold passage
             self.node.extra["remarks"] = self.node_id  # Keep original node ID for reference
 
@@ -129,13 +131,21 @@ class Configuration:
         :param action: Action object to apply
         :return: True if parsing should continue, False if finished
         """
-        if action.type == "NODE":  # Create new node and push to the stack
+        if action.type == "NODE":  # Create new parent node and push to the stack
             parent = self.add_node(action.node_id)
             Edge(parent, self.buffer[0], action.tag).add()
             self.stack.append(parent)
-        elif action.type == "EDGE":  # Create edge between stack top and buffer head
+        elif action.type == "IMPLICIT":  # Create new child node and add to the buffer
+            child = self.add_node(action.node_id, implicit=True)
+            Edge(self.stack[-1], child, action.tag).add()
+            self.buffer.appendleft(child)
+        elif action.type == "LEFT-EDGE":  # Create edge between buffer head and stack top
+            Edge(self.buffer[0], self.stack[-1], action.tag).add()
+        elif action.type == "RIGHT-EDGE":  # Create edge between stack top and buffer head
             Edge(self.stack[-1], self.buffer[0], action.tag).add()
-        elif action.type == "REMOTE":  # Same as EDGE but a remote edge is created
+        elif action.type == "LEFT-REMOTE":  # Same as LEFT-EDGE but a remote edge is created
+            Edge(self.buffer[0], self.stack[-1], action.tag, remote=True).add()
+        elif action.type == "RIGHT-REMOTE":  # Same as RIGHT-EDGE but a remote edge is created
             Edge(self.stack[-1], self.buffer[0], action.tag, remote=True).add()
         elif action.type == "ROOT":  # Create edge between stack top and ROOT; pop stack
             Edge(self.root, self.stack.pop(), action.tag).add()
@@ -157,11 +167,11 @@ class Configuration:
         assert not set(self.stack).intersection(self.buffer), "Stack and buffer overlap"
         return True
 
-    def add_node(self, node_id=None):
+    def add_node(self, node_id=None, implicit=False):
         """
         Called during parsing to add a new Node (not core.Node) to the temporary representation
         """
-        node = Node(len(self.nodes), node_id=node_id)
+        node = Node(len(self.nodes), node_id=node_id, implicit=implicit)
         self.nodes.append(node)
         return node
 
@@ -181,7 +191,7 @@ class Configuration:
         linkages = []  # To be handled after all non-linkage nodes are created
         self.topological_sort()  # Sort self.nodes
         for node in self.nodes:
-            assert node.text or node.outgoing, "Non-terminal leaf node"
+            assert node.text or node.outgoing or node.implicit, "Non-terminal leaf node: %s" % node
             assert node.node or node == self.root or node.is_linkage, "Non-root without incoming"
             if node.is_linkage:
                 linkages.append(node)
@@ -240,6 +250,7 @@ class Configuration:
                     level_by_index[node.index] = 0
         self.nodes = [node for level, level_nodes in sorted(levels.items())
                       for node in sorted(level_nodes, key=lambda x: x.node_index or x.index)]
+        assert len(self.nodes) == len(OrderedDict(zip(self.nodes, self.nodes)))
         for node in self.nodes:
             node.outgoing.sort(key=lambda x: x.child.node_index or self.nodes.index(x.child))
             node.incoming.sort(key=lambda x: x.parent.node_index or self.nodes.index(x.parent))

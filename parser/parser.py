@@ -21,10 +21,12 @@ class Parser:
     """
     def __init__(self):
         self.config = None  # Configuration object created at each parse
-        self.actions = [Action(action, tag) for action in ("NODE", "EDGE", "REMOTE", "ROOT")
+        self.actions = [Action(action, tag) for action in
+                        ("NODE", "LEFT-EDGE", "RIGHT-EDGE", "LEFT-REMOTE", "RIGHT-REMOTE", "ROOT", "IMPLICIT")
                         for name, tag in layer1.EdgeTags.__dict__.items()
                         if isinstance(tag, str) and not name.startswith('__')] +\
-                       [Action(action) for action in ("REDUCE", "SHIFT", "SWAP", "WRAP", "FINISH")]
+                       [Action(action) for action in
+                        ("REDUCE", "SHIFT", "SWAP", "WRAP", "FINISH")]
         self.actions_reverse = {str(action): i for i, action in enumerate(self.actions)}
         self.features = [
             lambda: len(self.config.stack),
@@ -59,7 +61,8 @@ class Parser:
                     if check_loops:
                         h = hash(self.config)
                         assert h not in history, \
-                            "Transition loop during training:\n%s" % self.config.str("\n")
+                            "Transition loop during training:\n%s\n%s" % (
+                                self.config.str("\n"), oracle.str("\n"))
                         history.add(h)
                     # pred_action = self.predict_action()
                     true_action = oracle.get_action(self.config)
@@ -133,7 +136,7 @@ if __name__ == "__main__":
     train_passages = [file2passage(filename) for filename in args.train]
     test_passages = [file2passage(filename) for filename in args.test] if args.test else []
     parser = Parser()
-    parser.train(train_passages)
+    parser.train(train_passages, check_loops=False)
     # for pred_passage in parser.parse(test_passages):
     #     outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
     #     sys.stderr.write("Writing passage '%s'...\n" % outfile)
