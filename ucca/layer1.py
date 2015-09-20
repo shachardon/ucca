@@ -117,7 +117,7 @@ class PunctNode(core.Node):
     def terminals(self):
         return self.children
 
-    def get_terminals(self, punct=True, **kwargs):
+    def get_terminals(self, punct=True, *args, **kwargs):
         """Returns a list of all terminals under the span of this PunctNode.
 
         Args:
