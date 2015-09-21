@@ -3,12 +3,12 @@ import os
 import time
 
 import numpy as np
-import sys
 
 from action import Action
 from state import State
 from diff import diff_passages
 from ucca import layer1
+from ucca import core
 from scripts.util import file2passage
 from oracle import Oracle
 from util import passage2file
@@ -43,86 +43,100 @@ class Parser:
         """
         return np.array([f() for f in self.features])
 
-    def train(self, passages, iterations=1, verbose=False, check_loops=True):
+    def train(self, passages, iterations=1, **kwargs):
         """
         Train parser on given passages
         :param passages: iterable of Passage objects to train on
         :param iterations: number of iterations to perform
         """
-        total_correct = 0
-        total_actions = 0
-        total_duration = 0
         print("Training %d iterations on %d passages" % (iterations, len(passages)))
         for iteration in range(1, iterations + 1):
-            print("Iteration %d" % iteration)
-            started = time.time()
-            correct = 0
-            actions = 0
-            for passage in passages:
-                print("passage " + passage.ID, end="\n" if verbose else ": ")
-                self.state = State(passage, passage.ID, verbose=verbose)
-                history = set()
-                oracle = Oracle(passage)
-                while True:
-                    if check_loops:
-                        h = hash(self.state)
-                        assert h not in history, \
-                            "Transition loop during training:\n%s\n%s" % (
-                                self.state.str("\n"), oracle.str("\n"))
-                        history.add(h)
-                    # pred_action = self.predict_action()
-                    true_action = oracle.get_action(self.state)
-                    # if not self.update(pred_action, true_action):
-                    #     correct += 1
-                    if verbose:
-                        # print("  predicted: %-15s true: %-15s stack: %-20s buffer: %-70s" %
-                        print("  %-15s %s" % (true_action, self.state))
-                    actions += 1
-                    if not self.state.apply_action(true_action):
-                        break  # action is FINISH
-                if verbose:
-                    print(" " * 18 + str(self.state))
-                predicted = self.state.passage
-                assert passage.equals(predicted),\
-                    "Oracle failed to produce true passage\n" + diff_passages(passage, predicted)
-            print("accuracy: %.3f (%d/%d)" % (correct/actions, correct, actions)
-                  if actions else "No actions done", end="\n" if verbose else ", ")
-            duration = time.time() - started
-            print("duration: %0.3fms" % duration)
-            total_correct += correct
-            total_actions += actions
-            total_duration += duration
-            print()
+            print("Iteration %d" % iteration, end=": ")
+            self.parse(passages, train=True, **kwargs)
 
         print("Trained %d iterations on %d passages" % (iterations, len(passages)))
-        print("Overall accuracy: %.3f (%d/%d)" % (
-            total_correct / total_actions, total_correct, total_actions))
-        print("Total time: %.3fms (average time per passage: %.3fms)" % (
-            total_duration, total_duration / len(passages)))
 
-    def parse(self, passages, check_loops=True):
+    def parse(self, passages, train=False, verbose=False, check_loops=True):
         """
         Parse given passages
         :param passages: iterable of either Passage objects, or of lists of lists of tokens
+        :param train: use oracle to train on given passages, or just parse with classifier?
+        :param verbose: print long trace of performed actions?
+        :param check_loops: check whether an infinite loop is reached (adds runtime overhead)?
         :return: generator of parsed passages
         """
-        print("%d passages to parse" % len(passages))
+        predicted_passages = []
+        total_correct = 0
+        total_actions = 0
+        total_duration = 0
+        end = "\n" if verbose else " "
+        print((str(len(passages)) if passages else "No") + " passages to parse")
         for passage in passages:
-            self.state = State(passage, passage.ID)
+            started = time.time()
+            correct = 0
+            actions = 0
+            if isinstance(passage, core.Passage):
+                print("passage " + passage.ID, end=end)
+            else:
+                print("passage '%s'" % passage, end=end)
+                passage = file2passage(passage)
+            # TODO handle passage given as text, pass to State as list of lists of strings
+            self.state = State(passage, passage.ID, verbose=verbose)
             history = set()
-            while self.state.apply_action(self.predict_action()):
+            if train:
+                oracle = Oracle(passage)
+            while True:
                 if check_loops:
                     h = hash(self.state)
-                    assert h not in history,\
-                        "Transition loop during parse:\n%s" % self.state.str("\n")
+                    assert h not in history, "Transition loop:\n" + self.state.str("\n") +\
+                                             "\n" + oracle.str("\n") if train else ""
                     history.add(h)
-            yield self.state.passage
+                if not train:  # FIXME remove this condition and uncomment code below
+                    pred_action = self.predict_action()
+                if train:
+                    action = oracle.get_action(self.state)
+                    # if not self.update(pred_action, action):
+                    #     correct += 1
+                else:
+                    action = pred_action
+                if verbose:
+                    # print("  predicted: %-15s true: %-15s %s" % (pred_action, action, self.state)
+                    print("  %-15s %s" % (action, self.state))
+                actions += 1
+                if not self.state.apply_action(action):
+                    break  # action is FINISH
+            if verbose:
+                print(" " * 18 + str(self.state))
+            predicted = self.state.passage
+            if train:
+                assert passage.equals(predicted),\
+                    "Oracle failed to produce true passage\n" + diff_passages(passage, predicted)
+                print("accuracy: %.3f (%d/%d)" % (correct/actions, correct, actions)
+                      if actions else "No actions done", end=end)
+            duration = time.time() - started
+            print("time: %0.3fms" % duration)
+            if verbose:
+                print()
+            predicted_passages.append(predicted)
+            total_correct += correct
+            total_actions += actions
+            total_duration += duration
+
+        if train and total_actions:
+            print("Overall accuracy: %.3f (%d/%d)" % (
+                total_correct / total_actions, total_correct, total_actions))
+        if passages:
+            print("Total time: %.3fms (average time per passage: %.3fms)" % (
+                total_duration, total_duration / len(passages)))
+
+        return predicted_passages
 
     def predict_action(self):
         """
         Choose action based on classifier
         :return: action with maximum probability according to classifier
         """
+        # TODO do not predict an action that is illegal in the current state
         features = self.feature_array()
         return self.actions[np.argmax(self.weights.dot(features))]
 
@@ -146,7 +160,10 @@ def all_files(dirs):
     :param dirs: a list of files and/or directories to look in
     :return: all files given, plus any files directly under any directory given
     """
-    return [f for d in dirs or () for f in (os.listdir(d) if os.path.isdir(d) else (d,))]
+    if not dirs:
+        return ()
+    dirs += [os.path.join(d, f) for d in dirs if os.path.isdir(d) for f in os.listdir(d)]
+    return [f for f in dirs if os.path.isfile(f)]
 
 
 if __name__ == "__main__":
@@ -157,11 +174,9 @@ if __name__ == "__main__":
     argparser.add_argument('-p', '--prefix', default='ucca_passage', help="output filename prefix")
     args = argparser.parse_args()
 
-    train_passages = [file2passage(filename) for filename in all_files(args.train)]
-    test_passages = [file2passage(filename) for filename in all_files(args.test)]
     parser = Parser()
-    parser.train(train_passages, check_loops=False)
-    for pred_passage in parser.parse(test_passages):
+    parser.train(all_files(args.train), check_loops=False)
+    for pred_passage in parser.parse(all_files(args.test)):
         outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
-        sys.stderr.write("Writing passage '%s'...\n" % outfile)
+        print("Writing passage '%s'...\n" % outfile)
         passage2file(pred_passage, outfile)

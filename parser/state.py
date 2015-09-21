@@ -62,7 +62,7 @@ class Node:
         return self.text or self.node_id or self.index
 
     def __eq__(self, other):
-        return self.text == other.text and self.outgoing == other.outgoing
+        return self.index == other.index and self.outgoing == other.outgoing
 
     def __hash__(self):
         return hash((self.index, tuple(self.outgoing)))
@@ -105,6 +105,9 @@ class Edge:
 class State:
     """
     The parser's state, responsible for applying actions and creating the final Passage
+    :param passage: a Passage object to get the tokens from, or a list of lists of strings
+    :param passage_id: the ID of the passage to generate
+    :param verbose: print long trace of performed actions?
     """
     def __init__(self, passage, passage_id, verbose=False):
         self.verbose = verbose
