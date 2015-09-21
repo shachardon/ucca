@@ -23,7 +23,7 @@ class Node:
         self.node = None  # Instantiated when creating the final Passage: the associated core.Node
         self.implicit = implicit
 
-    def add_layer1_node(self, l1, parent, tag, terminals):
+    def add_to_l1(self, l1, parent, tag, terminals):
         """
         Called when creating final Passage to add a new core.Node
         """
@@ -103,7 +103,7 @@ class Edge:
         return hash((self.parent.index, self.child.index, self.tag))
 
 
-class Configuration:
+class State:
     """
     The parser's state, responsible for applying actions and creating the final Passage
     """
@@ -200,7 +200,7 @@ class Configuration:
                     if edge.remote:
                         remotes.append((node, edge))
                     else:
-                        edge.child.add_layer1_node(l1, node, edge.tag, terminals)
+                        edge.child.add_to_l1(l1, node, edge.tag, terminals)
 
         for node, edge in remotes:  # Add remote edges
             node.node.add(edge.tag, edge.child.node, edge_attrib={"remote": True})

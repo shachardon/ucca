@@ -5,7 +5,7 @@ import sys
 import numpy as np
 
 from action import Action
-from config import Configuration
+from state import State
 from diff import diff_passages
 from ucca import layer1
 from scripts.util import file2passage, passage2file
@@ -20,7 +20,7 @@ class Parser:
     Main class to implement transition-based UCCA parser
     """
     def __init__(self):
-        self.config = None  # Configuration object created at each parse
+        self.state = None  # State object created at each parse
         self.actions = [Action(action, tag) for action in
                         ("NODE", "LEFT-EDGE", "RIGHT-EDGE", "LEFT-REMOTE", "RIGHT-REMOTE", "ROOT", "IMPLICIT")
                         for name, tag in layer1.EdgeTags.__dict__.items()
@@ -29,8 +29,8 @@ class Parser:
                         ("REDUCE", "SHIFT", "SWAP", "WRAP", "FINISH")]
         self.actions_reverse = {str(action): i for i, action in enumerate(self.actions)}
         self.features = [
-            lambda: len(self.config.stack),
-            lambda: len(self.config.buffer)
+            lambda: len(self.state.stack),
+            lambda: len(self.state.buffer)
         ]
         self.weights = 0.01 * np.random.randn(len(self.actions), len(self.features))
 
@@ -54,29 +54,29 @@ class Parser:
             correct = 0
             actions = 0
             for passage in passages:
-                self.config = Configuration(passage, passage.ID)
+                self.state = State(passage, passage.ID)
                 history = set()
                 oracle = Oracle(passage)
                 while True:
                     if check_loops:
-                        h = hash(self.config)
+                        h = hash(self.state)
                         assert h not in history, \
                             "Transition loop during training:\n%s\n%s" % (
-                                self.config.str("\n"), oracle.str("\n"))
+                                self.state.str("\n"), oracle.str("\n"))
                         history.add(h)
                     # pred_action = self.predict_action()
-                    true_action = oracle.get_action(self.config)
+                    true_action = oracle.get_action(self.state)
                     # if not self.update(pred_action, true_action):
                     #     correct += 1
                     # print("  predicted: %-15s true: %-15s stack: %-20s buffer: %-70s" %
-                    print("  %-15s %s" % (true_action, self.config))
+                    print("  %-15s %s" % (true_action, self.state))
                     actions += 1
-                    if not self.config.apply_action(true_action):
+                    if not self.state.apply_action(true_action):
                         break
-                print(" " * 18 + str(self.config))
+                print(" " * 18 + str(self.state))
                 out_f = "%s/%s%s.xml" % (args.outdir, args.prefix, passage.ID)
                 sys.stderr.write("Writing passage '%s'...\n" % out_f)
-                pred_passage = self.config.passage
+                pred_passage = self.state.passage
                 passage2file(pred_passage, out_f)
                 assert passage.equals(pred_passage), "Oracle failed to produce true passage\n" + \
                                                      diff_passages(passage, pred_passage)
@@ -92,15 +92,15 @@ class Parser:
         """
         print("%d passages to parse" % len(passages))
         for passage in passages:
-            self.config = Configuration(passage, passage.ID)
+            self.state = State(passage, passage.ID)
             history = set()
-            while self.config.apply_action(self.predict_action()):
+            while self.state.apply_action(self.predict_action()):
                 if check_loops:
-                    h = hash(self.config)
+                    h = hash(self.state)
                     assert h not in history,\
-                        "Transition loop during parse:\n%s" % self.config.str("\n")
+                        "Transition loop during parse:\n%s" % self.state.str("\n")
                     history.add(h)
-            yield self.config.passage
+            yield self.state.passage
 
     def predict_action(self):
         """

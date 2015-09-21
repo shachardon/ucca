@@ -21,16 +21,16 @@ class Oracle:
         self.swapped = set()
         self.passage = passage
 
-    def get_action(self, config):
+    def get_action(self, state):
         """
         Determine best action according to current state
-        :param config: current Configuration of the parser
+        :param state: current Configuration of the parser
         :return: best Action to perform
         """
         if not self.edges_left:
             return FINISH
-        if config.stack:
-            s = self.passage.by_id(config.stack[-1].node_id)
+        if state.stack:
+            s = self.passage.by_id(state.stack[-1].node_id)
             edges = self.edges_left.intersection(s.incoming + s.outgoing)
             if not edges:
                 return REDUCE
@@ -39,16 +39,16 @@ class Oracle:
                 if edge.parent.ID == ROOT_ID:
                     self.edges_left.remove(edge)
                     return Action("ROOT", edge.tag, ROOT_ID)
-        if not config.buffer:
+        if not state.buffer:
             self.swapped = set()
             return WRAP
-        b = self.passage.by_id(config.buffer[0].node_id)
+        b = self.passage.by_id(state.buffer[0].node_id)
         for edge in self.edges_left.intersection(b.incoming):
             if edge.parent.ID in self.nodes_left and not edge.attrib.get("remote"):
                 self.edges_left.remove(edge)
                 self.nodes_left.remove(edge.parent.ID)
                 return Action("NODE", edge.tag, edge.parent.ID)
-        if config.stack:
+        if state.stack:
             for edge in self.edges_left.intersection(s.outgoing):
                 if edge.child.ID == b.ID:
                     self.edges_left.remove(edge)
@@ -63,18 +63,18 @@ class Oracle:
                     self.edges_left.remove(edge)
                     return Action("LEFT-REMOTE" if edge.attrib.get("remote") else "LEFT-EDGE",
                                   edge.tag)
-            if len(config.stack) > 1:
-                s2 = self.passage.by_id(config.stack[-2].node_id)
+            if len(state.stack) > 1:
+                s2 = self.passage.by_id(state.stack[-2].node_id)
                 pair = frozenset((s, s2))
                 if pair not in self.swapped:
                     children = [edge.child.ID for edge in self.edges_left.intersection(s2.outgoing)]
                     parents = [edge.parent.ID for edge in self.edges_left.intersection(s2.incoming)]
-                    if any(c.node_id in children for c in config.buffer) and not \
-                            any(c.node_id in children for c in config.stack) or \
-                            any(p.node_id in parents for p in config.stack) and not \
-                            any(p.node_id in parents for p in config.buffer) or \
-                            any(p.node_id in parents for p in config.buffer) and not \
-                            any(p.node_id in parents for p in config.stack):
+                    if any(c.node_id in children for c in state.buffer) and not \
+                            any(c.node_id in children for c in state.stack) or \
+                            any(p.node_id in parents for p in state.stack) and not \
+                            any(p.node_id in parents for p in state.buffer) or \
+                            any(p.node_id in parents for p in state.buffer) and not \
+                            any(p.node_id in parents for p in state.stack):
                         self.swapped.add(pair)
                         return SWAP
         return SHIFT
