@@ -41,20 +41,24 @@ class Parser:
         """
         return np.array([f() for f in self.features])
 
-    def train(self, passages, iterations=1, check_loops=True):
+    def train(self, passages, iterations=1, verbose=False, check_loops=True):
         """
         Train parser on given passages
         :param passages: iterable of Passage objects to train on
         :param iterations: number of iterations to perform
         """
-        print("%d training passages" % len(passages))
-        for iteration in range(iterations):
+        total_correct = 0
+        total_actions = 0
+        total_duration = 0
+        print("Training %d iterations on %d passages" % (iterations, len(passages)))
+        for iteration in range(1, iterations + 1):
             print("Iteration %d" % iteration)
             started = time.time()
             correct = 0
             actions = 0
             for passage in passages:
-                self.state = State(passage, passage.ID)
+                print("passage " + passage.ID, end="\n" if verbose else ": ")
+                self.state = State(passage, passage.ID, verbose=verbose)
                 history = set()
                 oracle = Oracle(passage)
                 while True:
@@ -68,21 +72,31 @@ class Parser:
                     true_action = oracle.get_action(self.state)
                     # if not self.update(pred_action, true_action):
                     #     correct += 1
-                    # print("  predicted: %-15s true: %-15s stack: %-20s buffer: %-70s" %
-                    print("  %-15s %s" % (true_action, self.state))
+                    if verbose:
+                        # print("  predicted: %-15s true: %-15s stack: %-20s buffer: %-70s" %
+                        print("  %-15s %s" % (true_action, self.state))
                     actions += 1
                     if not self.state.apply_action(true_action):
-                        break
-                print(" " * 18 + str(self.state))
-                out_f = "%s/%s%s.xml" % (args.outdir, args.prefix, passage.ID)
-                sys.stderr.write("Writing passage '%s'...\n" % out_f)
-                pred_passage = self.state.passage
-                passage2file(pred_passage, out_f)
-                assert passage.equals(pred_passage), "Oracle failed to produce true passage\n" + \
-                                                     diff_passages(passage, pred_passage)
-            print("Accuracy: %.3f (%d/%d)" % (correct/actions, correct, actions)
-                  if actions else "No actions done")
-            print("Duration: %0.3fms" % (time.time() - started))
+                        break  # action is FINISH
+                if verbose:
+                    print(" " * 18 + str(self.state))
+                predicted = self.state.passage
+                assert passage.equals(predicted),\
+                    "Oracle failed to produce true passage\n" + diff_passages(passage, predicted)
+            print("accuracy: %.3f (%d/%d)" % (correct/actions, correct, actions)
+                  if actions else "No actions done", end="\n" if verbose else ", ")
+            duration = time.time() - started
+            print("duration: %0.3fms" % duration)
+            total_correct += correct
+            total_actions += actions
+            total_duration += duration
+            print()
+
+        print("Trained %d iterations on %d passages" % (iterations, len(passages)))
+        print("Overall accuracy: %.3f (%d/%d)" % (
+            total_correct / total_actions, total_correct, total_actions))
+        print("Total time: %.3fms (average time per passage: %.3fms)" % (
+            total_duration, total_duration / len(passages)))
 
     def parse(self, passages, check_loops=True):
         """

@@ -13,7 +13,7 @@ class Node:
     """
     Temporary representation for core.Node with only relevant information for parsing
     """
-    def __init__(self, index, text=None, node_id=None, implicit=False):
+    def __init__(self, index, node_id=None, text=None, implicit=False):
         self.index = index  # Index in the configuration's node list
         self.text = text  # Text for terminals, None for non-terminals
         self.node_id = node_id  # During training, the ID of the original node
@@ -85,7 +85,6 @@ class Edge:
         assert self not in self.child.incoming, "Trying to create incoming edge twice: " + str(self)
         self.parent.outgoing.append(self)
         self.child.incoming.append(self)
-        print("    %s" % self)
 
     def __repr__(self):
         return Edge.__name__ + "(" + self.tag + ", " + self.parent + ", " + self.child +\
@@ -107,9 +106,10 @@ class State:
     """
     The parser's state, responsible for applying actions and creating the final Passage
     """
-    def __init__(self, passage, passage_id):
+    def __init__(self, passage, passage_id, verbose=False):
+        self.verbose = verbose
         if isinstance(passage, core.Passage):  # During training, create from gold Passage
-            self.nodes = [Node(i, text=x.text, node_id=x.ID) for i, x in
+            self.nodes = [Node(i, node_id=x.ID, text=x.text) for i, x in
                           enumerate(passage.layer(layer0.LAYER_ID).all)]
             self.tokens = [[x.text for x in xs]
                            for _, xs in groupby(passage.layer(layer0.LAYER_ID).all,
@@ -133,28 +133,29 @@ class State:
         """
         if action.type == "NODE":  # Create new parent node and push to the stack
             parent = self.add_node(action.node_id)
-            Edge(parent, self.buffer[0], action.tag).add()
+            self.add_edge(parent, self.buffer[0], action.tag)
             self.stack.append(parent)
         elif action.type == "IMPLICIT":  # Create new child node and add to the buffer
             child = self.add_node(action.node_id, implicit=True)
-            Edge(self.stack[-1], child, action.tag).add()
+            self.add_edge(self.stack[-1], child, action.tag)
             self.buffer.appendleft(child)
         elif action.type == "LEFT-EDGE":  # Create edge between buffer head and stack top
-            Edge(self.buffer[0], self.stack[-1], action.tag).add()
+            self.add_edge(self.buffer[0], self.stack[-1], action.tag)
         elif action.type == "RIGHT-EDGE":  # Create edge between stack top and buffer head
-            Edge(self.stack[-1], self.buffer[0], action.tag).add()
+            self.add_edge(self.stack[-1], self.buffer[0], action.tag)
         elif action.type == "LEFT-REMOTE":  # Same as LEFT-EDGE but a remote edge is created
-            Edge(self.buffer[0], self.stack[-1], action.tag, remote=True).add()
+            self.add_edge(self.buffer[0], self.stack[-1], action.tag, remote=True)
         elif action.type == "RIGHT-REMOTE":  # Same as RIGHT-EDGE but a remote edge is created
-            Edge(self.stack[-1], self.buffer[0], action.tag, remote=True).add()
+            self.add_edge(self.stack[-1], self.buffer[0], action.tag, remote=True)
         elif action.type == "ROOT":  # Create edge between stack top and ROOT; pop stack
-            Edge(self.root, self.stack.pop(), action.tag).add()
+            self.add_edge(self.root, self.stack.pop(), action.tag)
         elif action.type == "REDUCE":  # Pop stack (no more edges to create with this node)
             self.stack.pop()
         elif action.type == "SHIFT":  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
         elif action.type == "SWAP":  # Swap top two stack elements (to handle non-projective edge)
-            print("    %s <--> %s" % (self.stack[-2], self.stack[-1]))
+            if self.verbose:
+                print("    %s <--> %s" % (self.stack[-2], self.stack[-1]))
             self.stack.append(self.stack.pop(-2))
         elif action.type == "WRAP":  # Buffer exhausted but not finished yet: wrap stack back to buffer
             self.buffer = deque(self.stack)
@@ -167,13 +168,22 @@ class State:
         assert not set(self.stack).intersection(self.buffer), "Stack and buffer overlap"
         return True
 
-    def add_node(self, node_id=None, implicit=False):
+    def add_node(self, *args, **kwargs):
         """
         Called during parsing to add a new Node (not core.Node) to the temporary representation
         """
-        node = Node(len(self.nodes), node_id=node_id, implicit=implicit)
+        node = Node(len(self.nodes), *args, **kwargs)
         self.nodes.append(node)
+        if self.verbose:
+            print("    %s" % node)
         return node
+
+    def add_edge(self, *args, **kwargs):
+        edge = Edge(*args, **kwargs)
+        edge.add()
+        if self.verbose:
+            print("    %s" % edge)
+        return edge
 
     @property
     def passage(self):
