@@ -88,7 +88,7 @@ class Edge:
 
     def __repr__(self):
         return Edge.__name__ + "(" + self.tag + ", " + self.parent + ", " + self.child +\
-               ((", " + self.remote) if self.remote else "") + ")"
+               ((", " + str(self.remote)) if self.remote else "") + ")"
 
     def __str__(self):
         return "%s -%s-> %s%s" % (self.parent, self.tag, self.child,

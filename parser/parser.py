@@ -1,15 +1,17 @@
 import argparse
+import os
 import time
-import sys
 
 import numpy as np
+import sys
 
 from action import Action
 from state import State
 from diff import diff_passages
 from ucca import layer1
-from scripts.util import file2passage, passage2file
+from scripts.util import file2passage
 from oracle import Oracle
+from util import passage2file
 
 desc = """Transition-based parser for UCCA.
 """
@@ -139,6 +141,14 @@ class Parser:
         return True
 
 
+def all_files(dirs):
+    """
+    :param dirs: a list of files and/or directories to look in
+    :return: all files given, plus any files directly under any directory given
+    """
+    return [f for d in dirs or () for f in (os.listdir(d) if os.path.isdir(d) else (d,))]
+
+
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description=desc)
     argparser.add_argument('train', nargs='+', help="passage file names to train on")
@@ -147,11 +157,11 @@ if __name__ == "__main__":
     argparser.add_argument('-p', '--prefix', default='ucca_passage', help="output filename prefix")
     args = argparser.parse_args()
 
-    train_passages = [file2passage(filename) for filename in args.train]
-    test_passages = [file2passage(filename) for filename in args.test] if args.test else []
+    train_passages = [file2passage(filename) for filename in all_files(args.train)]
+    test_passages = [file2passage(filename) for filename in all_files(args.test)]
     parser = Parser()
     parser.train(train_passages, check_loops=False)
-    # for pred_passage in parser.parse(test_passages):
-    #     outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
-    #     sys.stderr.write("Writing passage '%s'...\n" % outfile)
-    #     passage2file(pred_passage, outfile)
+    for pred_passage in parser.parse(test_passages):
+        outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
+        sys.stderr.write("Writing passage '%s'...\n" % outfile)
+        passage2file(pred_passage, outfile)
