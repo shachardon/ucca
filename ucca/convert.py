@@ -10,8 +10,6 @@ The possible other formats are:
     CoNLL-X form
 
 """
-from itertools import takewhile
-from itertools import count
 
 import operator
 import re
@@ -20,6 +18,7 @@ import sys
 import xml.sax.saxutils
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+import unicodedata
 
 from ucca import util, core, layer0, layer1
 
@@ -650,6 +649,9 @@ def from_standard(root, extra_funcs={}):
     return passage
 
 
+UNICODE_ESCAPE_PATTERN = re.compile(r"\\u\d+")  # unicode escape sequences are punctuation
+
+
 def from_text(text, passage_id='1'):
     """Converts from tokenized strings to a Passage object.
 
@@ -662,12 +664,18 @@ def from_text(text, passage_id='1'):
     """
     p = core.Passage(passage_id)
     l0 = layer0.Layer0(p)
-    punct = re.compile('^[{}]+$'.format(string.punctuation))
+
+    def is_punctuation_char(c):
+        return c in string.punctuation or c not in string.printable
+
+    def is_punctuation(token):
+        return all(map(is_punctuation_char, token)) or \
+               UNICODE_ESCAPE_PATTERN.match(token)
 
     for i, par in enumerate(text):
         for token in par.split():
             # i is paragraph index, but it starts with 0, so we need to add +1
-            l0.add_terminal(text=token, punct=punct.match(token),
+            l0.add_terminal(text=token, punct=is_punctuation(token),
                             paragraph=(i + 1))
     return p
 

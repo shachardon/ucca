@@ -1,5 +1,5 @@
 from action import Action
-import layer1
+from ucca import layer1
 
 SHIFT = Action("SHIFT")
 REDUCE = Action("REDUCE")

@@ -14,6 +14,9 @@ import functools
 # Max number of digits allowed for a unique ID
 UNIQUE_ID_MAX_DIGITS = 5
 
+# Attribute to ignore when comparing entities
+IRRELEVANT_ATTRIBUTES = {"uncertain"}
+
 
 # Used as the default ordering key function for ordered objects, namely
 # :class:Layer and :class:Node .
@@ -164,7 +167,9 @@ class _AttributeDict:
             True iff the dictionaries contains are equal.
 
         """
-        return self._dict == other._dict
+        def omit_irrelevant(d):
+            return {k: v for k, v in d.items() if k not in IRRELEVANT_ATTRIBUTES}
+        return omit_irrelevant(self._dict) == omit_irrelevant(other._dict)
 
     @property
     def root(self):
@@ -513,8 +518,7 @@ class Node:
         if len(self) != len(other):
             return False  # not necessary, but gives better performance
         if ordered:
-            return all(e1.equals(e2, recursive=True, ordered=True)
-                       for e1, e2 in zip(self, other))
+            return all(e1.equals(e2, ordered=True) for e1, e2 in zip(self, other))
         # For unordered equality, I try to find & remove an equivalent
         # Edge + Node couple from other's Edges until exhausted.
         # Because both Edge-equality and Node-equality are equivalence
@@ -523,9 +527,8 @@ class Node:
         edges = list(other)
         try:
             for e1 in self:
-                edges.remove([e2 for e2 in edges
-                              if e1.equals(e2, recursive=True)][0])
-        except IndexError:
+                edges.remove(next(e2 for e2 in edges if e1.equals(e2)))
+        except StopIteration:
             return False
         return not edges
 

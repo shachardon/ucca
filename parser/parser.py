@@ -7,11 +7,9 @@ import numpy as np
 from action import Action
 from state import State
 from diff import diff_passages
-from ucca import layer1
-from ucca import core
-from scripts.util import file2passage
 from oracle import Oracle
-from util import passage2file
+from ucca import core, layer1
+from scripts.util import file2passage, passage2file
 
 desc = """Transition-based parser for UCCA.
 """
@@ -163,7 +161,7 @@ def all_files(dirs):
     if not dirs:
         return ()
     dirs += [os.path.join(d, f) for d in dirs if os.path.isdir(d) for f in os.listdir(d)]
-    return [f for f in dirs if os.path.isfile(f)]
+    return [f for f in dirs if not os.path.isdir(f)]
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ from collections import deque, defaultdict, OrderedDict
 from itertools import groupby
 from operator import attrgetter
 
-from convert import from_text
+from ucca.convert import from_text
 from ucca import layer0
 from ucca import layer1
 from ucca import core
@@ -13,10 +13,11 @@ class Node:
     """
     Temporary representation for core.Node with only relevant information for parsing
     """
-    def __init__(self, index, node_id=None, text=None, implicit=False):
+    def __init__(self, index, node_id=None, text=None, tag=None, implicit=False):
         self.index = index  # Index in the configuration's node list
-        self.text = text  # Text for terminals, None for non-terminals
         self.node_id = node_id  # During training, the ID of the original node
+        self.text = text  # Text for terminals, None for non-terminals
+        self.tag = tag  # During training, the node tag of the original node (Word/Punctuation)
         self.node_index = int(node_id.split(".")[1]) if node_id else None  # Second part of ID
         self.outgoing = []  # Edge list
         self.incoming = []  # Edge list
@@ -29,16 +30,16 @@ class Node:
         """
         assert self.node is None or self.text,\
             "Trying to create the same node twice: %s, parent: %s" % (self.node_id, parent)
+        edge = self.outgoing[0] if len(self.outgoing) == 1 else None
         if self.text:
             if not self.node:  # For punctuation, already created by add_punct for parent
                 self.node = parent.node.add(layer1.EdgeTags.Terminal,
                                             terminals[self.index]).child
-        elif len(self.outgoing) == 1 and self.outgoing[0].child.text and \
-                layer0.is_punct(terminals[self.outgoing[0].child.index]):
-            assert tag == layer1.EdgeTags.Punctuation
-            assert self.outgoing[0].tag == layer1.EdgeTags.Terminal
-            self.node = l1.add_punct(parent.node, terminals[self.outgoing[0].child.index])
-            self.outgoing[0].child.node = self.node[0].child
+        elif edge and edge.child.text and layer0.is_punct(terminals[edge.child.index]):
+            assert tag == layer1.EdgeTags.Punctuation, "Tag for %s is %s" % (parent.node_id, tag)
+            assert edge.tag == layer1.EdgeTags.Terminal, "Tag for %s is %s" % (self.node_id, edge.tag)
+            self.node = l1.add_punct(parent.node, terminals[edge.child.index])
+            edge.child.node = self.node[0].child
         else:  # The usual case
             self.node = l1.add_fnode(parent.node, tag, implicit=self.implicit)
         if self.node and self.node_id:  # We are in training and we have a gold passage
@@ -79,10 +80,10 @@ class Edge:
         self.remote = remote  # True or False
 
     def add(self):
-        assert self.tag is not None, "No tag given for new edge"
-        assert self.parent != self.child, "Trying to create self-loop edge"
-        assert self not in self.parent.outgoing, "Trying to create outgoing edge twice: " + str(self)
-        assert self not in self.child.incoming, "Trying to create incoming edge twice: " + str(self)
+        assert self.tag is not None, "No tag given for new edge %s -> %s" % (self.parent, self.child)
+        assert self.parent != self.child, "Trying to create self-loop edge on %s" % self.parent
+        assert self not in self.parent.outgoing, "Trying to create outgoing edge twice: %s" % self
+        assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
         self.parent.outgoing.append(self)
         self.child.incoming.append(self)
 
@@ -112,7 +113,7 @@ class State:
     def __init__(self, passage, passage_id, verbose=False):
         self.verbose = verbose
         if isinstance(passage, core.Passage):  # During training, create from gold Passage
-            self.nodes = [Node(i, node_id=x.ID, text=x.text) for i, x in
+            self.nodes = [Node(i, node_id=x.ID, text=x.text, tag=x.tag) for i, x in
                           enumerate(passage.layer(layer0.LAYER_ID).all)]
             self.tokens = [[x.text for x in xs]
                            for _, xs in groupby(passage.layer(layer0.LAYER_ID).all,
@@ -122,6 +123,7 @@ class State:
             self.tokens = [token for paragraph in passage for token in paragraph]
             self.nodes = [Node(i, text=x) for i, x in enumerate(self.tokens)]
             self.root_id = None
+        self.terminals = list(self.nodes)
         self.buffer = deque(self.nodes)
         self.stack = []
         self.root = self.add_node(self.root_id)  # The root is not part of the stack/buffer
@@ -168,7 +170,8 @@ class State:
             return False
         else:
             raise Exception("Invalid action: " + action)
-        assert not set(self.stack).intersection(self.buffer), "Stack and buffer overlap"
+        intersection = set(self.stack).intersection(self.buffer)
+        assert not intersection, "Stack and buffer overlap: %s" % intersection
         return True
 
     def add_node(self, *args, **kwargs):
@@ -197,6 +200,7 @@ class State:
         paragraphs = [" ".join(paragraph) for paragraph in self.tokens]
         passage = from_text(paragraphs, self.passage_id)
         terminals = passage.layer(layer0.LAYER_ID).all
+        self.fix_terminal_tags(terminals)
         l1 = layer1.Layer1(passage)
         if self.root.node_id:  # We are in training and we have a gold passage
             passage.nodes[ROOT_ID].extra["remarks"] = self.root.node_id  # For reference
@@ -205,7 +209,7 @@ class State:
         self.topological_sort()  # Sort self.nodes
         for node in self.nodes:
             assert node.text or node.outgoing or node.implicit, "Non-terminal leaf node: %s" % node
-            assert node.node or node == self.root or node.is_linkage, "Non-root without incoming"
+            assert node.node or node == self.root or node.is_linkage, "Non-root without incoming: %s" % node
             if node.is_linkage:
                 linkages.append(node)
             else:
@@ -223,17 +227,24 @@ class State:
             link_args = []
             for edge in node.outgoing:
                 if edge.tag == layer1.EdgeTags.LinkRelation:
-                    assert link_relation is None, "Multiple link relations"
+                    assert link_relation is None, "Multiple link relations: %s, %s" % (link_relation, edge.child.node)
                     link_relation = edge.child.node
                 elif edge.tag == layer1.EdgeTags.LinkArgument:
                     link_args.append(edge.child.node)
-            assert link_relation is not None, "No link relations"
-            assert len(link_args) > 1, "Less than two link arguments"
+            assert link_relation is not None, "No link relations: %s" % node
+            # assert len(link_args) > 1, "Less than two link arguments"
             node.node = l1.add_linkage(link_relation, *link_args)
             if node.node_id:  # We are in training and we have a gold passage
                 node.node.extra["remarks"] = node.node_id  # For reference
 
         return passage
+
+    def fix_terminal_tags(self, terminals):
+        for terminal, orig_terminal in zip(terminals, self.terminals):
+            if terminal.tag != orig_terminal.tag:
+                if self.verbose:
+                    print("  %s is the wrong tag for terminal: %s" % (terminal.tag, terminal.text))
+                terminal.tag = orig_terminal.tag
 
     def topological_sort(self):
         """
@@ -263,7 +274,6 @@ class State:
                     level_by_index[node.index] = 0
         self.nodes = [node for level, level_nodes in sorted(levels.items())
                       for node in sorted(level_nodes, key=lambda x: x.node_index or x.index)]
-        assert len(self.nodes) == len(OrderedDict(zip(self.nodes, self.nodes)))
         for node in self.nodes:
             node.outgoing.sort(key=lambda x: x.child.node_index or self.nodes.index(x.child))
             node.incoming.sort(key=lambda x: x.parent.node_index or self.nodes.index(x.parent))

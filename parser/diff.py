@@ -1,3 +1,7 @@
+import sys
+from scripts.util import passage2file
+
+
 def diff_passages(true_passage, pred_passage):
     """
     Debug method to print missing or mistaken attributes, nodes and edges
@@ -31,14 +35,24 @@ def diff_passages(true_passage, pred_passage):
             intersection = set(pred_edges).intersection(set(true_edges))
             pred_edges = {s: edge for s, edge in pred_edges.items() if s not in intersection}
             true_edges = {s: edge for s, edge in true_edges.items() if s not in intersection}
-            if pred_edges or true_edges:
+
+            node_lines = []
+            if not pred_node._attrib.equals(true_node._attrib):
+                node_lines.append("  Attributes mismatch: %s, %s" %
+                             (true_node._attrib, pred_node._attrib))
+            if pred_edges:
+                node_lines.append("  Mistake edges: %s" % ", ".join(pred_edges))
+            if true_edges:
+                node_lines.append("  Missing edges: %s" % ", ".join(true_edges))
+            if node_lines:
                 lines.append("For node " + pred_id + ":")
-                if pred_edges:
-                    lines.append("  Mistake edges: %s" % ", ".join(pred_edges))
-                if true_edges:
-                    lines.append("  Missing edges: %s" % ", ".join(true_edges))
+                lines.extend(node_lines)
     if pred_ids:
         lines.append("Mistake nodes: %s" % ", ".join(pred_ids))
     if true_ids:
         lines.append("Missing nodes: %s" % ", ".join(true_ids))
+    if lines:
+        outfile = "ucca_passage%s.xml" % pred_passage.ID
+        sys.stderr.write("Writing passage '%s'...\n" % outfile)
+        passage2file(pred_passage, outfile)
     return "\n".join(lines)
