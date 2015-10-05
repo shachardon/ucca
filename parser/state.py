@@ -1,6 +1,7 @@
 from collections import deque, defaultdict, OrderedDict
 from itertools import groupby
 from operator import attrgetter
+import sys
 
 from ucca.convert import from_text
 from ucca import layer0
@@ -243,7 +244,8 @@ class State:
         for terminal, orig_terminal in zip(terminals, self.terminals):
             if terminal.tag != orig_terminal.tag:
                 if self.verbose:
-                    print("  %s is the wrong tag for terminal: %s" % (terminal.tag, terminal.text))
+                    print("%s is the wrong tag for terminal: %s" % (terminal.tag, terminal.text),
+                          file=sys.stderr)
                 terminal.tag = orig_terminal.tag
 
     def topological_sort(self):
