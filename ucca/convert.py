@@ -18,7 +18,6 @@ import sys
 import xml.sax.saxutils
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-import unicodedata
 
 from ucca import util, core, layer0, layer1
 
@@ -650,6 +649,16 @@ def from_standard(root, extra_funcs={}):
 
 
 UNICODE_ESCAPE_PATTERN = re.compile(r"\\u\d+")  # unicode escape sequences are punctuation
+ACCENTED_LETTERS = "áâæàåãäçéêèëíîìïñóôòøõöœúûùüÿÁÂÆÀÅÃÄÇÉÊÈËÍÎÌÏÑÓÔØÕÖŒßÚÛÙÜŸ"  # are not punctuation
+
+
+def is_punctuation_char(c):
+    return c in string.punctuation or c not in string.printable and c not in ACCENTED_LETTERS
+
+
+def is_punctuation(token):
+    return all(map(is_punctuation_char, token)) or \
+           UNICODE_ESCAPE_PATTERN.match(token)
 
 
 def from_text(text, passage_id='1'):
@@ -664,13 +673,6 @@ def from_text(text, passage_id='1'):
     """
     p = core.Passage(passage_id)
     l0 = layer0.Layer0(p)
-
-    def is_punctuation_char(c):
-        return c in string.punctuation or c not in string.printable
-
-    def is_punctuation(token):
-        return all(map(is_punctuation_char, token)) or \
-               UNICODE_ESCAPE_PATTERN.match(token)
 
     for i, par in enumerate(text):
         for token in par.split():
