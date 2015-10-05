@@ -112,7 +112,7 @@ class Parser:
                 print("accuracy: %.3f (%d/%d)" % (correct/actions, correct, actions)
                       if actions else "No actions done", end=end)
             duration = time.time() - started
-            print("time: %0.3fms" % duration)
+            print("time: %0.3fs" % duration)
             if verbose:
                 print()
             predicted_passages.append(predicted)
@@ -124,7 +124,7 @@ class Parser:
             print("Overall accuracy: %.3f (%d/%d)" % (
                 total_correct / total_actions, total_correct, total_actions))
         if passages:
-            print("Total time: %.3fms (average time per passage: %.3fms)" % (
+            print("Total time: %.3fs (average time per passage: %.3fs)" % (
                 total_duration, total_duration / len(passages)))
 
         return predicted_passages
