@@ -170,11 +170,12 @@ if __name__ == "__main__":
     argparser.add_argument('-t', '--test', nargs='+', help="passage file names to test on")
     argparser.add_argument('-o', '--outdir', default='.', help="output directory")
     argparser.add_argument('-p', '--prefix', default='ucca_passage', help="output filename prefix")
+    argparser.add_argument('-v', '--verbose', action='store_true', help="display detailed information while parsing")
     args = argparser.parse_args()
 
     parser = Parser()
-    parser.train(all_files(args.train), check_loops=False)
-    for pred_passage in parser.parse(all_files(args.test)):
+    parser.train(all_files(args.train), check_loops=False, verbose=args.verbose)
+    for pred_passage in parser.parse(all_files(args.test), verbose=args.verbose):
         outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
         print("Writing passage '%s'...\n" % outfile)
         passage2file(pred_passage, outfile)
