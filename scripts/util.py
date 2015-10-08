@@ -22,7 +22,7 @@ def file2passage(filename):
             raise e
 
 
-def passage2file(passage, filename, binary=False):
+def passage2file(passage, filename, indent=True, binary=False):
     """Writes a UCCA passage as a standard XML file or a binary pickle
     """
     if binary:
@@ -30,7 +30,8 @@ def passage2file(passage, filename, binary=False):
             pickle.dump(passage, h)
     else:  # xml
         root = to_standard(passage)
-        output = indent_xml(tostring(root).decode())
+        xml = tostring(root).decode()
+        output = indent_xml(xml) if indent else xml
         with open(filename, 'w') as h:
             h.write(output)
 

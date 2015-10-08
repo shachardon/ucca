@@ -25,7 +25,7 @@ def main():
         for terminal in terminals:
             terminal.tag = layer0.NodeTags.Punct if is_punctuation(
                 terminal.attrib.get("text")) else layer0.NodeTags.Word
-        passage2file(passage, filename)
+        passage2file(passage, filename, indent=False)
 
     sys.exit(0)
 
