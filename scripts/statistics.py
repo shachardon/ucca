@@ -20,32 +20,35 @@ desc = """Prints statistics on UCCA passages
 def main():
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-d', '--directory', help="directory containing XML files to process")
-    parser.add_argument('-o', '--outfile', help="output file for data")
-    parser.add_argument('-i', '--infile', help="input file for data")
+    parser.add_argument('-o', '--outfile', default="data/stats.txt", help="output file for data")
+    parser.add_argument('-i', '--infile', default="data/stats.txt", help="input file for data")
     args = parser.parse_args()
 
     if args.directory:
+        ids = []
         terminal_counts = []
         non_terminal_counts = []
         edge_counts = []
         for filename in glob.glob(args.directory + "/*.xml"):
             sys.stderr.write("Reading passage '%s'...\n" % filename)
             passage = file2passage(filename)
+            ids.append(int(passage.ID))
             terminal_counts.append(len(passage.layer(layer0.LAYER_ID).all))
             non_terminal_counts.append(len(passage.layer(layer1.LAYER_ID).all))
             edge_counts.append(len([edge for node in passage.nodes for edge in node]))
-        data = np.array((terminal_counts, non_terminal_counts, edge_counts), dtype=int)
+        data = np.array((ids, terminal_counts, non_terminal_counts, edge_counts), dtype=int).T
         if args.outfile:
-            np.savetxt(args.outfile, data)
+            np.savetxt(args.outfile, data, fmt="%i")
     elif args.infile:
         data = np.loadtxt(args.infile, dtype=int)
+
     else:
         raise Exception("Either --directory or --infile must be supplied")
 
-    assert data, "Empty data"
+    assert data.size, "Empty data"
 
-    plt.scatter(data[0], data[1], label="nonterminals")
-    plt.plot(data[0], 1.33 * data[0], label="y = 1.33 x")
+    plt.scatter(data[:, 1], data[:, 2], label="nonterminals")
+    plt.plot(data[:, 1], 1.33 * data[:, 1], label="y = 1.33 x")
     plt.xlabel("# terminals")
     plt.ylabel("# nonterminals")
     plt.legend()
@@ -53,8 +56,8 @@ def main():
         plt.savefig(os.path.splitext(args.outfile)[0] + "_nonterms.png")
 
     plt.clf()
-    plt.scatter(data[0], data[2], label="edges")
-    plt.plot(data[0], 11.1 * data[0], label="y = 11.1 x")
+    plt.scatter(data[:, 1], data[:, 3], label="edges")
+    plt.plot(data[:, 1], 11.1 * data[:, 1], label="y = 11.1 x")
     plt.xlabel("# terminals")
     plt.ylabel("# edges")
     plt.legend()
