@@ -18,8 +18,12 @@ desc = """Transition-based parser for UCCA.
 class Parser:
     """
     Main class to implement transition-based UCCA parser
+    :param check_loops: check whether an infinite loop is reached (adds runtime overhead)?
+    :param verbose: print long trace of performed actions?
     """
-    def __init__(self):
+    def __init__(self, check_loops=False, verbose=False):
+        self.check_loops = check_loops
+        self.verbose = verbose
         self.state = None  # State object created at each parse
         self.actions = [Action(action, tag) for action in
                         ("NODE", "LEFT-EDGE", "RIGHT-EDGE", "LEFT-REMOTE", "RIGHT-REMOTE", "ROOT", "IMPLICIT")
@@ -34,7 +38,7 @@ class Parser:
         ]
         self.weights = 0.01 * np.random.randn(len(self.actions), len(self.features))
 
-    def feature_array(self):
+    def calc_features(self):
         """
         Calculate features according to current configuration
         :return: NumPy array with all feature values
@@ -54,20 +58,18 @@ class Parser:
 
         print("Trained %d iterations on %d passages" % (iterations, len(passages)))
 
-    def parse(self, passages, train=False, verbose=False, check_loops=True):
+    def parse(self, passages, train=False):
         """
         Parse given passages
         :param passages: iterable of either Passage objects, or of lists of lists of tokens
         :param train: use oracle to train on given passages, or just parse with classifier?
-        :param verbose: print long trace of performed actions?
-        :param check_loops: check whether an infinite loop is reached (adds runtime overhead)?
         :return: generator of parsed passages
         """
         predicted_passages = []
         total_correct = 0
         total_actions = 0
         total_duration = 0
-        end = "\n" if verbose else " "
+        end = "\n" if self.verbose else " "
         print((str(len(passages)) if passages else "No") + " passages to parse")
         for passage in passages:
             started = time.time()
@@ -79,12 +81,12 @@ class Parser:
                 print("passage '%s'" % passage, end=end)
                 passage = file2passage(passage)
             # TODO handle passage given as text, pass to State as list of lists of strings
-            self.state = State(passage, passage.ID, verbose=verbose)
+            self.state = State(passage, passage.ID, verbose=self.verbose)
             history = set()
             if train:
                 oracle = Oracle(passage)
             while True:
-                if check_loops:
+                if self.check_loops:
                     h = hash(self.state)
                     assert h not in history, "Transition loop:\n" + self.state.str("\n") +\
                                              "\n" + oracle.str("\n") if train else ""
@@ -97,13 +99,13 @@ class Parser:
                     #     correct += 1
                 else:
                     action = pred_action
-                if verbose:
+                if self.verbose:
                     # print("  predicted: %-15s true: %-15s %s" % (pred_action, action, self.state)
                     print("  %-15s %s" % (action, self.state))
                 actions += 1
                 if not self.state.apply_action(action):
                     break  # action is FINISH
-            if verbose:
+            if self.verbose:
                 print(" " * 18 + str(self.state))
             predicted = self.state.passage
             if train:
@@ -113,7 +115,7 @@ class Parser:
                       if actions else "No actions done", end=end)
             duration = time.time() - started
             print("time: %0.3fs" % duration)
-            if verbose:
+            if self.verbose:
                 print()
             predicted_passages.append(predicted)
             total_correct += correct
@@ -135,7 +137,7 @@ class Parser:
         :return: action with maximum probability according to classifier
         """
         # TODO do not predict an action that is illegal in the current state
-        features = self.feature_array()
+        features = self.calc_features()
         return self.actions[np.argmax(self.weights.dot(features))]
 
     def update(self, pred_action, true_action):
@@ -147,7 +149,7 @@ class Parser:
         """
         if pred_action == true_action:
             return False
-        features = self.feature_array()
+        features = self.calc_features()
         self.weights[self.actions_reverse[str(true_action)]] += features
         self.weights[self.actions_reverse[str(pred_action)]] -= features
         return True
@@ -171,11 +173,12 @@ if __name__ == "__main__":
     argparser.add_argument('-o', '--outdir', default='.', help="output directory")
     argparser.add_argument('-p', '--prefix', default='ucca_passage', help="output filename prefix")
     argparser.add_argument('-v', '--verbose', action='store_true', help="display detailed information while parsing")
+    argparser.add_argument('-l', '--checkloops', action='store_true', help="check for infinite loops")
     args = argparser.parse_args()
 
-    parser = Parser()
-    parser.train(all_files(args.train), check_loops=False, verbose=args.verbose)
-    for pred_passage in parser.parse(all_files(args.test), verbose=args.verbose):
+    parser = Parser(check_loops=args.checkloops, verbose=args.verbose)
+    parser.train(all_files(args.train))
+    for pred_passage in parser.parse(all_files(args.test)):
         outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
         print("Writing passage '%s'...\n" % outfile)
         passage2file(pred_passage, outfile)

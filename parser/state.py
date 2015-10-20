@@ -61,7 +61,7 @@ class Node:
                ((", " + self.node_id) if self.node_id else "") + ")"
 
     def __str__(self):
-        return self.text or self.node_id or self.index
+        return self.text or self.node_id or str(self.index)
 
     def __eq__(self, other):
         return self.index == other.index and self.outgoing == other.outgoing
@@ -160,6 +160,8 @@ class State:
         elif action.type == "SHIFT":  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
         elif action.type == "SWAP":  # Swap top two stack elements (to handle non-projective edge)
+            # TODO instead, place second stack item back on queue
+            # TODO support compound swap
             if self.verbose:
                 print("    %s <--> %s" % (self.stack[-2], self.stack[-1]))
             self.stack.append(self.stack.pop(-2))

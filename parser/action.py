@@ -19,7 +19,7 @@ class Action:
         return Action.__name__ + "(" + self.type + (", " + self.tag if self.tag else "") + ")"
 
     def __str__(self):
-        return self.type + ("-" + self.tag if self.tag else "")
+        return self.type + ("-" + str(self.tag) if self.tag else "")
 
     def __eq__(self, other):
         return self.type == other.type and self.tag == other.tag
