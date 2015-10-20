@@ -31,7 +31,7 @@ class Parser:
                         for name, tag in layer1.EdgeTags.__dict__.items()
                         if isinstance(tag, str) and not name.startswith('__')] +\
                        [Action(action) for action in
-                        ("REDUCE", "SHIFT", "SWAP", "WRAP", "FINISH")]
+                        ("REDUCE", "SHIFT", "SWAP", "FINISH")]
         self.actions_reverse = {str(action): i for i, action in enumerate(self.actions)}
         self.features = [
             lambda: len(self.state.stack),

@@ -3,7 +3,6 @@ from ucca import layer1
 
 SHIFT = Action("SHIFT")
 REDUCE = Action("REDUCE")
-WRAP = Action("WRAP")
 FINISH = Action("FINISH")
 
 ROOT_ID = "1.1"  # ID of root node in UCCA passages
@@ -29,9 +28,6 @@ class Oracle:
         :param state: current State of the parser
         :return: best Action to perform
         """
-        def edge_action(direction, e):
-            return direction + "-REMOTE" if e.attrib.get("remote") else direction + "-EDGE"
-
         if not self.edges_remaining:
             return FINISH
         stack = [self.passage.by_id(node.node_id) for node in state.stack]
@@ -51,37 +47,36 @@ class Oracle:
                     return Action("ROOT", edge.tag, ROOT_ID)
             if buffer and buffer[0].ID in related:
                 return SHIFT
-            for edge in incoming:
-                if edge.parent.ID in self.nodes_remaining and not edge.attrib.get("remote"):
+            for edges, attr, prefix in (((e for e in incoming if
+                                          e.parent.ID in self.nodes_remaining and not e.attrib.get("remote")),
+                                         "parent", "NODE"),
+                                        ((e for e in outgoing if
+                                          e.child.attrib.get("implicit")),
+                                         "child", "IMPLICIT")):
+                for edge in edges:
                     self.edges_remaining.remove(edge)
-                    self.nodes_remaining.remove(edge.parent.ID)
-                    return Action("NODE", edge.tag, edge.parent.ID)
-        if len(stack) > 1:
-            for edge in incoming:
-                if edge.parent.ID == stack[-2].ID:
-                    self.edges_remaining.remove(edge)
-                    return Action(edge_action("RIGHT", edge), edge.tag)
-            for edge in outgoing:
-                if edge.child.ID == stack[-2].ID:
-                    self.edges_remaining.remove(edge)
-                    return Action(edge_action("LEFT", edge), edge.tag)
-                if edge.child.attrib.get("implicit"):
-                    self.edges_remaining.remove(edge)
-                    self.nodes_remaining.remove(edge.child.ID)
-                    return Action("IMPLICIT", edge.tag, edge.child.ID)
-            swap_distance = self.check_swap_distance(stack, buffer, related)
-            if swap_distance:
-                return Action("SWAP", swap_distance if self.compound_swap else None)
-        if not buffer:
-            self.swapped = set()
-            return WRAP
+                    node_id = getattr(edge, attr).ID
+                    self.nodes_remaining.remove(node_id)
+                    return Action(prefix, edge.tag, node_id)
+            if len(stack) > 1:
+                for edges, prefix in (((e for e in incoming if
+                                        e.parent.ID == stack[-2].ID),
+                                       "RIGHT"),
+                                      ((e for e in outgoing if
+                                        e.child.ID == stack[-2].ID),
+                                       "LEFT")):
+                    for edge in edges:
+                        self.edges_remaining.remove(edge)
+                        return Action(prefix + ("-REMOTE" if edge.attrib.get("remote") else "-EDGE"),
+                                      edge.tag)
+                swap_distance = self.check_swap_distance(stack, buffer, related)
+                if swap_distance:
+                    return Action("SWAP", swap_distance if self.compound_swap else None)
         return SHIFT
 
     def check_swap_distance(self, stack, buffer, related):
         """
         Check if a swap is required, and to what distance (how many items to move to buffer)
-        :param stack: node corresponding to the stack top
-        :param state: current State of the parser
         :return: 0 if no swap required, 1 if compound_swap is False, swap distance otherwise
         """
         distance = 0
@@ -89,8 +84,8 @@ class Oracle:
             pair = frozenset((stack[-1].ID, stack[-distance-2].ID))
             if pair in self.swapped:
                 break
-            if related.intersection([s.ID for s in stack[:-distance-2]]) and \
-                    not related.intersection([b.ID for b in buffer]):
+            if related.intersection(s.ID for s in stack[:-distance-2]) and \
+                    not related.intersection(b.ID for b in buffer):
                 self.swapped.add(pair)
                 distance += 1
             else:

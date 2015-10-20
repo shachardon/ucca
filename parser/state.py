@@ -129,7 +129,6 @@ class State:
         self.stack = []
         self.root = self.add_node(self.root_id)  # The root is not part of the stack/buffer
         self.passage_id = passage_id
-        self.wraps = 0
 
     def apply_action(self, action):
         """
@@ -166,10 +165,6 @@ class State:
                 print("    %s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
             self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
             del self.stack[s]
-        elif action.type == "WRAP":  # Buffer exhausted but not finished yet: wrap stack back to buffer
-            self.buffer = deque(self.stack)
-            self.stack = []
-            self.wraps += 1
         elif action.type == "FINISH":  # Nothing left to do
             return False
         else:
@@ -284,9 +279,8 @@ class State:
             node.incoming.sort(key=lambda x: x.parent.node_index or self.nodes.index(x.parent))
 
     def str(self, sep):
-        return "stack: [%-20s]%sbuffer: [%s]%swraps: %d" % (" ".join(map(str, self.stack)), sep,
-                                                            " ".join(map(str, self.buffer)), sep,
-                                                            self.wraps)
+        return "stack: [%-20s]%sbuffer: [%s]" % (" ".join(map(str, self.stack)), sep,
+                                                 " ".join(map(str, self.buffer)))
 
     def __str__(self):
         return self.str(" ")
