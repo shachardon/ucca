@@ -158,7 +158,7 @@ class State:
             self.stack.pop()
         elif action.type == "SHIFT":  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
-        elif action.type == "SWAP":  # Place second stack item back on the buffer
+        elif action.type == "SWAP":  # Place second (or more) stack item back on the buffer
             distance = action.tag or 1
             s = slice(-distance-1, -1)
             if self.verbose:
