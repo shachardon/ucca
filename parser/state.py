@@ -137,22 +137,22 @@ class State:
         :param action: Action object to apply
         :return: True if parsing should continue, False if finished
         """
-        if action.type == "NODE":  # Create new parent node and push to the stack
+        if action.type == "NODE":  # Create new parent node and add to the buffer
             parent = self.add_node(action.node_id)
-            self.add_edge(parent, self.buffer[0], action.tag)
-            self.stack.append(parent)
+            self.add_edge(parent, self.stack[-1], action.tag)
+            self.buffer.appendleft(parent)
         elif action.type == "IMPLICIT":  # Create new child node and add to the buffer
             child = self.add_node(action.node_id, implicit=True)
             self.add_edge(self.stack[-1], child, action.tag)
             self.buffer.appendleft(child)
-        elif action.type == "LEFT-EDGE":  # Create edge between buffer head and stack top
-            self.add_edge(self.buffer[0], self.stack[-1], action.tag)
-        elif action.type == "RIGHT-EDGE":  # Create edge between stack top and buffer head
-            self.add_edge(self.stack[-1], self.buffer[0], action.tag)
+        elif action.type == "LEFT-EDGE":  # Create left edge between buffer top two nodes
+            self.add_edge(self.stack[-1], self.stack[-2], action.tag)
+        elif action.type == "RIGHT-EDGE":  # Create right edge between buffer top two nodes
+            self.add_edge(self.stack[-2], self.stack[-1], action.tag)
         elif action.type == "LEFT-REMOTE":  # Same as LEFT-EDGE but a remote edge is created
-            self.add_edge(self.buffer[0], self.stack[-1], action.tag, remote=True)
+            self.add_edge(self.stack[-1], self.stack[-2], action.tag, remote=True)
         elif action.type == "RIGHT-REMOTE":  # Same as RIGHT-EDGE but a remote edge is created
-            self.add_edge(self.stack[-1], self.buffer[0], action.tag, remote=True)
+            self.add_edge(self.stack[-2], self.stack[-1], action.tag, remote=True)
         elif action.type == "ROOT":  # Create edge between stack top and ROOT; pop stack
             self.add_edge(self.root, self.stack.pop(), action.tag)
         elif action.type == "REDUCE":  # Pop stack (no more edges to create with this node)
@@ -163,8 +163,8 @@ class State:
             distance = action.tag or 1
             s = slice(-distance-1, -1)
             if self.verbose:
-                print("    %s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[0]))
-            self.buffer.extendleft(self.stack[s])
+                print("    %s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
+            self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
             del self.stack[s]
         elif action.type == "WRAP":  # Buffer exhausted but not finished yet: wrap stack back to buffer
             self.buffer = deque(self.stack)
