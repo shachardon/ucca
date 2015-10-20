@@ -159,12 +159,11 @@ class State:
             self.stack.pop()
         elif action.type == "SHIFT":  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
-        elif action.type == "SWAP":  # Swap top two stack elements (to handle non-projective edge)
-            # TODO instead, place second stack item back on queue
+        elif action.type == "SWAP":  # Place second stack item back on the buffer
             # TODO support compound swap
             if self.verbose:
-                print("    %s <--> %s" % (self.stack[-2], self.stack[-1]))
-            self.stack.append(self.stack.pop(-2))
+                print("    %s <--> %s" % (self.stack[-2], self.buffer[0]))
+            self.buffer.appendleft(self.stack.pop(-2))
         elif action.type == "WRAP":  # Buffer exhausted but not finished yet: wrap stack back to buffer
             self.buffer = deque(self.stack)
             self.stack = []
