@@ -160,10 +160,12 @@ class State:
         elif action.type == "SHIFT":  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
         elif action.type == "SWAP":  # Place second stack item back on the buffer
-            # TODO support compound swap
+            distance = action.tag or 1
+            s = slice(-distance-1, -1)
             if self.verbose:
-                print("    %s <--> %s" % (self.stack[-2], self.buffer[0]))
-            self.buffer.appendleft(self.stack.pop(-2))
+                print("    %s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[0]))
+            self.buffer.extendleft(self.stack[s])
+            del self.stack[s]
         elif action.type == "WRAP":  # Buffer exhausted but not finished yet: wrap stack back to buffer
             self.buffer = deque(self.stack)
             self.stack = []

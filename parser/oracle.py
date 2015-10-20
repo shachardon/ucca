@@ -67,12 +67,12 @@ class Oracle:
                                   edge.tag)
             swap_distance = self.check_swap_distance(s, state)
             if swap_distance:
-                return Action("SWAP", swap_distance)
+                return Action("SWAP", swap_distance if self.compound_swap else None)
         return SHIFT
 
     def check_swap_distance(self, s, state):
         """
-        Check if a swap is required, and to what distance
+        Check if a swap is required, and to what distance (how many items to move to buffer)
         :param s: node corresponding to the stack top
         :param state: current State of the parser
         :return: 0 if no swap required, 1 if compound_swap is False, swap distance otherwise

@@ -21,9 +21,10 @@ class Parser:
     :param check_loops: check whether an infinite loop is reached (adds runtime overhead)?
     :param verbose: print long trace of performed actions?
     """
-    def __init__(self, check_loops=False, verbose=False):
+    def __init__(self, check_loops=False, verbose=False, compound_swap=False):
         self.check_loops = check_loops
         self.verbose = verbose
+        self.compound_swap = compound_swap
         self.state = None  # State object created at each parse
         self.actions = [Action(action, tag) for action in
                         ("NODE", "LEFT-EDGE", "RIGHT-EDGE", "LEFT-REMOTE", "RIGHT-REMOTE", "ROOT", "IMPLICIT")
@@ -84,7 +85,7 @@ class Parser:
             self.state = State(passage, passage.ID, verbose=self.verbose)
             history = set()
             if train:
-                oracle = Oracle(passage)
+                oracle = Oracle(passage, compound_swap=self.compound_swap)
             while True:
                 if self.check_loops:
                     h = hash(self.state)
@@ -174,9 +175,11 @@ if __name__ == "__main__":
     argparser.add_argument('-p', '--prefix', default='ucca_passage', help="output filename prefix")
     argparser.add_argument('-v', '--verbose', action='store_true', help="display detailed information while parsing")
     argparser.add_argument('-l', '--checkloops', action='store_true', help="check for infinite loops")
+    argparser.add_argument('-c', '--compoundswap', action='store_true', help="enable compound swap")
     args = argparser.parse_args()
 
-    parser = Parser(check_loops=args.checkloops, verbose=args.verbose)
+    parser = Parser(check_loops=args.checkloops, verbose=args.verbose,
+                    compound_swap=args.compoundswap)
     parser.train(all_files(args.train))
     for pred_passage in parser.parse(all_files(args.test)):
         outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
