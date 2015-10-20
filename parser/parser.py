@@ -27,7 +27,7 @@ class Parser:
         self.compound_swap = compound_swap
         self.state = None  # State object created at each parse
         self.actions = [Action(action, tag) for action in
-                        ("NODE", "LEFT-EDGE", "RIGHT-EDGE", "LEFT-REMOTE", "RIGHT-REMOTE", "ROOT", "IMPLICIT")
+                        ("NODE", "LEFT-EDGE", "RIGHT-EDGE", "LEFT-REMOTE", "RIGHT-REMOTE", "IMPLICIT")
                         for name, tag in layer1.EdgeTags.__dict__.items()
                         if isinstance(tag, str) and not name.startswith('__')] +\
                        [Action(action) for action in

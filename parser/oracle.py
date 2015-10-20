@@ -38,12 +38,6 @@ class Oracle:
             if not edges:
                 return REDUCE
 
-            if len(edges) == 1:
-                edge = edges.pop()
-                if edge.parent.ID == ROOT_ID:
-                    self.edges_remaining.remove(edge)
-                    return Action("ROOT", edge.tag, ROOT_ID)
-
             related = set([edge.child.ID for edge in outgoing] +
                           [edge.parent.ID for edge in incoming])
             # prefer incorporating immediate relatives if possible

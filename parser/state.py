@@ -1,4 +1,4 @@
-from collections import deque, defaultdict, OrderedDict
+from collections import deque, defaultdict
 from itertools import groupby
 from operator import attrgetter
 import sys
@@ -126,8 +126,8 @@ class State:
             self.root_id = None
         self.terminals = list(self.nodes)
         self.buffer = deque(self.nodes)
-        self.stack = []
         self.root = self.add_node(self.root_id)  # The root is not part of the stack/buffer
+        self.stack = [self.root]
         self.passage_id = passage_id
 
     def apply_action(self, action):
@@ -152,8 +152,8 @@ class State:
             self.add_edge(self.stack[-1], self.stack[-2], action.tag, remote=True)
         elif action.type == "RIGHT-REMOTE":  # Same as RIGHT-EDGE but a remote edge is created
             self.add_edge(self.stack[-2], self.stack[-1], action.tag, remote=True)
-        elif action.type == "ROOT":  # Create edge between stack top and ROOT; pop stack
-            self.add_edge(self.root, self.stack.pop(), action.tag)
+        # elif action.type == "ROOT":  # Create edge between stack top and ROOT; pop stack
+        #     self.add_edge(self.root, self.stack.pop(), action.tag)
         elif action.type == "REDUCE":  # Pop stack (no more edges to create with this node)
             self.stack.pop()
         elif action.type == "SHIFT":  # Push buffer head to stack; shift buffer
