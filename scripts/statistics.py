@@ -25,6 +25,8 @@ def main():
     args = parser.parse_args()
 
     if args.directory:
+        if not os.path.isdir(args.directory):
+            raise Exception("Not a directory: " + args.directory)
         ids = []
         terminal_counts = []
         non_terminal_counts = []
@@ -33,9 +35,12 @@ def main():
             sys.stderr.write("Reading passage '%s'...\n" % filename)
             passage = file2passage(filename)
             ids.append(int(passage.ID))
-            terminal_counts.append(len(passage.layer(layer0.LAYER_ID).all))
-            non_terminal_counts.append(len(passage.layer(layer1.LAYER_ID).all))
-            edge_counts.append(len([edge for node in passage.nodes for edge in node]))
+            terminals = passage.layer(layer0.LAYER_ID).all
+            terminal_counts.append(len(terminals))
+            non_terminals = passage.layer(layer1.LAYER_ID).all
+            non_terminal_counts.append(len(non_terminals))
+            edges = {edge for node in non_terminals for edge in node}
+            edge_counts.append(len(edges))
         data = np.array((ids, terminal_counts, non_terminal_counts, edge_counts), dtype=int).T
         if args.outfile:
             np.savetxt(args.outfile, data, fmt="%i")
@@ -57,7 +62,7 @@ def main():
 
     plt.clf()
     plt.scatter(data[:, 1], data[:, 3], label="edges")
-    plt.plot(data[:, 1], 11.1 * data[:, 1], label="y = 11.1 x")
+    plt.plot(data[:, 1], 2.5 * data[:, 1], label="y = 2.5 x")
     plt.xlabel("# terminals")
     plt.ylabel("# edges")
     plt.legend()
