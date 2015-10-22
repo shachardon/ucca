@@ -5,6 +5,7 @@ import time
 import numpy as np
 
 from action import Action
+from config import parse_args, VERBOSE, CHECK_LOOPS
 from state import State
 from diff import diff_passages
 from oracle import Oracle
@@ -18,13 +19,8 @@ desc = """Transition-based parser for UCCA.
 class Parser:
     """
     Main class to implement transition-based UCCA parser
-    :param check_loops: check whether an infinite loop is reached (adds runtime overhead)?
-    :param verbose: print long trace of performed actions?
     """
-    def __init__(self, check_loops=False, verbose=False, compound_swap=False):
-        self.check_loops = check_loops
-        self.verbose = verbose
-        self.compound_swap = compound_swap
+    def __init__(self):
         self.state = None  # State object created at each parse
         self.actions = [Action(action, tag) for action in
                         ("NODE", "LEFT-EDGE", "RIGHT-EDGE", "LEFT-REMOTE", "RIGHT-REMOTE", "IMPLICIT")
@@ -55,7 +51,7 @@ class Parser:
         print("Training %d iterations on %d passages" % (iterations, len(passages)))
         for iteration in range(1, iterations + 1):
             print("Iteration %d" % iteration, end=": ")
-            self.parse(passages, train=True, **kwargs)
+            self.parse(passages, train=True)
 
         print("Trained %d iterations on %d passages" % (iterations, len(passages)))
 
@@ -70,7 +66,7 @@ class Parser:
         total_correct = 0
         total_actions = 0
         total_duration = 0
-        end = "\n" if self.verbose else " "
+        end = "\n" if VERBOSE else " "
         print((str(len(passages)) if passages else "No") + " passages to parse")
         for passage in passages:
             started = time.time()
@@ -82,12 +78,12 @@ class Parser:
                 print("passage '%s'" % passage, end=end)
                 passage = file2passage(passage)
             # TODO handle passage given as text, pass to State as list of lists of strings
-            self.state = State(passage, passage.ID, verbose=self.verbose)
+            self.state = State(passage, passage.ID)
             history = set()
             if train:
-                oracle = Oracle(passage, compound_swap=self.compound_swap)
+                oracle = Oracle(passage)
             while True:
-                if self.check_loops:
+                if CHECK_LOOPS:
                     h = hash(self.state)
                     assert h not in history, "Transition loop:\n" + self.state.str("\n") +\
                                              "\n" + oracle.str("\n") if train else ""
@@ -100,13 +96,13 @@ class Parser:
                     #     correct += 1
                 else:
                     action = pred_action
-                if self.verbose:
+                if VERBOSE:
                     # print("  predicted: %-15s true: %-15s %s" % (pred_action, action, self.state)
                     print("  %-15s %s" % (action, self.state))
                 actions += 1
                 if not self.state.apply_action(action):
                     break  # action is FINISH
-            if self.verbose:
+            if VERBOSE:
                 print(" " * 18 + str(self.state))
             predicted = self.state.passage
             if train:
@@ -116,7 +112,7 @@ class Parser:
                       if actions else "No actions done", end=end)
             duration = time.time() - started
             print("time: %0.3fs" % duration)
-            if self.verbose:
+            if VERBOSE:
                 print()
             predicted_passages.append(predicted)
             total_correct += correct
@@ -173,13 +169,9 @@ if __name__ == "__main__":
     argparser.add_argument('-t', '--test', nargs='+', help="passage file names to test on")
     argparser.add_argument('-o', '--outdir', default='.', help="output directory")
     argparser.add_argument('-p', '--prefix', default='ucca_passage', help="output filename prefix")
-    argparser.add_argument('-v', '--verbose', action='store_true', help="display detailed information while parsing")
-    argparser.add_argument('-l', '--checkloops', action='store_true', help="check for infinite loops")
-    argparser.add_argument('-c', '--compoundswap', action='store_true', help="enable compound swap")
-    args = argparser.parse_args()
+    args = parse_args(argparser)
 
-    parser = Parser(check_loops=args.checkloops, verbose=args.verbose,
-                    compound_swap=args.compoundswap)
+    parser = Parser()
     parser.train(all_files(args.train))
     for pred_passage in parser.parse(all_files(args.test)):
         outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)

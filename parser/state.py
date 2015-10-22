@@ -2,6 +2,8 @@ from collections import deque, defaultdict
 from itertools import groupby
 from operator import attrgetter
 import sys
+from action import Action, SHIFT, REDUCE, FINISH
+from config import VERBOSE
 
 from ucca.convert import from_text
 from ucca import layer0
@@ -109,10 +111,8 @@ class State:
     The parser's state, responsible for applying actions and creating the final Passage
     :param passage: a Passage object to get the tokens from, or a list of lists of strings
     :param passage_id: the ID of the passage to generate
-    :param verbose: print long trace of performed actions?
     """
-    def __init__(self, passage, passage_id, verbose=False):
-        self.verbose = verbose
+    def __init__(self, passage, passage_id):
         if isinstance(passage, core.Passage):  # During training, create from gold Passage
             self.nodes = [Node(i, node_id=x.ID, text=x.text, tag=x.tag) for i, x in
                           enumerate(passage.layer(layer0.LAYER_ID).all)]
@@ -161,7 +161,7 @@ class State:
         elif action.type == "SWAP":  # Place second (or more) stack item back on the buffer
             distance = action.tag or 1
             s = slice(-distance-1, -1)
-            if self.verbose:
+            if VERBOSE:
                 print("    %s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
             self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
             del self.stack[s]
@@ -179,14 +179,14 @@ class State:
         """
         node = Node(len(self.nodes), *args, **kwargs)
         self.nodes.append(node)
-        if self.verbose:
+        if VERBOSE:
             print("    %s" % node)
         return node
 
     def add_edge(self, *args, **kwargs):
         edge = Edge(*args, **kwargs)
         edge.add()
-        if self.verbose:
+        if VERBOSE:
             print("    %s" % edge)
         return edge
 
@@ -241,7 +241,7 @@ class State:
     def fix_terminal_tags(self, terminals):
         for terminal, orig_terminal in zip(terminals, self.terminals):
             if terminal.tag != orig_terminal.tag:
-                if self.verbose:
+                if VERBOSE:
                     print("%s is the wrong tag for terminal: %s" % (terminal.tag, terminal.text),
                           file=sys.stderr)
                 terminal.tag = orig_terminal.tag

@@ -1,9 +1,6 @@
-from action import Action
+from action import Action, SHIFT, REDUCE, FINISH
+from config import COMPOUND_SWAP
 from ucca import layer1
-
-SHIFT = Action("SHIFT")
-REDUCE = Action("REDUCE")
-FINISH = Action("FINISH")
 
 ROOT_ID = "1.1"  # ID of root node in UCCA passages
 
@@ -13,13 +10,11 @@ class Oracle:
     Oracle to produce gold transition parses given UCCA passages
     To be used for creating training data for a transition-based UCCA parser
     :param passage gold passage to get the correct edges from
-    :param compound_swap whether to allow swap actions that move i steps rather than 1
     """
-    def __init__(self, passage, compound_swap=False):
+    def __init__(self, passage):
         self.nodes_remaining = {node.ID for node in passage.layer(layer1.LAYER_ID).all} - {ROOT_ID}
         self.edges_remaining = {edge for node in passage.nodes.values() for edge in node}
         self.passage = passage
-        self.compound_swap = compound_swap
 
     def get_action(self, state):
         """
@@ -58,12 +53,12 @@ class Oracle:
                                       edge.tag)
                 # check if a swap is necessary, and how far (if compound swap is enabled)
                 swap_distance = 0
-                while len(stack) > swap_distance + 1 and (self.compound_swap or swap_distance < 1) and \
+                while len(stack) > swap_distance + 1 and (COMPOUND_SWAP or swap_distance < 1) and \
                         related.intersection(s.ID for s in stack[:-swap_distance-2]) and \
                         not related.intersection(b.node_id for b in state.buffer):
                     swap_distance += 1
                 if swap_distance:
-                    return Action("SWAP", swap_distance if self.compound_swap else None)
+                    return Action("SWAP", swap_distance if COMPOUND_SWAP else None)
 
             # check for unary edges
             for edges, prefix, attr in (((e for e in incoming if

@@ -23,3 +23,8 @@ class Action:
 
     def __eq__(self, other):
         return self.type == other.type and self.tag == other.tag
+
+
+SHIFT = Action("SHIFT")
+REDUCE = Action("REDUCE")
+FINISH = Action("FINISH")
