@@ -112,7 +112,7 @@ class Parser:
                     break  # action is FINISH
             if Config.verbose:
                 print(" " * 18 + str(self.state))
-            predicted_passage = self.state.passage
+            predicted_passage = self.state.create_passage()
             if train:
                 assert true_passage.equals(predicted_passage),\
                     "Oracle failed to produce true passage\n" + diff_passages(

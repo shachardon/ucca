@@ -89,6 +89,8 @@ class Edge:
         assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
         self.parent.outgoing.append(self)
         self.child.incoming.append(self)
+        if Config.verbose:
+            print("    %s" % self)
 
     def __repr__(self):
         return Edge.__name__ + "(" + self.tag + ", " + self.parent + ", " + self.child +\
@@ -131,7 +133,7 @@ class State:
 
     def legal_actions(self):
         """
-        :return: all actions applicable in the current state
+        :return: all action types applicable in the current state
         """
         yield FINISH
         if self.buffer:
@@ -151,6 +153,16 @@ class State:
                 else:
                     yield SWAP
 
+    def is_legal(self, action):
+        """
+        :return: is the action (with its tag) legal in the current state?
+        """
+        return action in self.legal_actions() and \
+               (action not in (LEFT_EDGE, LEFT_REMOTE) or
+                self.create_edge(action) not in self.stack[-1].outgoing) and \
+               (action not in (RIGHT_EDGE, RIGHT_REMOTE) or
+                self.create_edge(action) not in self.stack[-2].outgoing)
+
     def apply_action(self, action):
         """
         Main part of the parser: apply action given by oracle or classifier
@@ -162,22 +174,16 @@ class State:
             self.stack.append(self.buffer.popleft())
         elif action == NODE:  # Create new parent node and add to the buffer
             parent = self.add_node(action.node_id)
-            self.add_edge(parent, self.stack[-1], action.tag)
+            Edge(parent, self.stack[-1], action.tag).add()
             self.buffer.appendleft(parent)
         elif action == IMPLICIT:  # Create new child node and add to the buffer
             child = self.add_node(action.node_id, implicit=True)
-            self.add_edge(self.stack[-1], child, action.tag)
+            Edge(self.stack[-1], child, action.tag).add()
             self.buffer.appendleft(child)
         elif action == REDUCE:  # Pop stack (no more edges to create with this node)
             self.stack.pop()
-        elif action == LEFT_EDGE:  # Create left edge between buffer top two nodes
-            self.add_edge(self.stack[-1], self.stack[-2], action.tag)
-        elif action == RIGHT_EDGE:  # Create right edge between buffer top two nodes
-            self.add_edge(self.stack[-2], self.stack[-1], action.tag)
-        elif action == LEFT_REMOTE:  # Same as LEFT-EDGE but a remote edge is created
-            self.add_edge(self.stack[-1], self.stack[-2], action.tag, remote=True)
-        elif action == RIGHT_REMOTE:  # Same as RIGHT-EDGE but a remote edge is created
-            self.add_edge(self.stack[-2], self.stack[-1], action.tag, remote=True)
+        elif action in (LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
+            self.create_edge(action).add()
         elif action == SWAP:  # Place second (or more) stack item back on the buffer
             distance = action.tag or 1
             assert distance > 0
@@ -204,15 +210,17 @@ class State:
             print("    %s" % node)
         return node
 
-    def add_edge(self, *args, **kwargs):
-        edge = Edge(*args, **kwargs)
-        edge.add()
-        if Config.verbose:
-            print("    %s" % edge)
-        return edge
+    def create_edge(self, action):
+        if action == LEFT_EDGE:  # Create left edge between buffer top two nodes
+            return Edge(self.stack[-1], self.stack[-2], action.tag)
+        elif action == RIGHT_EDGE:  # Create right edge between buffer top two nodes
+            return Edge(self.stack[-2], self.stack[-1], action.tag)
+        elif action == LEFT_REMOTE:  # Same as LEFT-EDGE but a remote edge is created
+            return Edge(self.stack[-1], self.stack[-2], action.tag, remote=True)
+        elif action == RIGHT_REMOTE:  # Same as RIGHT-EDGE but a remote edge is created
+            return Edge(self.stack[-2], self.stack[-1], action.tag, remote=True)
 
-    @property
-    def passage(self):
+    def create_passage(self):
         """
         Create final passage from temporary representation
         :return: core.Passage created from self.nodes
