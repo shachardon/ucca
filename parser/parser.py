@@ -4,7 +4,7 @@ import time
 
 import numpy as np
 
-from action import Action
+from action import NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, REDUCE, SHIFT, SWAP, FINISH
 from config import parse_args, VERBOSE, CHECK_LOOPS
 from state import State
 from diff import diff_passages
@@ -22,12 +22,11 @@ class Parser:
     """
     def __init__(self):
         self.state = None  # State object created at each parse
-        self.actions = [Action(action, tag) for action in
-                        ("NODE", "LEFT-EDGE", "RIGHT-EDGE", "LEFT-REMOTE", "RIGHT-REMOTE", "IMPLICIT")
+        self.actions = [action(tag) for action in
+                        (NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE)
                         for name, tag in layer1.EdgeTags.__dict__.items()
                         if isinstance(tag, str) and not name.startswith('__')] +\
-                       [Action(action) for action in
-                        ("REDUCE", "SHIFT", "SWAP", "FINISH")]
+                       [REDUCE, SHIFT, SWAP, FINISH]
         self.actions_reverse = {str(action): i for i, action in enumerate(self.actions)}
         self.features = [
             lambda: len(self.state.stack),
@@ -42,7 +41,7 @@ class Parser:
         """
         return np.array([f() for f in self.features])
 
-    def train(self, passages, iterations=1, **kwargs):
+    def train(self, passages, iterations=1):
         """
         Train parser on given passages
         :param passages: iterable of Passage objects to train on
@@ -88,12 +87,11 @@ class Parser:
                     assert h not in history, "Transition loop:\n" + self.state.str("\n") +\
                                              "\n" + oracle.str("\n") if train else ""
                     history.add(h)
-                if not train:  # FIXME remove this condition and uncomment code below
-                    pred_action = self.predict_action()
+                pred_action = self.predict_action()
                 if train:
                     action = oracle.get_action(self.state)
-                    # if not self.update(pred_action, action):
-                    #     correct += 1
+                    if not self.update(pred_action, action):
+                        correct += 1
                 else:
                     action = pred_action
                 if VERBOSE:

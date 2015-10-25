@@ -2,8 +2,8 @@ from collections import deque, defaultdict
 from itertools import groupby
 from operator import attrgetter
 import sys
-from action import Action, SHIFT, REDUCE, FINISH
-from config import VERBOSE
+from action import SHIFT, NODE, IMPLICIT, REDUCE, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, SWAP, FINISH
+from config import VERBOSE, COMPOUND_SWAP
 
 from ucca.convert import from_text
 from ucca import layer0
@@ -25,7 +25,7 @@ class Node:
         self.outgoing = []  # Edge list
         self.incoming = []  # Edge list
         self.node = None  # Instantiated when creating the final Passage: the associated core.Node
-        self.implicit = implicit
+        self.implicit = implicit  # True or False
 
     def add_to_l1(self, l1, parent, tag, terminals):
         """
@@ -130,42 +130,64 @@ class State:
         self.stack = [self.root]
         self.passage_id = passage_id
 
+    def legal_actions(self):
+        """
+        :return: all actions applicable in the current state
+        """
+        yield FINISH
+        if self.buffer:
+            yield SHIFT
+        if self.stack:
+            yield NODE
+            yield IMPLICIT
+            yield REDUCE
+            if len(self.stack) > 1:
+                yield LEFT_EDGE
+                yield RIGHT_EDGE
+                yield LEFT_REMOTE
+                yield RIGHT_REMOTE
+                if COMPOUND_SWAP:
+                    for i in range(1, len(self.stack)):
+                        yield SWAP(i)
+                else:
+                    yield SWAP
+
     def apply_action(self, action):
         """
         Main part of the parser: apply action given by oracle or classifier
         :param action: Action object to apply
         :return: True if parsing should continue, False if finished
         """
-        if action.type == "NODE":  # Create new parent node and add to the buffer
+        assert action in self.legal_actions(), "Illegal action in current state: %s" % action
+        if action == SHIFT:  # Push buffer head to stack; shift buffer
+            self.stack.append(self.buffer.popleft())
+        elif action == NODE:  # Create new parent node and add to the buffer
             parent = self.add_node(action.node_id)
             self.add_edge(parent, self.stack[-1], action.tag)
             self.buffer.appendleft(parent)
-        elif action.type == "IMPLICIT":  # Create new child node and add to the buffer
+        elif action == IMPLICIT:  # Create new child node and add to the buffer
             child = self.add_node(action.node_id, implicit=True)
             self.add_edge(self.stack[-1], child, action.tag)
             self.buffer.appendleft(child)
-        elif action.type == "LEFT-EDGE":  # Create left edge between buffer top two nodes
-            self.add_edge(self.stack[-1], self.stack[-2], action.tag)
-        elif action.type == "RIGHT-EDGE":  # Create right edge between buffer top two nodes
-            self.add_edge(self.stack[-2], self.stack[-1], action.tag)
-        elif action.type == "LEFT-REMOTE":  # Same as LEFT-EDGE but a remote edge is created
-            self.add_edge(self.stack[-1], self.stack[-2], action.tag, remote=True)
-        elif action.type == "RIGHT-REMOTE":  # Same as RIGHT-EDGE but a remote edge is created
-            self.add_edge(self.stack[-2], self.stack[-1], action.tag, remote=True)
-        # elif action.type == "ROOT":  # Create edge between stack top and ROOT; pop stack
-        #     self.add_edge(self.root, self.stack.pop(), action.tag)
-        elif action.type == "REDUCE":  # Pop stack (no more edges to create with this node)
+        elif action == REDUCE:  # Pop stack (no more edges to create with this node)
             self.stack.pop()
-        elif action.type == "SHIFT":  # Push buffer head to stack; shift buffer
-            self.stack.append(self.buffer.popleft())
-        elif action.type == "SWAP":  # Place second (or more) stack item back on the buffer
+        elif action == LEFT_EDGE:  # Create left edge between buffer top two nodes
+            self.add_edge(self.stack[-1], self.stack[-2], action.tag)
+        elif action == RIGHT_EDGE:  # Create right edge between buffer top two nodes
+            self.add_edge(self.stack[-2], self.stack[-1], action.tag)
+        elif action == LEFT_REMOTE:  # Same as LEFT-EDGE but a remote edge is created
+            self.add_edge(self.stack[-1], self.stack[-2], action.tag, remote=True)
+        elif action == RIGHT_REMOTE:  # Same as RIGHT-EDGE but a remote edge is created
+            self.add_edge(self.stack[-2], self.stack[-1], action.tag, remote=True)
+        elif action == SWAP:  # Place second (or more) stack item back on the buffer
             distance = action.tag or 1
+            assert distance > 0
             s = slice(-distance-1, -1)
             if VERBOSE:
                 print("    %s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
             self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
             del self.stack[s]
-        elif action.type == "FINISH":  # Nothing left to do
+        elif action == FINISH:  # Nothing left to do
             return False
         else:
             raise Exception("Invalid action: " + action)

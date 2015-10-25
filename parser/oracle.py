@@ -1,4 +1,4 @@
-from action import Action, SHIFT, REDUCE, FINISH
+from action import Action, SHIFT, NODE, IMPLICIT, REDUCE, SWAP, FINISH
 from config import COMPOUND_SWAP
 from ucca import layer1
 
@@ -58,20 +58,20 @@ class Oracle:
                         not related.intersection(b.node_id for b in state.buffer):
                     swap_distance += 1
                 if swap_distance:
-                    return Action("SWAP", swap_distance if COMPOUND_SWAP else None)
+                    return SWAP(swap_distance if COMPOUND_SWAP else None)
 
             # check for unary edges
-            for edges, prefix, attr in (((e for e in incoming if
+            for edges, action, attr in (((e for e in incoming if
                                           e.parent.ID in self.nodes_remaining and not e.attrib.get("remote")),
-                                         "NODE", "parent"),
+                                         NODE, "parent"),
                                         ((e for e in outgoing if
                                           e.child.attrib.get("implicit")),
-                                         "IMPLICIT", "child")):
+                                         IMPLICIT, "child")):
                 for edge in edges:
                     self.edges_remaining.remove(edge)
                     node_id = getattr(edge, attr).ID
                     self.nodes_remaining.remove(node_id)
-                    return Action(prefix, edge.tag, node_id)
+                    return action(edge.tag, node_id)
 
         if not state.buffer:
             raise Exception("No action is possible\n" + state.str("\n") + "\n" + self.str("\n"))
