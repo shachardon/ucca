@@ -2,9 +2,9 @@ from collections import deque, defaultdict
 from itertools import groupby
 from operator import attrgetter
 import sys
-from action import SHIFT, NODE, IMPLICIT, REDUCE, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, SWAP, FINISH
-from config import VERBOSE, COMPOUND_SWAP
 
+from action import SHIFT, NODE, IMPLICIT, REDUCE, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, SWAP, FINISH
+from config import Config
 from ucca.convert import from_text
 from ucca import layer0
 from ucca import layer1
@@ -146,7 +146,7 @@ class State:
                 yield RIGHT_EDGE
                 yield LEFT_REMOTE
                 yield RIGHT_REMOTE
-                if COMPOUND_SWAP:
+                if Config.compoundswap:
                     for i in range(1, len(self.stack)):
                         yield SWAP(i)
                 else:
@@ -183,7 +183,7 @@ class State:
             distance = action.tag or 1
             assert distance > 0
             s = slice(-distance-1, -1)
-            if VERBOSE:
+            if Config.verbose:
                 print("    %s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
             self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
             del self.stack[s]
@@ -201,14 +201,14 @@ class State:
         """
         node = Node(len(self.nodes), *args, **kwargs)
         self.nodes.append(node)
-        if VERBOSE:
+        if Config.verbose:
             print("    %s" % node)
         return node
 
     def add_edge(self, *args, **kwargs):
         edge = Edge(*args, **kwargs)
         edge.add()
-        if VERBOSE:
+        if Config.verbose:
             print("    %s" % edge)
         return edge
 
@@ -263,7 +263,7 @@ class State:
     def fix_terminal_tags(self, terminals):
         for terminal, orig_terminal in zip(terminals, self.terminals):
             if terminal.tag != orig_terminal.tag:
-                if VERBOSE:
+                if Config.verbose:
                     print("%s is the wrong tag for terminal: %s" % (terminal.tag, terminal.text),
                           file=sys.stderr)
                 terminal.tag = orig_terminal.tag

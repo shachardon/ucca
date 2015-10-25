@@ -1,5 +1,5 @@
 from action import Action, SHIFT, NODE, IMPLICIT, REDUCE, SWAP, FINISH
-from config import COMPOUND_SWAP
+from config import Config
 from ucca import layer1
 
 ROOT_ID = "1.1"  # ID of root node in UCCA passages
@@ -53,12 +53,12 @@ class Oracle:
                                       edge.tag)
                 # check if a swap is necessary, and how far (if compound swap is enabled)
                 swap_distance = 0
-                while len(stack) > swap_distance + 1 and (COMPOUND_SWAP or swap_distance < 1) and \
+                while len(stack) > swap_distance + 1 and (Config.compoundswap or swap_distance < 1) and \
                         related.intersection(s.ID for s in stack[:-swap_distance-2]) and \
                         not related.intersection(b.node_id for b in state.buffer):
                     swap_distance += 1
                 if swap_distance:
-                    return SWAP(swap_distance if COMPOUND_SWAP else None)
+                    return SWAP(swap_distance if Config.compoundswap else None)
 
             # check for unary edges
             for edges, action, attr in (((e for e in incoming if

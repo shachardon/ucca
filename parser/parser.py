@@ -1,19 +1,18 @@
-import argparse
 import os
+from sys import stdout, stderr
 import time
+import itertools
+from xml.etree.ElementTree import ParseError
 
 import numpy as np
 
 from action import NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, REDUCE, SHIFT, SWAP, FINISH
-from config import parse_args, VERBOSE, CHECK_LOOPS
+from config import Config
 from state import State
 from diff import diff_passages
 from oracle import Oracle
 from ucca import core, layer1
 from scripts.util import file2passage, passage2file
-
-desc = """Transition-based parser for UCCA.
-"""
 
 
 class Parser:
@@ -65,54 +64,64 @@ class Parser:
         total_correct = 0
         total_actions = 0
         total_duration = 0
-        end = "\n" if VERBOSE else " "
+        end = "\n" if Config.verbose else " "
         print((str(len(passages)) if passages else "No") + " passages to parse")
-        for passage in passages:
+        for true_passage in passages:
             started = time.time()
             correct = 0
             actions = 0
-            if isinstance(passage, core.Passage):
-                print("passage " + passage.ID, end=end)
-            else:
-                print("passage '%s'" % passage, end=end)
-                passage = file2passage(passage)
-            # TODO handle passage given as text, pass to State as list of lists of strings
-            self.state = State(passage, passage.ID)
+            if isinstance(true_passage, core.Passage):
+                print("passage " + true_passage.ID, end=end)
+                passage_id = true_passage.ID
+            elif os.path.exists(true_passage):  # a file
+                print("passage '%s'" % true_passage, end=end)
+                try:
+                    true_passage = file2passage(true_passage)  # XML or binary format
+                    passage_id = true_passage.ID
+                except (IOError, ParseError):
+                    passage_id = os.path.basename(true_passage)
+                    with open(true_passage) as text_file:  # simple text file
+                        true_passage = [list(group) for is_sep, group in
+                                        itertools.groupby(text_file.readlines(),
+                                                          lambda x: not x.strip())
+                                        if not is_sep]
+            self.state = State(true_passage, passage_id)
             history = set()
             if train:
-                oracle = Oracle(passage)
+                oracle = Oracle(true_passage)
             while True:
-                if CHECK_LOOPS:
+                if Config.checkloops:
                     h = hash(self.state)
                     assert h not in history, "Transition loop:\n" + self.state.str("\n") +\
                                              "\n" + oracle.str("\n") if train else ""
                     history.add(h)
-                pred_action = self.predict_action()
+                predicted_action = self.predict_action()
                 if train:
-                    action = oracle.get_action(self.state)
-                    if not self.update(pred_action, action):
+                    true_action = oracle.get_action(self.state)
+                    if not self.update(predicted_action, true_action):
                         correct += 1
                 else:
-                    action = pred_action
-                if VERBOSE:
-                    # print("  predicted: %-15s true: %-15s %s" % (pred_action, action, self.state)
-                    print("  %-15s %s" % (action, self.state))
+                    true_action = predicted_action
+                if Config.verbose:
+                    print("  predicted: %-15s true: %-15s %s" % (
+                        predicted_action, true_action, self.state))
                 actions += 1
-                if not self.state.apply_action(action):
+                if not self.state.apply_action(true_action):
                     break  # action is FINISH
-            if VERBOSE:
+            if Config.verbose:
                 print(" " * 18 + str(self.state))
-            predicted = self.state.passage
+            predicted_passage = self.state.passage
             if train:
-                assert passage.equals(predicted),\
-                    "Oracle failed to produce true passage\n" + diff_passages(passage, predicted)
+                assert true_passage.equals(predicted_passage),\
+                    "Oracle failed to produce true passage\n" + diff_passages(
+                        true_passage, predicted_passage)
                 print("accuracy: %.3f (%d/%d)" % (correct/actions, correct, actions)
                       if actions else "No actions done", end=end)
             duration = time.time() - started
             print("time: %0.3fs" % duration)
-            if VERBOSE:
+            if Config.verbose:
                 print()
-            predicted_passages.append(predicted)
+            predicted_passages.append(predicted_passage)
             total_correct += correct
             total_actions += actions
             total_duration += duration
@@ -162,15 +171,11 @@ def all_files(dirs):
 
 
 if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(description=desc)
-    argparser.add_argument('train', nargs='+', help="passage file names to train on")
-    argparser.add_argument('-t', '--test', nargs='+', help="passage file names to test on")
-    argparser.add_argument('-o', '--outdir', default='.', help="output directory")
-    argparser.add_argument('-p', '--prefix', default='ucca_passage', help="output filename prefix")
-    args = parse_args(argparser)
-
+    args = Config().args
     parser = Parser()
     parser.train(all_files(args.train))
+    stdout.flush()
+    stderr.flush()
     for pred_passage in parser.parse(all_files(args.test)):
         outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
         print("Writing passage '%s'...\n" % outfile)
