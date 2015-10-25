@@ -10,8 +10,8 @@ import numpy as np
 
 import layer0
 import layer1
-
 from util import file2passage
+from ucca.util import break2sentences
 
 desc = """Prints statistics on UCCA passages
 """
@@ -31,6 +31,8 @@ def main():
         terminal_counts = []
         non_terminal_counts = []
         edge_counts = []
+        paragraph_counts = []
+        sentence_counts = []
         for filename in glob.glob(args.directory + "/*.xml"):
             sys.stderr.write("Reading passage '%s'...\n" % filename)
             passage = file2passage(filename)
@@ -41,7 +43,11 @@ def main():
             non_terminal_counts.append(len(non_terminals))
             edges = {edge for node in non_terminals for edge in node}
             edge_counts.append(len(edges))
-        data = np.array((ids, terminal_counts, non_terminal_counts, edge_counts), dtype=int).T
+            paragraphs = {terminal.paragraph for terminal in terminals}
+            paragraph_counts.append(len(paragraphs))
+            sentence_counts.append(len(break2sentences(passage)))
+        data = np.array((ids, terminal_counts, non_terminal_counts, edge_counts,
+                         paragraph_counts, sentence_counts), dtype=int).T.sort(axis=0)
         if args.outfile:
             np.savetxt(args.outfile, data, fmt="%i")
     elif args.infile:
