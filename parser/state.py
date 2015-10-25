@@ -116,17 +116,16 @@ class State:
         if isinstance(passage, core.Passage):  # During training, create from gold Passage
             self.nodes = [Node(i, node_id=x.ID, text=x.text, tag=x.tag) for i, x in
                           enumerate(passage.layer(layer0.LAYER_ID).all)]
-            self.tokens = [[x.text for x in xs]
-                           for _, xs in groupby(passage.layer(layer0.LAYER_ID).all,
-                                                key=attrgetter('paragraph'))]
-            self.root_id = ROOT_ID
+            self.tokens = [[terminal.text for terminal in terminals]
+                           for _, terminals in groupby(passage.layer(layer0.LAYER_ID).all,
+                                                       key=attrgetter('paragraph'))]
         else:  # During parsing, create from plain text: assume passage is list of lists of strings
-            self.tokens = [token for paragraph in passage for token in paragraph]
-            self.nodes = [Node(i, text=x) for i, x in enumerate(self.tokens)]
-            self.root_id = None
+            self.tokens = passage
+            self.nodes = [Node(i, text=token) for i, token in
+                          enumerate(token for paragraph in passage for token in paragraph)]
         self.terminals = list(self.nodes)
         self.buffer = deque(self.nodes)
-        self.root = self.add_node(self.root_id)  # The root is not part of the stack/buffer
+        self.root = self.add_node(ROOT_ID)  # The root is not part of the stack/buffer
         self.stack = [self.root]
         self.passage_id = passage_id
 

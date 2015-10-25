@@ -1,7 +1,7 @@
+from itertools import groupby
 import os
 from sys import stdout, stderr
 import time
-import itertools
 from xml.etree.ElementTree import ParseError
 
 import numpy as np
@@ -81,9 +81,9 @@ class Parser:
                 except (IOError, ParseError):
                     passage_id = os.path.basename(true_passage)
                     with open(true_passage) as text_file:  # simple text file
-                        true_passage = [list(group) for is_sep, group in
-                                        itertools.groupby(text_file.readlines(),
-                                                          lambda x: not x.strip())
+                        lines = (line.strip() for line in text_file.readlines())
+                        true_passage = [[token for line in group for token in line.split()]
+                                        for is_sep, group in groupby(lines, lambda x: not x)
                                         if not is_sep]
             self.state = State(true_passage, passage_id)
             history = set()
@@ -100,11 +100,13 @@ class Parser:
                     true_action = oracle.get_action(self.state)
                     if not self.update(predicted_action, true_action):
                         correct += 1
+                    if Config.verbose:
+                        print("  predicted: %-15s true: %-15s %s" % (
+                            predicted_action, true_action, self.state))
                 else:
                     true_action = predicted_action
-                if Config.verbose:
-                    print("  predicted: %-15s true: %-15s %s" % (
-                        predicted_action, true_action, self.state))
+                    if Config.verbose:
+                        print("  action: %-15s %s" % (predicted_action, self.state))
                 actions += 1
                 if not self.state.apply_action(true_action):
                     break  # action is FINISH
