@@ -54,7 +54,7 @@ class Oracle:
                 # check if a swap is necessary, and how far (if compound swap is enabled)
                 swap_distance = 0
                 while len(stack) > swap_distance + 1 and (Config.compoundswap or swap_distance < 1) and \
-                        related.intersection(s.ID for s in stack[:-swap_distance-2]) and \
+                        related(s.ID for s in stack[:-swap_distance-2]) and \
                         not related.intersection(b.node_id for b in state.buffer):
                     swap_distance += 1
                 if swap_distance:

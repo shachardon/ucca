@@ -31,16 +31,16 @@ class Node:
         """
         Called when creating final Passage to add a new core.Node
         """
-        assert self.node is None or self.text,\
-            "Trying to create the same node twice: %s, parent: %s" % (self.node_id, parent)
+        # assert self.node is None or self.text,\
+        #     "Trying to create the same node twice: %s, parent: %s" % (self.node_id, parent)
         edge = self.outgoing[0] if len(self.outgoing) == 1 else None
         if self.text:
             if not self.node:  # For punctuation, already created by add_punct for parent
                 self.node = parent.node.add(layer1.EdgeTags.Terminal,
                                             terminals[self.index]).child
         elif edge and edge.child.text and layer0.is_punct(terminals[edge.child.index]):
-            assert tag == layer1.EdgeTags.Punctuation, "Tag for %s is %s" % (parent.node_id, tag)
-            assert edge.tag == layer1.EdgeTags.Terminal, "Tag for %s is %s" % (self.node_id, edge.tag)
+            # assert tag == layer1.EdgeTags.Punctuation, "Tag for %s is %s" % (parent.node_id, tag)
+            # assert edge.tag == layer1.EdgeTags.Terminal, "Tag for %s is %s" % (self.node_id, edge.tag)
             self.node = l1.add_punct(parent.node, terminals[edge.child.index])
             edge.child.node = self.node[0].child
         else:  # The usual case
@@ -84,9 +84,9 @@ class Edge:
 
     def add(self):
         assert self.tag is not None, "No tag given for new edge %s -> %s" % (self.parent, self.child)
-        assert self.parent != self.child, "Trying to create self-loop edge on %s" % self.parent
-        assert self not in self.parent.outgoing, "Trying to create outgoing edge twice: %s" % self
-        assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
+        assert self.parent is not self.child, "Trying to create self-loop edge on %s" % self.parent
+        # assert self not in self.parent.outgoing, "Trying to create outgoing edge twice: %s" % self
+        # assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
         self.parent.outgoing.append(self)
         self.child.incoming.append(self)
         if Config.verbose:
@@ -169,7 +169,8 @@ class State:
         :param action: Action object to apply
         :return: True if parsing should continue, False if finished
         """
-        assert action in self.legal_actions(), "Illegal action in current state: %s" % action
+        if Config.verify:
+            assert action in self.legal_actions(), "Illegal action in current state: %s" % action
         if action == SHIFT:  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
         elif action == NODE:  # Create new parent node and add to the buffer
@@ -196,8 +197,8 @@ class State:
             return False
         else:
             raise Exception("Invalid action: " + action)
-        intersection = set(self.stack).intersection(self.buffer)
-        assert not intersection, "Stack and buffer overlap: %s" % intersection
+        # intersection = set(self.stack).intersection(self.buffer)
+        # assert not intersection, "Stack and buffer overlap: %s" % intersection
         return True
 
     def add_node(self, *args, **kwargs):
@@ -237,7 +238,7 @@ class State:
         self.topological_sort()  # Sort self.nodes
         for node in self.nodes:
             assert node.text or node.outgoing or node.implicit, "Non-terminal leaf node: %s" % node
-            assert node.node or node == self.root or node.is_linkage, "Non-root without incoming: %s" % node
+            assert node.node or node is self.root or node.is_linkage, "Non-root without incoming: %s" % node
             if node.is_linkage:
                 linkages.append(node)
             else:

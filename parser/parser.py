@@ -64,66 +64,28 @@ class Parser:
         total_correct = 0
         total_actions = 0
         total_duration = 0
-        end = "\n" if Config.verbose else " "
         print((str(len(passages)) if passages else "No") + " passages to parse")
-        for true_passage in passages:
+        for passage in passages:
             started = time.time()
             correct = 0
             actions = 0
-            if isinstance(true_passage, core.Passage):
-                print("passage " + true_passage.ID, end=end)
-                passage_id = true_passage.ID
-            elif os.path.exists(true_passage):  # a file
-                print("passage '%s'" % true_passage, end=end)
-                try:
-                    true_passage = file2passage(true_passage)  # XML or binary format
-                    passage_id = true_passage.ID
-                except (IOError, ParseError):
-                    passage_id = os.path.basename(true_passage)
-                    with open(true_passage) as text_file:  # simple text file
-                        lines = (line.strip() for line in text_file.readlines())
-                        true_passage = [[token for line in group for token in line.split()]
-                                        for is_sep, group in groupby(lines, lambda x: not x)
-                                        if not is_sep]
-            self.state = State(true_passage, passage_id)
+            passage, passage_id = self.read_passage(passage)
+            self.state = State(passage, passage_id)
             history = set()
             if train:
-                oracle = Oracle(true_passage)
-            while True:
-                if Config.checkloops:
-                    h = hash(self.state)
-                    assert h not in history, "Transition loop:\n" + self.state.str("\n") +\
-                                             "\n" + oracle.str("\n") if train else ""
-                    history.add(h)
-                predicted_action = self.predict_action()
-                if train:
-                    true_action = oracle.get_action(self.state)
-                    if not self.update(predicted_action, true_action):
-                        correct += 1
-                    if Config.verbose:
-                        print("  predicted: %-15s true: %-15s %s" % (
-                            predicted_action, true_action, self.state))
-                else:
-                    true_action = predicted_action
-                    if Config.verbose:
-                        print("  action: %-15s %s" % (predicted_action, self.state))
-                actions += 1
-                if not self.state.apply_action(true_action):
-                    break  # action is FINISH
+                oracle = Oracle(passage)
+            actions, correct = self.parse_passage(actions, correct, history, oracle, train)
             if Config.verbose:
                 print(" " * 18 + str(self.state))
-            predicted_passage = self.state.create_passage()
             if train:
-                assert true_passage.equals(predicted_passage),\
-                    "Oracle failed to produce true passage\n" + diff_passages(
-                        true_passage, predicted_passage)
+                if Config.verify:
+                    self.verify_passage(passage)
                 print("accuracy: %.3f (%d/%d)" % (correct/actions, correct, actions)
-                      if actions else "No actions done", end=end)
+                      if actions else "No actions done", end=Config.line_end)
+            else:
+                predicted_passages.append(self.state.create_passage())
             duration = time.time() - started
-            print("time: %0.3fs" % duration)
-            if Config.verbose:
-                print()
-            predicted_passages.append(predicted_passage)
+            print("time: %0.3fs" % duration, end="\n" + Config.line_end)
             total_correct += correct
             total_actions += actions
             total_duration += duration
@@ -136,6 +98,54 @@ class Parser:
                 total_duration, total_duration / len(passages)))
 
         return predicted_passages
+
+    @staticmethod
+    def read_passage(passage):
+        if isinstance(passage, core.Passage):
+            print("passage " + passage.ID, end=Config.line_end)
+            passage_id = passage.ID
+        elif os.path.exists(passage):  # a file
+            print("passage '%s'" % passage, end=Config.line_end)
+            try:
+                passage = file2passage(passage)  # XML or binary format
+                passage_id = passage.ID
+            except (IOError, ParseError):
+                passage_id = os.path.basename(passage)
+                with open(passage) as text_file:  # simple text file
+                    lines = (line.strip() for line in text_file.readlines())
+                    passage = [[token for line in group for token in line.split()]
+                               for is_sep, group in groupby(lines, lambda x: not x)
+                               if not is_sep]
+        return passage, passage_id
+
+    def parse_passage(self, actions, correct, history, oracle, train):
+        while True:
+            if Config.checkloops:
+                h = hash(self.state)
+                assert h not in history, "Transition loop:\n" + self.state.str("\n") + \
+                                         "\n" + oracle.str("\n") if train else ""
+                history.add(h)
+            predicted_action = self.predict_action()
+            if train:
+                true_action = oracle.get_action(self.state)
+                if not self.update(predicted_action, true_action):
+                    correct += 1
+                if Config.verbose:
+                    print("  predicted: %-15s true: %-15s %s" % (
+                        predicted_action, true_action, self.state))
+            else:
+                true_action = predicted_action
+                if Config.verbose:
+                    print("  action: %-15s %s" % (predicted_action, self.state))
+            actions += 1
+            if not self.state.apply_action(true_action):
+                return actions, correct  # action is FINISH
+
+    def verify_passage(self, passage):
+        predicted_passage = self.state.create_passage()
+        assert passage.equals(predicted_passage), \
+            "Oracle failed to produce true passage\n" + diff_passages(
+                passage, predicted_passage)
 
     def predict_action(self):
         """
@@ -179,6 +189,7 @@ if __name__ == "__main__":
     stdout.flush()
     stderr.flush()
     for pred_passage in parser.parse(all_files(args.test)):
-        outfile = "%s/%s%s.xml" % (args.outdir, args.prefix, pred_passage.ID)
+        suffix = ".pickle" if args.binary else ".xml"
+        outfile = args.outdir + os.path.sep + args.prefix + pred_passage.ID + suffix
         print("Writing passage '%s'...\n" % outfile)
-        passage2file(pred_passage, outfile)
+        passage2file(pred_passage, outfile, binary=args.binary)
