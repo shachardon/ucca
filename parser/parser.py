@@ -22,6 +22,10 @@ class Parser:
     def __init__(self):
         self.state = None  # State object created at each parse
         self.oracle = None  # Oracle object created at each parse
+        self.action_count = 0
+        self.correct_count = 0
+        self.total_actions = 0
+        self.total_correct = 0
 
         self.actions = [action(tag) for action in
                         (NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE)
@@ -38,14 +42,8 @@ class Parser:
             lambda: len(self.state.stack),
             lambda: len(self.state.buffer)
         ]
+        self.feature_values = None
         self.weights = 0.01 * np.random.randn(len(self.actions), len(self.features))
-
-    def calc_features(self):
-        """
-        Calculate features according to current configuration
-        :return: NumPy array with all feature values
-        """
-        return np.array([f() for f in self.features])
 
     def train(self, passages, iterations=1):
         """
@@ -68,38 +66,39 @@ class Parser:
         :return: generator of parsed passages
         """
         predicted_passages = []
-        total_correct = 0
-        total_actions = 0
+        self.total_actions = 0
+        self.total_correct = 0
         total_duration = 0
         print((str(len(passages)) if passages else "No") + " passages to parse")
         for passage in passages:
             started = time.time()
-            correct = 0
-            actions = 0
+            self.action_count = 0
+            self.correct_count = 0
             passage, passage_id = self.read_passage(passage)
             self.state = State(passage, passage_id)
             history = set()
             if train:
                 self.oracle = Oracle(passage)
-            actions, correct = self.parse_passage(actions, correct, history, train)
+            self.parse_passage(history, train)
             if Config().verbose:
                 print(" " * 18 + str(self.state))
             if train:
                 if Config().verify:
                     self.verify_passage(passage)
-                print("accuracy: %.3f (%d/%d)" % (correct/actions, correct, actions)
-                      if actions else "No actions done", end=Config().line_end)
+                print("accuracy: %.3f (%d/%d)" %
+                      (self.correct_count/self.action_count, self.correct_count, self.action_count)
+                      if self.action_count else "No actions done", end=Config().line_end)
             else:
                 predicted_passages.append(self.state.create_passage())
             duration = time.time() - started
             print("time: %0.3fs" % duration, end=Config().line_end + "\n")
-            total_correct += correct
-            total_actions += actions
+            self.total_correct += self.correct_count
+            self.total_actions += self.action_count
             total_duration += duration
 
-        if train and total_actions:
+        if train and self.total_actions:
             print("Overall accuracy: %.3f (%d/%d)" % (
-                total_correct / total_actions, total_correct, total_actions))
+                self.total_correct / self.total_actions, self.total_correct, self.total_actions))
         if passages:
             print("Total time: %.3fs (average time per passage: %.3fs)" % (
                 total_duration, total_duration / len(passages)))
@@ -127,18 +126,24 @@ class Parser:
             passage_id = None
         return passage, passage_id
 
-    def parse_passage(self, actions, correct, history, train):
+    def parse_passage(self, history=None, train=False):
+        """
+        Internal method to parse a single passage
+        :param history: set of hashes states in the parser's history
+        :param train: use oracle to train on given passages, or just parse with classifier?
+        """
         while True:
-            if Config().check_loops:
+            if Config().check_loops and history is not None:
                 h = hash(self.state)
                 assert h not in history, "Transition loop:\n" + self.state.str("\n") + \
                                          "\n" + self.oracle.str("\n") if train else ""
                 history.add(h)
+            self.calc_features()
             predicted_action = self.predict_action()
             if train:
                 true_action = self.oracle.get_action(self.state)
                 if not self.update(predicted_action, true_action):
-                    correct += 1
+                    self.correct_count += 1
                 if Config().verbose:
                     print("  predicted: %-15s true: %-15s %s" % (
                         predicted_action, true_action, self.state))
@@ -146,37 +151,48 @@ class Parser:
                 true_action = predicted_action
                 if Config().verbose:
                     print("  action: %-15s %s" % (predicted_action, self.state))
-            actions += 1
+            self.action_count += 1
             if not self.state.apply_action(true_action):
-                return actions, correct  # action is FINISH
+                return  # action is FINISH
 
     def verify_passage(self, passage):
+        """
+        Compare predicted passage to true passage and die if they differ
+        :param passage: true passage
+        """
         predicted_passage = self.state.create_passage()
         assert passage.equals(predicted_passage), \
             "Oracle failed to produce true passage\n" + diff_passages(
                 passage, predicted_passage)
 
+    def calc_features(self):
+        """
+        Calculate feature values according to current state
+        """
+        self.feature_values = np.array([f() for f in self.features])
+
     def predict_action(self):
         """
         Choose action based on classifier
+        Assume self.feature_values have already been calculated
         :return: action with maximum probability according to classifier
         """
-        # TODO do not predict an action that is illegal in the current state
-        features = self.calc_features()
-        return self.actions[np.argmax(self.weights.dot(features))]
+        weights = np.array([row if self.state.is_legal(action) else np.zeros(row.shape)
+                            for action, row in zip(self.actions, self.weights)])
+        return self.actions[int(np.argmax(weights.dot(self.feature_values)))]
 
     def update(self, pred_action, true_action):
         """
         Update classifier weights according to predicted and true action
+        Assume self.feature_values have already been calculated
         :param pred_action: action predicted by the classifier
         :param true_action: action returned by oracle
         :return: True if update was needed, False if predicted and true actions were the same
         """
         if pred_action == true_action:
             return False
-        features = self.calc_features()
-        self.weights[self.actions_reverse[str(true_action)]] += features
-        self.weights[self.actions_reverse[str(pred_action)]] -= features
+        self.weights[self.actions_reverse[str(true_action)]] += self.feature_values
+        self.weights[self.actions_reverse[str(pred_action)]] -= self.feature_values
         return True
 
 
