@@ -21,6 +21,7 @@ class Parser:
     """
     def __init__(self):
         self.state = None  # State object created at each parse
+        self.oracle = None  # Oracle object created at each parse
         self.actions = [action(tag) for action in
                         (NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE)
                         for name, tag in layer1.EdgeTags.__dict__.items()
@@ -73,8 +74,8 @@ class Parser:
             self.state = State(passage, passage_id)
             history = set()
             if train:
-                oracle = Oracle(passage)
-            actions, correct = self.parse_passage(actions, correct, history, oracle, train)
+                self.oracle = Oracle(passage)
+            actions, correct = self.parse_passage(actions, correct, history, train)
             if Config.verbose:
                 print(" " * 18 + str(self.state))
             if train:
@@ -118,16 +119,16 @@ class Parser:
                                if not is_sep]
         return passage, passage_id
 
-    def parse_passage(self, actions, correct, history, oracle, train):
+    def parse_passage(self, actions, correct, history, train):
         while True:
             if Config.checkloops:
                 h = hash(self.state)
                 assert h not in history, "Transition loop:\n" + self.state.str("\n") + \
-                                         "\n" + oracle.str("\n") if train else ""
+                                         "\n" + self.oracle.str("\n") if train else ""
                 history.add(h)
             predicted_action = self.predict_action()
             if train:
-                true_action = oracle.get_action(self.state)
+                true_action = self.oracle.get_action(self.state)
                 if not self.update(predicted_action, true_action):
                     correct += 1
                 if Config.verbose:
