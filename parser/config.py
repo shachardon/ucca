@@ -18,6 +18,7 @@ class Config:
                                help="verify oracle successfully reproduces the passage")
         argparser.add_argument('-c', '--compoundswap', action='store_true', default=False,
                                help="enable compound swap")
+        argparser.add_argument('-s', '--seed', default=None, help="seed for np.random")
         self.args = argparser.parse_args()
 
         Config.verbose = self.args.verbose

@@ -191,6 +191,8 @@ def all_files(dirs):
 
 if __name__ == "__main__":
     args = Config().args
+    if args.seed:
+        np.random.seed(int(args.seed))
     parser = Parser()
     parser.train(all_files(args.train))
     stdout.flush()
