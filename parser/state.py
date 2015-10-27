@@ -32,21 +32,24 @@ class Node:
         """
         Called when creating final Passage to add a new core.Node
         """
-        # assert self.node is None or self.text,\
-        #     "Trying to create the same node twice: %s, parent: %s" % (self.node_id, parent)
+        if Config().verify:
+            assert self.node is None or self.text,\
+                "Trying to create the same node twice: %s, parent: %s" % (self.node_id, parent)
         edge = self.outgoing[0] if len(self.outgoing) == 1 else None
         if self.text:
-            if not self.node:  # For punctuation, already created by add_punct for parent
+            if self.node is None:  # For punctuation, already created by add_punct for parent
+                assert parent.node is not None, "Terminal with no parent: \"%s\"" % self
                 self.node = parent.node.add(layer1.EdgeTags.Terminal,
                                             terminals[self.index]).child
         elif edge and edge.child.text and layer0.is_punct(terminals[edge.child.index]):
-            # assert tag == layer1.EdgeTags.Punctuation, "Tag for %s is %s" % (parent.node_id, tag)
-            # assert edge.tag == layer1.EdgeTags.Terminal, "Tag for %s is %s" % (self.node_id, edge.tag)
+            if Config().verify:
+                assert tag == layer1.EdgeTags.Punctuation, "Tag for %s is %s" % (parent.node_id, tag)
+                assert edge.tag == layer1.EdgeTags.Terminal, "Tag for %s is %s" % (self.node_id, edge.tag)
             self.node = l1.add_punct(parent.node, terminals[edge.child.index])
             edge.child.node = self.node[0].child
         else:  # The usual case
             self.node = l1.add_fnode(parent.node, tag, implicit=self.implicit)
-        if self.node and self.node_id:  # We are in training and we have a gold passage
+        if self.node is not None and self.node_id is not None:  # In training, and we have a gold passage
             self.node.extra["remarks"] = self.node_id  # Keep original node ID for reference
 
     @property
@@ -86,8 +89,9 @@ class Edge:
     def add(self):
         assert self.tag is not None, "No tag given for new edge %s -> %s" % (self.parent, self.child)
         assert self.parent is not self.child, "Trying to create self-loop edge on %s" % self.parent
-        # assert self not in self.parent.outgoing, "Trying to create outgoing edge twice: %s" % self
-        # assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
+        if Config().verify:
+            assert self not in self.parent.outgoing, "Trying to create outgoing edge twice: %s" % self
+            assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
         self.parent.outgoing.append(self)
         self.child.incoming.append(self)
         if Config().verbose:
@@ -116,13 +120,15 @@ class State:
     :param passage_id: the ID of the passage to generate
     """
     def __init__(self, passage, passage_id):
-        if isinstance(passage, core.Passage):  # During training, create from gold Passage
+        self.train = isinstance(passage, core.Passage)
+        if self.train:  # During training, create from gold Passage
             self.nodes = [Node(i, orig_node=x, text=x.text, tag=x.tag) for i, x in
                           enumerate(passage.layer(layer0.LAYER_ID).all)]
             self.tokens = [[terminal.text for terminal in terminals]
                            for _, terminals in groupby(passage.layer(layer0.LAYER_ID).all,
                                                        key=attrgetter('paragraph'))]
             root_node = passage.by_id(ROOT_ID)
+            self.train = True
         else:  # During parsing, create from plain text: assume passage is list of lists of strings
             self.tokens = passage
             self.nodes = [Node(i, text=token) for i, token in
@@ -160,11 +166,12 @@ class State:
         """
         :return: is the action (with its tag) legal in the current state?
         """
-        return action in self.legal_actions() and \
-               (action not in (LEFT_EDGE, LEFT_REMOTE) or
-                self.create_edge(action) not in self.stack[-1].outgoing) and \
-               (action not in (RIGHT_EDGE, RIGHT_REMOTE) or
-                self.create_edge(action) not in self.stack[-2].outgoing)
+        parent, child = self.stack_indices_for_edge_action(action)  # May return None, None
+        return action in self.legal_actions() and (
+            parent is None or self.stack[parent].text is None) and (  # Parent may not be a terminal
+            child is None or self.stack[child] is not self.root) and (  # Child may not be the root
+            parent is None or child is None or  # Edge may not already exist
+                self.create_edge(action, parent, child) not in self.stack[parent].outgoing)
 
     def apply_action(self, action):
         """
@@ -200,8 +207,9 @@ class State:
             return False
         else:
             raise Exception("Invalid action: " + action)
-        # intersection = set(self.stack).intersection(self.buffer)
-        # assert not intersection, "Stack and buffer overlap: %s" % intersection
+        if Config().verify:
+            intersection = set(self.stack).intersection(self.buffer)
+            assert not intersection, "Stack and buffer overlap: %s" % intersection
         return True
 
     def add_node(self, *args, **kwargs):
@@ -214,16 +222,32 @@ class State:
             print("    %s" % node)
         return node
 
-    def create_edge(self, action):
-        if action == LEFT_EDGE:  # Create left edge between buffer top two nodes
-            return Edge(self.stack[-1], self.stack[-2], action.tag)
-        elif action == RIGHT_EDGE:  # Create right edge between buffer top two nodes
-            return Edge(self.stack[-2], self.stack[-1], action.tag)
-        elif action == LEFT_REMOTE:  # Same as LEFT-EDGE but a remote edge is created
-            return Edge(self.stack[-1], self.stack[-2], action.tag, remote=True)
-        elif action == RIGHT_REMOTE:  # Same as RIGHT-EDGE but a remote edge is created
-            return Edge(self.stack[-2], self.stack[-1], action.tag, remote=True)
-        raise Exception("Cannot create edge for action '%s'" % action)
+    @staticmethod
+    def stack_indices_for_edge_action(action):
+        """
+        :param action: Action that creates an edge
+        :return: pair: (parent, child) indices in the stack for the created edge
+        An index may be -1, -2 or None (if the corresponding node is new and not in the stack yet)
+        """
+        if action in (LEFT_EDGE, LEFT_REMOTE):
+            return -1, -2
+        elif action in (RIGHT_EDGE, RIGHT_REMOTE):
+            return -2, -1
+        elif action == NODE:
+            return -1, None
+        elif action == IMPLICIT:
+            return None, -1
+        return None, None
+
+    def create_edge(self, action, parent=None, child=None):
+        """
+        :return: new Edge from the given parent and child, possibly remote (depending on the action)
+        """
+        if parent is None and child is None:
+            parent, child = self.stack_indices_for_edge_action(action)
+        assert parent is not None and child is not None, "Cannot create edge for action '%s'" % action
+        return Edge(self.stack[parent], self.stack[child], action.tag,
+                    remote=action in (LEFT_REMOTE, RIGHT_REMOTE))
 
     def create_passage(self):
         """
@@ -234,15 +258,16 @@ class State:
         passage = from_text(paragraphs, self.passage_id)
         terminals = passage.layer(layer0.LAYER_ID).all
         l1 = layer1.Layer1(passage)
-        if self.root.orig_node:  # We are in training and we have a gold passage
+        if self.train:  # We are in training and we have a gold passage
             passage.nodes[ROOT_ID].extra["remarks"] = self.root.node_id  # For reference
             self.fix_terminal_tags(terminals)
         remotes = []  # To be handled after all nodes are created
         linkages = []  # To be handled after all non-linkage nodes are created
         self.topological_sort()  # Sort self.nodes
         for node in self.nodes:
-            assert node.text or node.outgoing or node.implicit, "Non-terminal leaf node: %s" % node
-            assert node.node or node is self.root or node.is_linkage, "Non-root without incoming: %s" % node
+            if self.train and Config().verify:
+                assert node.text or node.outgoing or node.implicit, "Non-terminal leaf node: %s" % node
+                assert node.node or node is self.root or node.is_linkage, "Non-root without incoming: %s" % node
             if node.is_linkage:
                 linkages.append(node)
             else:
@@ -265,7 +290,8 @@ class State:
                 elif edge.tag == layer1.EdgeTags.LinkArgument:
                     link_args.append(edge.child.node)
             assert link_relation is not None, "No link relations: %s" % node
-            # assert len(link_args) > 1, "Less than two link arguments"
+            if len(link_args) < 2:
+                print("Less than two link arguments for linkage %s" % node, file=sys.stderr)
             node.node = l1.add_linkage(link_relation, *link_args)
             if node.node_id:  # We are in training and we have a gold passage
                 node.node.extra["remarks"] = node.node_id  # For reference
