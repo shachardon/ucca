@@ -25,12 +25,10 @@ class Oracle:
         if not self.edges_remaining:
             return FINISH
 
-        stack = [self.passage.by_id(node.node_id) for node in state.stack]
-        if stack:
-            incoming = self.edges_remaining.intersection(stack[-1].incoming)
-            outgoing = self.edges_remaining.intersection(stack[-1].outgoing)
-            edges = incoming | outgoing
-            if not edges:
+        if state.stack:
+            incoming = self.edges_remaining.intersection(state.stack[-1].orig_node.incoming)
+            outgoing = self.edges_remaining.intersection(state.stack[-1].orig_node.outgoing)
+            if not incoming | outgoing:
                 return REDUCE
 
             related = set([edge.child.ID for edge in outgoing] +
@@ -39,23 +37,24 @@ class Oracle:
             if state.buffer and state.buffer[0].node_id in related:
                 return SHIFT
 
-            if len(stack) > 1:
+            if len(state.stack) > 1:
                 # check for binary edges
                 for edges, prefix in (((e for e in incoming if
-                                        e.parent.ID == stack[-2].ID),
+                                        e.parent.ID == state.stack[-2].node_id),
                                        "RIGHT"),
                                       ((e for e in outgoing if
-                                        e.child.ID == stack[-2].ID),
+                                        e.child.ID == state.stack[-2].node_id),
                                        "LEFT")):
                     for edge in edges:
                         self.edges_remaining.remove(edge)
                         return Action(prefix + ("-REMOTE" if edge.attrib.get("remote") else "-EDGE"),
                                       edge.tag)
+
                 # check if a swap is necessary, and how far (if compound swap is enabled)
                 swap_distance = 0
-                while len(stack) > swap_distance + 1 and (Config.compoundswap or swap_distance < 1) and \
-                        related(s.ID for s in stack[:-swap_distance-2]) and \
-                        not related.intersection(b.node_id for b in state.buffer):
+                while len(state.stack) > swap_distance + 1 and \
+                        (Config.compoundswap or swap_distance < 1) and \
+                        related.issubset(s.node_id for s in state.stack[:-swap_distance-2]):
                     swap_distance += 1
                 if swap_distance:
                     return SWAP(swap_distance if Config.compoundswap else None)
@@ -69,9 +68,9 @@ class Oracle:
                                          IMPLICIT, "child")):
                 for edge in edges:
                     self.edges_remaining.remove(edge)
-                    node_id = getattr(edge, attr).ID
-                    self.nodes_remaining.remove(node_id)
-                    return action(edge.tag, node_id)
+                    node = getattr(edge, attr)
+                    self.nodes_remaining.remove(node.ID)
+                    return action(edge.tag, node)
 
         if not state.buffer:
             raise Exception("No action is possible\n" + state.str("\n") + "\n" + self.str("\n"))

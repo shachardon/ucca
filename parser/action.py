@@ -2,10 +2,10 @@ import re
 
 
 class Action:
-    def __init__(self, action_type, tag=None, node_id=None):
+    def __init__(self, action_type, tag=None, orig_node=None):
         self.type = action_type  # String
         self.tag = tag  # Usually the tag of the created edge; but if COMPOUND_SWAP, the distance
-        self.node_id = node_id  # During training, created node ID from gold passage (if relevant)
+        self.orig_node = orig_node  # Node created by this action, if any (during training)
 
     @staticmethod
     def from_string(s):

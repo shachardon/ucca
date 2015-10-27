@@ -16,15 +16,16 @@ class Node:
     """
     Temporary representation for core.Node with only relevant information for parsing
     """
-    def __init__(self, index, node_id=None, text=None, tag=None, implicit=False):
+    def __init__(self, index, orig_node=None, text=None, tag=None, implicit=False):
         self.index = index  # Index in the configuration's node list
-        self.node_id = node_id  # During training, the ID of the original node
+        self.orig_node = orig_node  # Associated core.Node from the original Passage, during training
+        self.node_id = orig_node.ID if orig_node else None  # ID of the original node
         self.text = text  # Text for terminals, None for non-terminals
         self.tag = tag  # During training, the node tag of the original node (Word/Punctuation)
-        self.node_index = int(node_id.split(".")[1]) if node_id else None  # Second part of ID
+        self.node_index = int(self.node_id.split(core.Node.ID_SEPARATOR)[1]) if orig_node else None
         self.outgoing = []  # Edge list
         self.incoming = []  # Edge list
-        self.node = None  # Instantiated when creating the final Passage: the associated core.Node
+        self.node = None  # Associated core.Node, when creating final Passage
         self.implicit = implicit  # True or False
 
     def add_to_l1(self, l1, parent, tag, terminals):
@@ -116,18 +117,20 @@ class State:
     """
     def __init__(self, passage, passage_id):
         if isinstance(passage, core.Passage):  # During training, create from gold Passage
-            self.nodes = [Node(i, node_id=x.ID, text=x.text, tag=x.tag) for i, x in
+            self.nodes = [Node(i, orig_node=x, text=x.text, tag=x.tag) for i, x in
                           enumerate(passage.layer(layer0.LAYER_ID).all)]
             self.tokens = [[terminal.text for terminal in terminals]
                            for _, terminals in groupby(passage.layer(layer0.LAYER_ID).all,
                                                        key=attrgetter('paragraph'))]
+            root_node = passage.by_id(ROOT_ID)
         else:  # During parsing, create from plain text: assume passage is list of lists of strings
             self.tokens = passage
             self.nodes = [Node(i, text=token) for i, token in
                           enumerate(token for paragraph in passage for token in paragraph)]
+            root_node = None
         self.terminals = list(self.nodes)
         self.buffer = deque(self.nodes)
-        self.root = self.add_node(ROOT_ID)  # The root is not part of the stack/buffer
+        self.root = self.add_node(root_node)  # The root is not part of the stack/buffer
         self.stack = [self.root]
         self.passage_id = passage_id
 
@@ -174,11 +177,11 @@ class State:
         if action == SHIFT:  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
         elif action == NODE:  # Create new parent node and add to the buffer
-            parent = self.add_node(action.node_id)
+            parent = self.add_node(action.orig_node)
             Edge(parent, self.stack[-1], action.tag).add()
             self.buffer.appendleft(parent)
         elif action == IMPLICIT:  # Create new child node and add to the buffer
-            child = self.add_node(action.node_id, implicit=True)
+            child = self.add_node(action.orig_node, implicit=True)
             Edge(self.stack[-1], child, action.tag).add()
             self.buffer.appendleft(child)
         elif action == REDUCE:  # Pop stack (no more edges to create with this node)
@@ -220,6 +223,7 @@ class State:
             return Edge(self.stack[-1], self.stack[-2], action.tag, remote=True)
         elif action == RIGHT_REMOTE:  # Same as RIGHT-EDGE but a remote edge is created
             return Edge(self.stack[-2], self.stack[-1], action.tag, remote=True)
+        raise Exception("Cannot create edge for action '%s'" % action)
 
     def create_passage(self):
         """
@@ -231,7 +235,7 @@ class State:
         terminals = passage.layer(layer0.LAYER_ID).all
         self.fix_terminal_tags(terminals)
         l1 = layer1.Layer1(passage)
-        if self.root.node_id:  # We are in training and we have a gold passage
+        if self.root.orig_node:  # We are in training and we have a gold passage
             passage.nodes[ROOT_ID].extra["remarks"] = self.root.node_id  # For reference
         remotes = []  # To be handled after all nodes are created
         linkages = []  # To be handled after all non-linkage nodes are created
