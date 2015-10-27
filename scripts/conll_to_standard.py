@@ -40,7 +40,7 @@ def main():
         passage = conll2passage(filename, passage_id)
 
         outfile = "%s/%s%s.%s" % (args.outdir, args.prefix, passage.ID,
-                                  'bin' if args.binary else 'xml')
+                                  'pickle' if args.binary else 'xml')
         sys.stderr.write("Writing passage '%s'...\n" % outfile)
         passage2file(passage, outfile, args.binary)
 
