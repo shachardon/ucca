@@ -28,8 +28,8 @@ class Parser:
                         for name, tag in layer1.EdgeTags.__dict__.items()
                         if isinstance(tag, str) and not name.startswith('__')] +\
                        [REDUCE, SHIFT, FINISH]
-        if Config.compound_swap:
-            self.actions.extend(SWAP(i) for i in range(1, Config.max_swap + 1))
+        if Config().compound_swap:
+            self.actions.extend(SWAP(i) for i in range(1, Config().max_swap + 1))
         else:
             self.actions.append(SWAP)
         self.actions_reverse = {str(action): i for i, action in enumerate(self.actions)}
@@ -82,17 +82,17 @@ class Parser:
             if train:
                 self.oracle = Oracle(passage)
             actions, correct = self.parse_passage(actions, correct, history, train)
-            if Config.verbose:
+            if Config().verbose:
                 print(" " * 18 + str(self.state))
             if train:
-                if Config.verify:
+                if Config().verify:
                     self.verify_passage(passage)
                 print("accuracy: %.3f (%d/%d)" % (correct/actions, correct, actions)
-                      if actions else "No actions done", end=Config.line_end)
+                      if actions else "No actions done", end=Config().line_end)
             else:
                 predicted_passages.append(self.state.create_passage())
             duration = time.time() - started
-            print("time: %0.3fs" % duration, end=Config.line_end + "\n")
+            print("time: %0.3fs" % duration, end=Config().line_end + "\n")
             total_correct += correct
             total_actions += actions
             total_duration += duration
@@ -109,10 +109,10 @@ class Parser:
     @staticmethod
     def read_passage(passage):
         if isinstance(passage, core.Passage):
-            print("passage " + passage.ID, end=Config.line_end)
+            print("passage " + passage.ID, end=Config().line_end)
             passage_id = passage.ID
         elif os.path.exists(passage):  # a file
-            print("passage '%s'" % passage, end=Config.line_end)
+            print("passage '%s'" % passage, end=Config().line_end)
             try:
                 passage = file2passage(passage)  # XML or binary format
                 passage_id = passage.ID
@@ -123,11 +123,13 @@ class Parser:
                     passage = [[token for line in group for token in line.split()]
                                for is_sep, group in groupby(lines, lambda x: not x)
                                if not is_sep]
+        else:  # Assume it is a list of list of strings (or the like)
+            passage_id = None
         return passage, passage_id
 
     def parse_passage(self, actions, correct, history, train):
         while True:
-            if Config.check_loops:
+            if Config().check_loops:
                 h = hash(self.state)
                 assert h not in history, "Transition loop:\n" + self.state.str("\n") + \
                                          "\n" + self.oracle.str("\n") if train else ""
@@ -137,12 +139,12 @@ class Parser:
                 true_action = self.oracle.get_action(self.state)
                 if not self.update(predicted_action, true_action):
                     correct += 1
-                if Config.verbose:
+                if Config().verbose:
                     print("  predicted: %-15s true: %-15s %s" % (
                         predicted_action, true_action, self.state))
             else:
                 true_action = predicted_action
-                if Config.verbose:
+                if Config().verbose:
                     print("  action: %-15s %s" % (predicted_action, self.state))
             actions += 1
             if not self.state.apply_action(true_action):

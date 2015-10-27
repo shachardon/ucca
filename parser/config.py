@@ -1,7 +1,16 @@
 import argparse
 
 
-class Config:
+class Singleton(type):
+    instance = None
+
+    def __call__(cls, *args, **kwargs):
+        if not cls.instance:
+            cls.instance = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls.instance
+
+
+class Config(metaclass=Singleton):
     def __init__(self):
         argparser = argparse.ArgumentParser(description="""Transition-based parser for UCCA.""")
         argparser.add_argument('train', nargs='+', help="passage file names to train on")
@@ -21,11 +30,11 @@ class Config:
         argparser.add_argument('-s', '--seed', default=None, help="seed for np.random")
         self.args = argparser.parse_args()
 
-        Config.verbose = self.args.verbose
-        Config.line_end = "\n" if Config.verbose else " "  # show all in one line unless verbose
+        self.verbose = self.args.verbose
+        self.line_end = "\n" if self.verbose else " "  # show all in one line unless verbose
 
-        Config.check_loops = self.args.checkloops
-        Config.verify = self.args.verify
+        self.check_loops = self.args.checkloops
+        self.verify = self.args.verify
 
-        Config.compound_swap = self.args.compoundswap
-        Config.max_swap = 11
+        self.compound_swap = self.args.compoundswap
+        self.max_swap = 11

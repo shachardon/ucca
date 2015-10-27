@@ -90,7 +90,7 @@ class Edge:
         # assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
         self.parent.outgoing.append(self)
         self.child.incoming.append(self)
-        if Config.verbose:
+        if Config().verbose:
             print("    %s" % self)
 
     def __repr__(self):
@@ -150,7 +150,7 @@ class State:
                 yield RIGHT_EDGE
                 yield LEFT_REMOTE
                 yield RIGHT_REMOTE
-                if Config.compound_swap:
+                if Config().compound_swap:
                     for i in range(1, len(self.stack)):
                         yield SWAP(i)
                 else:
@@ -172,7 +172,7 @@ class State:
         :param action: Action object to apply
         :return: True if parsing should continue, False if finished
         """
-        if Config.verify:
+        if Config().verify:
             assert action in self.legal_actions(), "Illegal action in current state: %s" % action
         if action == SHIFT:  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
@@ -192,7 +192,7 @@ class State:
             distance = action.tag or 1
             assert distance > 0
             s = slice(-distance-1, -1)
-            if Config.verbose:
+            if Config().verbose:
                 print("    %s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
             self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
             del self.stack[s]
@@ -210,7 +210,7 @@ class State:
         """
         node = Node(len(self.nodes), *args, **kwargs)
         self.nodes.append(node)
-        if Config.verbose:
+        if Config().verbose:
             print("    %s" % node)
         return node
 
@@ -275,7 +275,7 @@ class State:
     def fix_terminal_tags(self, terminals):
         for terminal, orig_terminal in zip(terminals, self.terminals):
             if terminal.tag != orig_terminal.tag:
-                if Config.verbose:
+                if Config().verbose:
                     print("%s is the wrong tag for terminal: %s" % (terminal.tag, terminal.text),
                           file=sys.stderr)
                 terminal.tag = orig_terminal.tag
