@@ -150,7 +150,7 @@ class State:
                 yield RIGHT_EDGE
                 yield LEFT_REMOTE
                 yield RIGHT_REMOTE
-                if Config.compoundswap:
+                if Config.compound_swap:
                     for i in range(1, len(self.stack)):
                         yield SWAP(i)
                 else:

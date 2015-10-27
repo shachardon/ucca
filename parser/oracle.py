@@ -53,11 +53,11 @@ class Oracle:
                 # check if a swap is necessary, and how far (if compound swap is enabled)
                 swap_distance = 0
                 while len(state.stack) > swap_distance + 1 and \
-                        (Config.compoundswap or swap_distance < 1) and \
+                        (Config.compound_swap or swap_distance < 1) and \
                         related.issubset(s.node_id for s in state.stack[:-swap_distance-2]):
                     swap_distance += 1
                 if swap_distance:
-                    return SWAP(swap_distance if Config.compoundswap else None)
+                    return SWAP(swap_distance if Config.compound_swap else None)
 
             # check for unary edges
             for edges, action, attr in (((e for e in incoming if

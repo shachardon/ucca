@@ -22,12 +22,18 @@ class Parser:
     def __init__(self):
         self.state = None  # State object created at each parse
         self.oracle = None  # Oracle object created at each parse
+
         self.actions = [action(tag) for action in
                         (NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE)
                         for name, tag in layer1.EdgeTags.__dict__.items()
                         if isinstance(tag, str) and not name.startswith('__')] +\
-                       [REDUCE, SHIFT, SWAP, FINISH]
+                       [REDUCE, SHIFT, FINISH]
+        if Config.compound_swap:
+            self.actions.extend(SWAP(i) for i in range(1, Config.max_swap + 1))
+        else:
+            self.actions.append(SWAP)
         self.actions_reverse = {str(action): i for i, action in enumerate(self.actions)}
+
         self.features = [
             lambda: len(self.state.stack),
             lambda: len(self.state.buffer)
@@ -86,7 +92,7 @@ class Parser:
             else:
                 predicted_passages.append(self.state.create_passage())
             duration = time.time() - started
-            print("time: %0.3fs" % duration, end="\n" + Config.line_end)
+            print("time: %0.3fs" % duration, end=Config.line_end + "\n")
             total_correct += correct
             total_actions += actions
             total_duration += duration
@@ -121,7 +127,7 @@ class Parser:
 
     def parse_passage(self, actions, correct, history, train):
         while True:
-            if Config.checkloops:
+            if Config.check_loops:
                 h = hash(self.state)
                 assert h not in history, "Transition loop:\n" + self.state.str("\n") + \
                                          "\n" + self.oracle.str("\n") if train else ""
