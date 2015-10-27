@@ -233,10 +233,10 @@ class State:
         paragraphs = [" ".join(paragraph) for paragraph in self.tokens]
         passage = from_text(paragraphs, self.passage_id)
         terminals = passage.layer(layer0.LAYER_ID).all
-        self.fix_terminal_tags(terminals)
         l1 = layer1.Layer1(passage)
         if self.root.orig_node:  # We are in training and we have a gold passage
             passage.nodes[ROOT_ID].extra["remarks"] = self.root.node_id  # For reference
+            self.fix_terminal_tags(terminals)
         remotes = []  # To be handled after all nodes are created
         linkages = []  # To be handled after all non-linkage nodes are created
         self.topological_sort()  # Sort self.nodes
