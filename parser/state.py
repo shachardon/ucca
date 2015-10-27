@@ -166,12 +166,11 @@ class State:
         """
         :return: is the action (with its tag) legal in the current state?
         """
-        parent, child = self.stack_indices_for_edge_action(action)  # May return None, None
         return action in self.legal_actions() and (
-            parent is None or self.stack[parent].text is None) and (  # Parent may not be a terminal
-            child is None or self.stack[child] is not self.root) and (  # Child may not be the root
-            parent is None or child is None or  # Edge may not already exist
-                self.create_edge(action, parent, child) not in self.stack[parent].outgoing)
+            action.parent is None or self.stack[action.parent].text is None) and (  # Parent may not be a terminal
+            action.child is None or self.stack[action.child] is not self.root) and (  # Child may not be the root
+            action.parent is None or action.child is None or  # Edge may not already exist
+            self.create_edge(action) not in self.stack[action.parent].outgoing)
 
     def apply_action(self, action):
         """
@@ -222,32 +221,14 @@ class State:
             print("    %s" % node)
         return node
 
-    @staticmethod
-    def stack_indices_for_edge_action(action):
-        """
-        :param action: Action that creates an edge
-        :return: pair: (parent, child) indices in the stack for the created edge
-        An index may be -1, -2 or None (if the corresponding node is new and not in the stack yet)
-        """
-        if action in (LEFT_EDGE, LEFT_REMOTE):
-            return -1, -2
-        elif action in (RIGHT_EDGE, RIGHT_REMOTE):
-            return -2, -1
-        elif action == NODE:
-            return -1, None
-        elif action == IMPLICIT:
-            return None, -1
-        return None, None
-
-    def create_edge(self, action, parent=None, child=None):
+    def create_edge(self, action):
         """
         :return: new Edge from the given parent and child, possibly remote (depending on the action)
         """
-        if parent is None and child is None:
-            parent, child = self.stack_indices_for_edge_action(action)
-        assert parent is not None and child is not None, "Cannot create edge for action '%s'" % action
-        return Edge(self.stack[parent], self.stack[child], action.tag,
-                    remote=action in (LEFT_REMOTE, RIGHT_REMOTE))
+        assert action in (LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE),\
+            "Cannot create edge for action '%s'" % action
+        return Edge(self.stack[action.parent], self.stack[action.child], action.tag,
+                    remote=action.remote)
 
     def create_passage(self):
         """

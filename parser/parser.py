@@ -175,11 +175,15 @@ class Parser:
         """
         Choose action based on classifier
         Assume self.feature_values have already been calculated
-        :return: action with maximum probability according to classifier
+        :return: legal action with maximum probability according to classifier
         """
-        weights = np.array([row if self.state.is_legal(action) else np.zeros(row.shape)
-                            for action, row in zip(self.actions, self.weights)])
-        return self.actions[int(np.argmax(weights.dot(self.feature_values)))]
+        scores = self.weights.dot(self.feature_values)
+        actions = (self.actions[i] for i in reversed(np.argsort(scores)))
+        try:
+            return next(action for action in actions if self.state.is_legal(action))
+        except StopIteration:
+            print("No legal actions available", file=sys.stderr)
+            raise
 
     def update(self, pred_action, true_action):
         """

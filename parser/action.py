@@ -1,4 +1,5 @@
 import re
+from pip.utils import cached_property
 
 
 class Action:
@@ -26,6 +27,30 @@ class Action:
 
     def __call__(self, *args, **kwargs):
         return Action(self.type, *args, **kwargs)
+
+    @cached_property
+    def parent(self):
+        if self in (LEFT_EDGE, LEFT_REMOTE):
+            return -1
+        elif self in (RIGHT_EDGE, RIGHT_REMOTE):
+            return -2
+        elif self == NODE:
+            return -1
+        return None
+
+    @cached_property
+    def child(self):
+        if self in (LEFT_EDGE, LEFT_REMOTE):
+            return -2
+        elif self in (RIGHT_EDGE, RIGHT_REMOTE):
+            return -1
+        elif self == IMPLICIT:
+            return -1
+        return None
+
+    @cached_property
+    def remote(self):
+        return self in (LEFT_REMOTE, RIGHT_REMOTE)
 
 
 SHIFT = Action("SHIFT")
