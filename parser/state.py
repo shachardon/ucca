@@ -166,11 +166,47 @@ class State:
         """
         :return: is the action (with its tag) legal in the current state?
         """
-        return action in self.legal_actions() and (
-            action.parent is None or self.stack[action.parent].text is None) and (  # Parent may not be a terminal
-            action.child is None or self.stack[action.child] is not self.root) and (  # Child may not be the root
-            action.parent is None or action.child is None or  # Edge may not already exist
-            self.create_edge(action) not in self.stack[action.parent].outgoing)
+        if action not in self.legal_actions():
+            return False
+        parent, child = action.parent_child
+        if parent is not None:
+            parent = self.stack[action.parent]
+            if parent.text is not None:
+                return False  # Parent may not be a terminal
+        if child is not None:
+            child = self.stack[action.child]
+            if child is self.root:
+                return False  # Child may not be the root
+            if parent is not None and self.create_edge(action, parent, child) in parent.outgoing:
+                return False  # Edge may not already exist
+        return True
+
+    def add_node(self, *args, **kwargs):
+        """
+        Called during parsing to add a new Node (not core.Node) to the temporary representation
+        """
+        node = Node(len(self.nodes), *args, **kwargs)
+        self.nodes.append(node)
+        if Config().verbose:
+            print("    %s" % node)
+        return node
+
+    def create_edge(self, action, parent=None, child=None):
+        """
+        :return: new Edge from the given parent and child, possibly remote (depending on the action)
+        """
+        if action.edge is not None:
+            return action.edge
+        assert action in (LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE),\
+            "Cannot create edge for action '%s'" % action
+        if parent is None and child is None:
+            parent, child = action.parent_child
+            if parent is not None:
+                parent = self.stack[action.parent]
+            if child is not None:
+                child = self.stack[action.child]
+        action.edge = Edge(parent, child, action.tag, remote=action.remote)
+        return action.edge
 
     def apply_action(self, action):
         """
@@ -210,25 +246,6 @@ class State:
             intersection = set(self.stack).intersection(self.buffer)
             assert not intersection, "Stack and buffer overlap: %s" % intersection
         return True
-
-    def add_node(self, *args, **kwargs):
-        """
-        Called during parsing to add a new Node (not core.Node) to the temporary representation
-        """
-        node = Node(len(self.nodes), *args, **kwargs)
-        self.nodes.append(node)
-        if Config().verbose:
-            print("    %s" % node)
-        return node
-
-    def create_edge(self, action):
-        """
-        :return: new Edge from the given parent and child, possibly remote (depending on the action)
-        """
-        assert action in (LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE),\
-            "Cannot create edge for action '%s'" % action
-        return Edge(self.stack[action.parent], self.stack[action.child], action.tag,
-                    remote=action.remote)
 
     def create_passage(self):
         """

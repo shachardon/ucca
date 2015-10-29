@@ -178,12 +178,14 @@ class Parser:
         :return: legal action with maximum probability according to classifier
         """
         scores = self.weights.dot(self.feature_values)
-        actions = (self.actions[i] for i in reversed(np.argsort(scores)))
+        best_action = self.actions[np.argmax(scores)]
+        if self.state.is_legal(best_action):
+            return best_action
+        actions = (self.actions[i] for i in np.argsort(scores)[-2::-1])  # Exclude max, already checked
         try:
             return next(action for action in actions if self.state.is_legal(action))
-        except StopIteration:
-            print("No legal actions available", file=sys.stderr)
-            raise
+        except StopIteration as e:
+            raise Exception("No legal actions available") from e
 
     def update(self, pred_action, true_action):
         """

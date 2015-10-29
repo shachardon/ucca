@@ -1,5 +1,4 @@
 import re
-from pip.utils import cached_property
 
 
 class Action:
@@ -7,6 +6,7 @@ class Action:
         self.type = action_type  # String
         self.tag = tag  # Usually the tag of the created edge; but if COMPOUND_SWAP, the distance
         self.orig_node = orig_node  # Node created by this action, if any (during training)
+        self.edge = None  # Will be set by State when the edge created by this action is known
 
     @staticmethod
     def from_string(s):
@@ -28,27 +28,27 @@ class Action:
     def __call__(self, *args, **kwargs):
         return Action(self.type, *args, **kwargs)
 
-    @cached_property
-    def parent(self):
+    @property
+    def parent_child(self):
         if self in (LEFT_EDGE, LEFT_REMOTE):
-            return -1
+            return -1, -2
         elif self in (RIGHT_EDGE, RIGHT_REMOTE):
-            return -2
+            return -2, -1
         elif self == NODE:
-            return -1
-        return None
-
-    @cached_property
-    def child(self):
-        if self in (LEFT_EDGE, LEFT_REMOTE):
-            return -2
-        elif self in (RIGHT_EDGE, RIGHT_REMOTE):
-            return -1
+            return -1, None
         elif self == IMPLICIT:
-            return -1
-        return None
+            return None, -1
+        return None, None
 
-    @cached_property
+    @property
+    def parent(self):
+        return self.parent_child[0]
+
+    @property
+    def child(self):
+        return self.parent_child[1]
+
+    @property
     def remote(self):
         return self in (LEFT_REMOTE, RIGHT_REMOTE)
 
