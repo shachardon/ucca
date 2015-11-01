@@ -7,6 +7,7 @@ from xml.etree.ElementTree import ParseError
 import numpy as np
 
 from action import NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, REDUCE, SHIFT, SWAP, FINISH
+from classifier import Classifier
 from config import Config
 from state import State
 from diff import diff_passages
@@ -27,23 +28,17 @@ class Parser(object):
         self.total_actions = 0
         self.total_correct = 0
 
-        self.actions = [action(tag) for action in
+        actions = [action(tag) for action in
                         (NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE)
-                        for name, tag in layer1.EdgeTags.__dict__.items()
-                        if isinstance(tag, str) and not name.startswith('__')] +\
-                       [REDUCE, SHIFT, FINISH]
+                   for name, tag in layer1.EdgeTags.__dict__.items()
+                   if isinstance(tag, str) and not name.startswith('__')] + \
+                  [REDUCE, SHIFT, FINISH]
         if Config().compound_swap:
-            self.actions.extend(SWAP(i) for i in range(1, Config().max_swap + 1))
+            actions.extend(SWAP(i) for i in range(1, Config().max_swap + 1))
         else:
-            self.actions.append(SWAP)
-        self.actions_reverse = {str(action): i for i, action in enumerate(self.actions)}
+            actions.append(SWAP)
 
-        self.features = [
-            lambda: len(self.state.stack),
-            lambda: len(self.state.buffer)
-        ]
-        self.feature_values = None
-        self.weights = 0.01 * np.random.randn(len(self.actions), len(self.features))
+        self.classifier = Classifier(actions)
 
     def train(self, passages, iterations=1):
         """
@@ -138,11 +133,11 @@ class Parser(object):
                 assert h not in history, "Transition loop:\n" + self.state.str("\n") + \
                                          "\n" + self.oracle.str("\n") if train else ""
                 history.add(h)
-            self.calc_features()
-            predicted_action = self.predict_action()
+            self.classifier.calc_features(self.state)
+            predicted_action = self.classifier.predict_action(self.state)
             if train:
                 true_action = self.oracle.get_action(self.state)
-                if not self.update(predicted_action, true_action):
+                if not self.classifier.update(predicted_action, true_action):
                     self.correct_count += 1
                 if Config().verbose:
                     print("  predicted: %-15s true: %-15s %s" % (
@@ -164,42 +159,6 @@ class Parser(object):
         assert passage.equals(predicted_passage), \
             "Oracle failed to produce true passage\n" + diff_passages(
                 passage, predicted_passage)
-
-    def calc_features(self):
-        """
-        Calculate feature values according to current state
-        """
-        self.feature_values = np.array([f() for f in self.features])
-
-    def predict_action(self):
-        """
-        Choose action based on classifier
-        Assume self.feature_values have already been calculated
-        :return: legal action with maximum probability according to classifier
-        """
-        scores = self.weights.dot(self.feature_values)
-        best_action = self.actions[np.argmax(scores)]
-        if self.state.is_legal(best_action):
-            return best_action
-        actions = (self.actions[i] for i in np.argsort(scores)[-2::-1])  # Exclude max, already checked
-        try:
-            return next(action for action in actions if self.state.is_legal(action))
-        except StopIteration as e:
-            raise Exception("No legal actions available") from e
-
-    def update(self, pred_action, true_action):
-        """
-        Update classifier weights according to predicted and true action
-        Assume self.feature_values have already been calculated
-        :param pred_action: action predicted by the classifier
-        :param true_action: action returned by oracle
-        :return: True if update was needed, False if predicted and true actions were the same
-        """
-        if pred_action == true_action:
-            return False
-        self.weights[self.actions_reverse[str(true_action)]] += self.feature_values
-        self.weights[self.actions_reverse[str(pred_action)]] -= self.feature_values
-        return True
 
 
 def all_files(dirs):
