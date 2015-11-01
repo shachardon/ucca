@@ -12,7 +12,7 @@ from ucca import core
 from oracle import ROOT_ID
 
 
-class Node:
+class Node(object):
     """
     Temporary representation for core.Node with only relevant information for parsing
     """
@@ -76,7 +76,7 @@ class Node:
         return hash((self.index, tuple(self.outgoing)))
 
 
-class Edge:
+class Edge(object):
     """
     Temporary representation for core.Edge with only relevant information for parsing
     """
@@ -113,7 +113,7 @@ class Edge:
         return hash((self.parent.index, self.child.index, self.tag))
 
 
-class State:
+class State(object):
     """
     The parser's state, responsible for applying actions and creating the final Passage
     :param passage: a Passage object to get the tokens from, or a list of lists of strings

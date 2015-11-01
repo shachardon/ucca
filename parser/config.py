@@ -10,7 +10,7 @@ class Singleton(type):
         return cls.instance
 
 
-class Config(metaclass=Singleton):
+class Config(object, metaclass=Singleton):
     def __init__(self):
         argparser = argparse.ArgumentParser(description="""Transition-based parser for UCCA.""")
         argparser.add_argument('train', nargs='+', help="passage file names to train on")

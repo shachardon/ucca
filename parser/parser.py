@@ -15,7 +15,7 @@ from ucca import core, layer1
 from scripts.util import file2passage, passage2file
 
 
-class Parser:
+class Parser(object):
     """
     Main class to implement transition-based UCCA parser
     """

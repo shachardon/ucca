@@ -1,7 +1,7 @@
 import re
 
 
-class Action:
+class Action(object):
     def __init__(self, action_type, tag=None, orig_node=None):
         self.type = action_type  # String
         self.tag = tag  # Usually the tag of the created edge; but if COMPOUND_SWAP, the distance

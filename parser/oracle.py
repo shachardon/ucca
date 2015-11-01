@@ -5,7 +5,7 @@ from ucca import layer1
 ROOT_ID = "1.1"  # ID of root node in UCCA passages
 
 
-class Oracle:
+class Oracle(object):
     """
     Oracle to produce gold transition parses given UCCA passages
     To be used for creating training data for a transition-based UCCA parser
