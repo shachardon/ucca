@@ -1,7 +1,7 @@
 import argparse
 from glob import glob
 from posix import mkdir
-from os import rename, symlink, path
+from os import symlink, path
 
 desc = """Split a directory of files into 'train', 'dev' and 'test' directories.
 All files not in either 'train' or 'dev' will go into 'test'.
@@ -9,6 +9,7 @@ All files not in either 'train' or 'dev' will go into 'test'.
 TRAIN_DEFAULT = 290
 DEV_DEFAULT = 35
 # TEST on all the rest
+
 
 def split_passages(filenames, train=TRAIN_DEFAULT, dev=DEV_DEFAULT):
     for directory in 'train', 'dev', 'test':
