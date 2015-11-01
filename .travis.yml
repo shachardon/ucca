@@ -9,6 +9,6 @@ before_script:
   - curl -O http://www.cs.huji.ac.il/~danielh/ucca/ucca_corpus_pickle.tgz
   - mkdir pickle
   - tar xvzf ucca_corpus_pickle.tgz -C pickle
-  - python setup.py
+  - python setup.py install
 # command to run tests
 script: python parser/parser.py pickle -b
