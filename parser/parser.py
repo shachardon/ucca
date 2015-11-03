@@ -1,7 +1,7 @@
-from itertools import groupby
 import os
-from sys import stdout, stderr
 import time
+from itertools import groupby
+from sys import stdout, stderr
 from xml.etree.ElementTree import ParseError
 
 import numpy as np
@@ -9,11 +9,11 @@ import numpy as np
 from action import NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, REDUCE, SHIFT, SWAP, FINISH
 from classifier import Classifier
 from config import Config
-from state import State
 from diff import diff_passages
 from oracle import Oracle
-from ucca import core, layer1
 from scripts.util import file2passage, passage2file
+from state import State
+from ucca import core, layer0, layer1
 
 
 class Parser(object):
@@ -64,6 +64,7 @@ class Parser(object):
         self.total_actions = 0
         self.total_correct = 0
         total_duration = 0
+        total_words = 0
         print((str(len(passages)) if passages else "No") + " passages to parse")
         for passage in passages:
             started = time.time()
@@ -86,17 +87,20 @@ class Parser(object):
             else:
                 predicted_passages.append(self.state.create_passage())
             duration = time.time() - started
-            print("time: %0.3fs" % duration, end=Config().line_end + "\n")
+            words = len(passage.layer(layer0.LAYER_ID).all)
+            print("time: %0.3fs (%d words/second)" % (duration, words / duration),
+                  end=Config().line_end + "\n")
             self.total_correct += self.correct_count
             self.total_actions += self.action_count
             total_duration += duration
+            total_words + words
 
         if train and self.total_actions:
             print("Overall accuracy: %.3f (%d/%d)" % (
                 self.total_correct / self.total_actions, self.total_correct, self.total_actions))
         if passages:
-            print("Total time: %.3fs (average time per passage: %.3fs)" % (
-                total_duration, total_duration / len(passages)))
+            print("Total time: %.3fs (average time/passage: %.3fs, average words/second: %d)" % (
+                total_duration, total_duration / len(passages), total_words / total_duration))
 
         return predicted_passages
 
