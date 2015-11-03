@@ -2,7 +2,13 @@ import re
 
 
 class Action(object):
+    type_to_id = {}
+
     def __init__(self, action_type, tag=None, orig_node=None):
+        self.id = Action.type_to_id.get(action_type)  # Allocate ID for fast comparison
+        if self.id is None:
+            self.id = len(Action.type_to_id)
+            Action.type_to_id[action_type] = self.id
         self.type = action_type  # String
         self.tag = tag  # Usually the tag of the created edge; but if COMPOUND_SWAP, the distance
         self.orig_node = orig_node  # Node created by this action, if any (during training)
@@ -23,7 +29,7 @@ class Action(object):
         return self.type + ("-" + str(self.tag) if self.tag else "")
 
     def __eq__(self, other):
-        return self.type == other.type
+        return self.id == other.id
 
     def __call__(self, *args, **kwargs):
         return Action(self.type, *args, **kwargs)
