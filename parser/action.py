@@ -1,18 +1,24 @@
 import re
 
+from config import Config
+from ucca import layer1
+
 
 class Action(object):
     type_to_id = {}
+    all_actions = None
+    all_action_ids = None
 
     def __init__(self, action_type, tag=None, orig_node=None):
-        self.id = Action.type_to_id.get(action_type)  # Allocate ID for fast comparison
-        if self.id is None:
-            self.id = len(Action.type_to_id)
-            Action.type_to_id[action_type] = self.id
         self.type = action_type  # String
         self.tag = tag  # Usually the tag of the created edge; but if COMPOUND_SWAP, the distance
         self.orig_node = orig_node  # Node created by this action, if any (during training)
         self.edge = None  # Will be set by State when the edge created by this action is known
+
+        self.type_id = Action.type_to_id.get(self.type)  # Allocate ID for fast comparison
+        if self.type_id is None:
+            self.type_id = len(Action.type_to_id)
+            Action.type_to_id[self.type] = self.type_id
 
     @staticmethod
     def from_string(s):
@@ -29,7 +35,7 @@ class Action(object):
         return self.type + ("-" + str(self.tag) if self.tag else "")
 
     def __eq__(self, other):
-        return self.id == other.id
+        return self.type_id == other.type_id
 
     def __call__(self, *args, **kwargs):
         return Action(self.type, *args, **kwargs)
@@ -57,6 +63,31 @@ class Action(object):
     @property
     def remote(self):
         return self in (LEFT_REMOTE, RIGHT_REMOTE)
+
+    @property
+    def id(self):
+        Action.get_all_actions()
+        return Action.all_action_ids[(self.type_id, self.tag)]
+
+    @classmethod
+    def get_all_actions(cls):
+        if cls.all_actions is None:
+            cls.all_actions = [action(tag) for action in
+                               (NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE)
+                               for name, tag in layer1.EdgeTags.__dict__.items()
+                               if isinstance(tag, str) and not name.startswith('__')] + \
+                              [REDUCE, SHIFT, FINISH]
+            if Config().compound_swap:
+                cls.all_actions.extend(SWAP(i) for i in range(1, Config().max_swap + 1))
+            else:
+                cls.all_actions.append(SWAP)
+            cls.all_action_ids = {(action.type_id, action.tag): i
+                                  for i, action in enumerate(cls.all_actions)}
+        return cls.all_actions
+
+    @classmethod
+    def by_id(cls, i):
+        return cls.get_all_actions()[i]
 
 
 SHIFT = Action("SHIFT")

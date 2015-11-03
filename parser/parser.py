@@ -4,16 +4,15 @@ from itertools import groupby
 from sys import stdout, stderr
 from xml.etree.ElementTree import ParseError
 
-import numpy as np
-
-from action import NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, REDUCE, SHIFT, SWAP, FINISH
-from classifier import Classifier
+from action import SWAP, Action
 from config import Config
 from diff import diff_passages
+from features import FeatureExtractor
 from oracle import Oracle
+from perceptron import Perceptron
 from scripts.util import file2passage, passage2file
 from state import State
-from ucca import core, layer0, layer1
+from ucca import core, layer0
 
 
 class Parser(object):
@@ -28,17 +27,8 @@ class Parser(object):
         self.total_actions = 0
         self.total_correct = 0
 
-        actions = [action(tag) for action in
-                        (NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE)
-                   for name, tag in layer1.EdgeTags.__dict__.items()
-                   if isinstance(tag, str) and not name.startswith('__')] + \
-                  [REDUCE, SHIFT, FINISH]
-        if Config().compound_swap:
-            actions.extend(SWAP(i) for i in range(1, Config().max_swap + 1))
-        else:
-            actions.append(SWAP)
-
-        self.classifier = Classifier(actions)
+        self.feature_extractor = FeatureExtractor()
+        self.model = Perceptron(len(Action.get_all_actions()), len(self.feature_extractor.features))
 
     def train(self, passages, iterations=1):
         """
@@ -93,7 +83,7 @@ class Parser(object):
             self.total_correct += self.correct_count
             self.total_actions += self.action_count
             total_duration += duration
-            total_words + words
+            total_words += words
 
         if train and self.total_actions:
             print("Overall accuracy: %.3f (%d/%d)" % (
@@ -137,11 +127,11 @@ class Parser(object):
                 assert h not in history, "Transition loop:\n" + self.state.str("\n") + \
                                          "\n" + self.oracle.str("\n") if train else ""
                 history.add(h)
-            self.classifier.calc_features(self.state)
-            predicted_action = self.classifier.predict_action(self.state)
+            features = self.feature_extractor.extract_features(self.state)
+            predicted_action = self.predict_action(features)
             if train:
                 true_action = self.oracle.get_action(self.state)
-                if not self.classifier.update(predicted_action, true_action):
+                if not self.model.update(features, predicted_action, true_action):
                     self.correct_count += 1
                 if Config().verbose:
                     print("  predicted: %-15s true: %-15s %s" % (
@@ -151,8 +141,24 @@ class Parser(object):
                 if Config().verbose:
                     print("  action: %-15s %s" % (predicted_action, self.state))
             self.action_count += 1
-            if not self.state.apply_action(true_action):
+            if not self.state.transition(true_action):
                 return  # action is FINISH
+
+    def predict_action(self, features):
+        """
+        Choose action based on classifier
+        :param features: extracted feature values
+        :return: valid action with maximum probability according to classifier
+        """
+        scores = self.model.score(features)
+        best_action = Action.by_id(scores.argmax())
+        if self.state.is_valid(best_action):
+            return best_action
+        actions = (Action.by_id(i) for i in scores.argsort()[-2::-1])  # Exclude max, already checked
+        try:
+            return next(action for action in actions if self.state.is_valid(action))
+        except StopIteration as e:
+            raise Exception("No valid actions available") from e
 
     def verify_passage(self, passage):
         """
@@ -178,8 +184,6 @@ def all_files(dirs):
 
 if __name__ == "__main__":
     args = Config().args
-    if args.seed:
-        np.random.seed(int(args.seed))
     parser = Parser()
     parser.train(all_files(args.train))
     stdout.flush()

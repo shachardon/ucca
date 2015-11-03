@@ -38,3 +38,5 @@ class Config(object, metaclass=Singleton):
 
         self.compound_swap = self.args.compoundswap
         self.max_swap = 11
+
+        self.seed = self.args.seed

@@ -140,7 +140,7 @@ class State(object):
         self.stack = [self.root]
         self.passage_id = passage_id
 
-    def legal_actions(self):
+    def valid_actions(self):
         """
         :return: all action types applicable in the current state
         """
@@ -162,11 +162,11 @@ class State(object):
                 else:
                     yield SWAP
 
-    def is_legal(self, action):
+    def is_valid(self, action):
         """
-        :return: is the action (with its tag) legal in the current state?
+        :return: is the action (with its tag) valid in the current state?
         """
-        if action not in self.legal_actions():
+        if action not in self.valid_actions():
             return False
         parent, child = action.parent_child
         if parent is not None:
@@ -208,14 +208,14 @@ class State(object):
         action.edge = Edge(parent, child, action.tag, remote=action.remote)
         return action.edge
 
-    def apply_action(self, action):
+    def transition(self, action):
         """
         Main part of the parser: apply action given by oracle or classifier
         :param action: Action object to apply
         :return: True if parsing should continue, False if finished
         """
         if Config().verify:
-            assert action in self.legal_actions(), "Illegal action in current state: %s" % action
+            assert action in self.valid_actions(), "Invalid action in current state: %s" % action
         if action == SHIFT:  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
         elif action == NODE:  # Create new parent node and add to the buffer
