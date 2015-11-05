@@ -11,4 +11,6 @@ before_script:
   - tar xvzf ucca_corpus_pickle.tgz -C pickle
   - python setup.py install
 # command to run tests
-script: python parser/parser.py pickle -b
+script:
+  - python parser/parser.py -t pickle -bm model.pickle
+  - python parser/parser.py pickle -bm model.pickle

@@ -1,10 +1,10 @@
 import os
+from random import shuffle
+from xml.etree.ElementTree import ParseError
+
 import time
 from itertools import groupby
-from numpy import random
-from random import shuffle
 from sys import stdout, stderr
-from xml.etree.ElementTree import ParseError
 
 from action import Action
 from averaged_perceptron import AveragedPerceptron
@@ -190,6 +190,7 @@ class Parser(object):
         except StopIteration as e:
             raise Exception("No valid actions available") from e
 
+    @staticmethod
     def verify_passage(self, passage, predicted_passage):
         """
         Compare predicted passage to true passage and die if they differ
@@ -217,7 +218,7 @@ if __name__ == "__main__":
     parser.train(all_files(args.train))
     stdout.flush()
     stderr.flush()
-    for pred_passage in parser.parse(all_files(args.test)):
+    for pred_passage in parser.parse(all_files(args.passages)):
         suffix = ".pickle" if args.binary else ".xml"
         outfile = args.outdir + os.path.sep + args.prefix + pred_passage.ID + suffix
         print("Writing passage '%s'...\n" % outfile)
