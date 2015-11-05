@@ -42,14 +42,6 @@ class Action(object):
         return Action(self.type, *args, **kwargs)
 
     @property
-    def parent(self):
-        return -1 if self in (LEFT_EDGE, LEFT_REMOTE) else -2
-
-    @property
-    def child(self):
-        return -1 if self in (RIGHT_EDGE, RIGHT_REMOTE) else -2
-
-    @property
     def remote(self):
         return self in (LEFT_REMOTE, RIGHT_REMOTE)
 
