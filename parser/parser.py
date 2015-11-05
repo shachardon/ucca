@@ -48,7 +48,7 @@ class Parser(object):
         print("Training %d iterations on %d passages" % (iterations, len(passages)))
         for iteration in range(1, iterations + 1):
             print("Iteration %d" % iteration, end=": ")
-            self.parse(passages, train=True)
+            all(self.parse(passages, train=True))
             shuffle(passages)
         self.model.average_weights()
         print("Trained %d iterations on %d passages" % (iterations, len(passages)))
@@ -64,9 +64,8 @@ class Parser(object):
         Parse given passages
         :param passages: iterable of either Passage objects, or of lists of lists of tokens
         :param train: use oracle to train on given passages, or just parse with classifier?
-        :return: list of parsed passages
+        :return: generator of parsed passages
         """
-        predicted_passages = []
         self.total_actions = 0
         self.total_correct = 0
         total_duration = 0
@@ -81,24 +80,24 @@ class Parser(object):
             history = set()
             self.oracle = Oracle(passage) if isinstance(passage, core.Passage) else None
             self.parse_passage(history, train)  # This is where the actual parsing takes place
-            if not train or Config().verify:
-                predicted_passages.append(self.state.create_passage())
+            predicted_passage = self.state.create_passage() if not train or Config().verify else passage
             if Config().verbose:
                 print(" " * 18 + str(self.state))
             if self.oracle:  # passage is a Passage object
                 if Config().verify:
-                    self.verify_passage(passage, predicted_passages[-1])
+                    self.verify_passage(passage, predicted_passage)
                 print("accuracy: %.3f (%d/%d)" %
                       (self.correct_count/self.action_count, self.correct_count, self.action_count)
                       if self.action_count else "No actions done", end=Config().line_end)
             duration = time.time() - started
             words = len(passage.layer(layer0.LAYER_ID).all) if self.oracle else sum(map(len, passage))
             print("time: %0.3fs (%d words/second)" % (duration, words / duration),
-                  end=Config().line_end + "\n")
+                  end=Config().line_end)
             self.total_correct += self.correct_count
             self.total_actions += self.action_count
             total_duration += duration
             total_words += words
+            yield predicted_passage
 
         if self.oracle and self.total_actions:
             print("Overall %s accuracy: %.3f (%d/%d)" % (
@@ -110,7 +109,6 @@ class Parser(object):
 
         stdout.flush()
         stderr.flush()
-        return predicted_passages
 
     @staticmethod
     def read_passage(passage):
