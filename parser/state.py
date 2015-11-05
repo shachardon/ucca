@@ -148,17 +148,19 @@ class State(object):
         if self.buffer:
             yield SHIFT
         if self.stack:
-            if self.stack[-1] is not self.root:
+            s0 = self.stack[-1]
+            if s0 is not self.root:
                 yield NODE
-            if self.stack[-1].text is None:
+            if s0.text is None:
                 yield IMPLICIT
-            if self.stack[-1] is not self.root or self.root.outgoing:
+            if s0 is not self.root or s0.outgoing:
                 yield REDUCE
             if len(self.stack) > 1:
-                if self.stack[-2] is not self.root and self.stack[-1].text is None:
+                s1 = self.stack[-2]
+                if s1 is not self.root and s0.text is None:
                     yield LEFT_EDGE
                     yield LEFT_REMOTE
-                if self.stack[-1] is not self.root and self.stack[-2].text is None:
+                if s0 is not self.root and s1.text is None:
                     yield RIGHT_EDGE
                     yield RIGHT_REMOTE
                 if Config().compound_swap:
