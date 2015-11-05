@@ -14,6 +14,7 @@ class Config(object, metaclass=Singleton):
     def __init__(self):
         argparser = argparse.ArgumentParser(description="""Transition-based parser for UCCA.""")
         argparser.add_argument('train', nargs='+', help="passage file names to train on")
+        argparser.add_argument('-m', '--model', default=None, help="model file")
         argparser.add_argument('-t', '--test', nargs='+', help="passage file names to test on")
         argparser.add_argument('-o', '--outdir', default='.', help="output directory")
         argparser.add_argument('-p', '--prefix', default='ucca_passage', help="output filename prefix")

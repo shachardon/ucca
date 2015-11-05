@@ -1,15 +1,16 @@
 import os
 import time
 from itertools import groupby
+from random import shuffle
 from sys import stdout, stderr
 from xml.etree.ElementTree import ParseError
 
-from action import SWAP, Action
+from action import Action
+from averaged_perceptron import AveragedPerceptron
 from config import Config
 from diff import diff_passages
 from features import FeatureExtractor
 from oracle import Oracle
-from perceptron import Perceptron
 from scripts.util import file2passage, passage2file
 from state import State
 from ucca import core, layer0
@@ -19,7 +20,7 @@ class Parser(object):
     """
     Main class to implement transition-based UCCA parser
     """
-    def __init__(self):
+    def __init__(self, model_file=None):
         self.state = None  # State object created at each parse
         self.oracle = None  # Oracle object created at each parse
         self.action_count = 0
@@ -28,27 +29,41 @@ class Parser(object):
         self.total_correct = 0
 
         self.feature_extractor = FeatureExtractor()
-        self.model = Perceptron(len(Action.get_all_actions()), len(self.feature_extractor.features))
+        self.model = AveragedPerceptron(len(Action.get_all_actions()))
+        self.model_file = model_file
 
     def train(self, passages, iterations=1):
         """
         Train parser on given passages
         :param passages: iterable of Passage objects to train on
         :param iterations: number of iterations to perform
+        :return: trained model
         """
+        if not passages:
+            if self.model_file is not None:  # Nothing to train on; pre-trained model given
+                self.model.load(self.model_file)
+            return
+
         print("Training %d iterations on %d passages" % (iterations, len(passages)))
         for iteration in range(1, iterations + 1):
             print("Iteration %d" % iteration, end=": ")
             self.parse(passages, train=True)
-
+            shuffle(passages)
+        self.model.average_weights()
         print("Trained %d iterations on %d passages" % (iterations, len(passages)))
+
+        if self.model_file is not None:  # Save trained model
+            self.model.save(self.model_file)
+            print("Saved model to '%s'" % self.model_file)
+
+        return self.model
 
     def parse(self, passages, train=False):
         """
         Parse given passages
         :param passages: iterable of either Passage objects, or of lists of lists of tokens
         :param train: use oracle to train on given passages, or just parse with classifier?
-        :return: generator of parsed passages
+        :return: list of parsed passages
         """
         predicted_passages = []
         self.total_actions = 0
@@ -77,7 +92,8 @@ class Parser(object):
             else:
                 predicted_passages.append(self.state.create_passage())
             duration = time.time() - started
-            words = len(passage.layer(layer0.LAYER_ID).all)
+            words = len(passage.layer(layer0.LAYER_ID).all) if isinstance(passage, core.Passage) \
+                else sum(map(len, passage))
             print("time: %0.3fs (%d words/second)" % (duration, words / duration),
                   end=Config().line_end + "\n")
             self.total_correct += self.correct_count
@@ -110,7 +126,7 @@ class Parser(object):
                 passage = file2passage(passage)  # XML or binary format
                 passage_id = passage.ID
             except (IOError, ParseError):
-                passage_id = os.path.basename(passage)
+                passage_id = os.path.splitext(os.path.basename(passage))[0]
                 with open(passage) as text_file:  # simple text file
                     lines = (line.strip() for line in text_file.readlines())
                     passage = [[token for line in group for token in line.split()]
@@ -197,7 +213,7 @@ def all_files(dirs):
 
 if __name__ == "__main__":
     args = Config().args
-    parser = Parser()
+    parser = Parser(args.model)
     parser.train(all_files(args.train))
     stdout.flush()
     stderr.flush()
