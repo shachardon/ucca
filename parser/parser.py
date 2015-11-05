@@ -221,5 +221,5 @@ if __name__ == "__main__":
     for pred_passage in parser.parse(all_files(args.passages)):
         suffix = ".pickle" if args.binary else ".xml"
         outfile = args.outdir + os.path.sep + args.prefix + pred_passage.ID + suffix
-        print("Writing passage '%s'...\n" % outfile)
+        print("Writing passage '%s'..." % outfile)
         passage2file(pred_passage, outfile, binary=args.binary)
