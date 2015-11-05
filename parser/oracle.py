@@ -28,17 +28,17 @@ class Oracle(object):
         if state.stack:
             incoming = self.edges_remaining.intersection(state.stack[-1].orig_node.incoming)
             outgoing = self.edges_remaining.intersection(state.stack[-1].orig_node.outgoing)
-            if not incoming | outgoing:
+            if not incoming and not outgoing:
                 return REDUCE
 
             related = set([edge.child.ID for edge in outgoing] +
                           [edge.parent.ID for edge in incoming])
-            # prefer incorporating immediate relatives if possible
+            # Prefer incorporating immediate relatives if possible
             if state.buffer and state.buffer[0].node_id in related:
                 return SHIFT
 
             if len(state.stack) > 1:
-                # check for binary edges
+                # Check for binary edges
                 for edges, prefix in (((e for e in incoming if
                                         e.parent.ID == state.stack[-2].node_id),
                                        "RIGHT"),
@@ -50,16 +50,18 @@ class Oracle(object):
                         return Action(prefix + ("-REMOTE" if edge.attrib.get("remote") else "-EDGE"),
                                       edge.tag)
 
-                # check if a swap is necessary, and how far (if compound swap is enabled)
-                swap_distance = 0
-                while len(state.stack) > swap_distance + 1 and \
-                        (Config().compound_swap or swap_distance < 1) and \
-                        related.issubset(s.node_id for s in state.stack[:-swap_distance-2]):
-                    swap_distance += 1
-                if swap_distance:
-                    return SWAP(swap_distance if Config().compound_swap else None)
+                # Check if a swap is necessary, and how far (if compound swap is enabled)
+                distance = None  # Swap distance (how many nodes in the stack to swap)
+                related_in_stack = 0  # How many nodes in the stack are related to the stack top
+                for i, s in enumerate(state.stack[-3::-1]):  # Skip top two, they are not related
+                    if s.node_id in related:
+                        if distance is None and Config().compound_swap:
+                            distance = i + 1
+                        related_in_stack += 1
+                        if related_in_stack == len(related):  # All related nodes are in the stack
+                            return SWAP(distance)
 
-            # check for unary edges
+            # Check for unary edges
             for edges, action, attr in (((e for e in incoming if
                                           e.parent.ID in self.nodes_remaining and not e.attrib.get("remote")),
                                          NODE, "parent"),

@@ -5,7 +5,7 @@ from config import Config
 
 class Perceptron(object):
     """
-    Averaged perceptron to predict parser actions
+    Perceptron to predict parser actions
     """
 
     def __init__(self, num_actions, num_features):
