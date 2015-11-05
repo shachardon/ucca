@@ -108,6 +108,8 @@ class Parser(object):
             print("Total time: %.3fs (average time/passage: %.3fs, average words/second: %d)" % (
                 total_duration, total_duration / len(passages), total_words / total_duration))
 
+        stdout.flush()
+        stderr.flush()
         return predicted_passages
 
     @staticmethod
@@ -191,7 +193,7 @@ class Parser(object):
             raise Exception("No valid actions available") from e
 
     @staticmethod
-    def verify_passage(self, passage, predicted_passage):
+    def verify_passage(passage, predicted_passage):
         """
         Compare predicted passage to true passage and die if they differ
         :param passage: true passage
@@ -216,8 +218,6 @@ if __name__ == "__main__":
     args = Config().args
     parser = Parser(args.model)
     parser.train(all_files(args.train))
-    stdout.flush()
-    stderr.flush()
     for pred_passage in parser.parse(all_files(args.passages)):
         suffix = ".pickle" if args.binary else ".xml"
         outfile = args.outdir + os.path.sep + args.prefix + pred_passage.ID + suffix

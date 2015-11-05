@@ -197,11 +197,11 @@ class State(object):
         if action.edge is not None:
             return action.edge
         if action in (LEFT_EDGE, LEFT_REMOTE):
-            parent = self.stack[-2]
-            child = self.stack[-1]
-        elif action in (RIGHT_EDGE, RIGHT_REMOTE):
             parent = self.stack[-1]
             child = self.stack[-2]
+        elif action in (RIGHT_EDGE, RIGHT_REMOTE):
+            parent = self.stack[-2]
+            child = self.stack[-1]
         else:
             return None
         action.edge = Edge(parent, child, action.tag, remote=action.remote)
