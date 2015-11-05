@@ -42,24 +42,12 @@ class Action(object):
         return Action(self.type, *args, **kwargs)
 
     @property
-    def parent_child(self):
-        if self in (LEFT_EDGE, LEFT_REMOTE):
-            return -1, -2
-        elif self in (RIGHT_EDGE, RIGHT_REMOTE):
-            return -2, -1
-        elif self == NODE:
-            return -1, None
-        elif self == IMPLICIT:
-            return None, -1
-        return None, None
-
-    @property
     def parent(self):
-        return self.parent_child[0]
+        return -1 if self in (LEFT_EDGE, LEFT_REMOTE) else -2
 
     @property
     def child(self):
-        return self.parent_child[1]
+        return -1 if self in (RIGHT_EDGE, RIGHT_REMOTE) else -2
 
     @property
     def remote(self):

@@ -38,7 +38,6 @@ class AveragedPerceptron(object):
         :param features: extracted feature values
         :param pred_action: action predicted by the classifier
         :param true_action: action returned by oracle
-        :return: True if update was needed, False if predicted and true actions were the same
         """
         def update_feature(f, a, v):
             n = self._update_index - self._last_update[f][a]
@@ -46,17 +45,12 @@ class AveragedPerceptron(object):
             self.weights[f][a] += v
             self._last_update[f][a] = self._update_index
 
-        if pred_action == true_action:
-            return False
-
         self._update_index += 1
         for feature, value in features.items():
             if not value:
                 continue
             update_feature(feature, true_action.id, value)
             update_feature(feature, pred_action.id, -value)
-
-        return True
 
     def average_weights(self):
         """

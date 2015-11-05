@@ -33,7 +33,7 @@ class Node(object):
         Called when creating final Passage to add a new core.Node
         """
         if Config().verify:
-            assert self.node is None or self.text,\
+            assert self.node is None or self.text is not None,\
                 "Trying to create the same node twice: %s, parent: %s" % (self.node_id, parent)
         edge = self.outgoing[0] if len(self.outgoing) == 1 else None
         if self.text:
@@ -120,15 +120,14 @@ class State(object):
     :param passage_id: the ID of the passage to generate
     """
     def __init__(self, passage, passage_id):
-        self.train = isinstance(passage, core.Passage)
-        if self.train:  # During training, create from gold Passage
+        self.passage = isinstance(passage, core.Passage)
+        if self.passage:  # During training or evaluation, create from gold Passage
             self.nodes = [Node(i, orig_node=x, text=x.text, tag=x.tag) for i, x in
                           enumerate(passage.layer(layer0.LAYER_ID).all)]
             self.tokens = [[terminal.text for terminal in terminals]
                            for _, terminals in groupby(passage.layer(layer0.LAYER_ID).all,
                                                        key=attrgetter('paragraph'))]
             root_node = passage.by_id(ROOT_ID)
-            self.train = True
         else:  # During parsing, create from plain text: assume passage is list of lists of strings
             self.tokens = passage
             self.nodes = [Node(i, text=token) for i, token in
@@ -144,18 +143,24 @@ class State(object):
         """
         :return: all action types applicable in the current state
         """
-        yield FINISH
+        if self.root.outgoing:
+            yield FINISH
         if self.buffer:
             yield SHIFT
         if self.stack:
-            yield NODE
-            yield IMPLICIT
-            yield REDUCE
+            if self.stack[-1] is not self.root:
+                yield NODE
+            if self.stack[-1].text is None:
+                yield IMPLICIT
+            if self.stack[-1] is not self.root or self.root.outgoing:
+                yield REDUCE
             if len(self.stack) > 1:
-                yield LEFT_EDGE
-                yield RIGHT_EDGE
-                yield LEFT_REMOTE
-                yield RIGHT_REMOTE
+                if self.stack[-2] is not self.root and self.stack[-1].text is None:
+                    yield LEFT_EDGE
+                    yield LEFT_REMOTE
+                if self.stack[-1] is not self.root and self.stack[-2].text is None:
+                    yield RIGHT_EDGE
+                    yield RIGHT_REMOTE
                 if Config().compound_swap:
                     for i in range(1, len(self.stack)):
                         yield SWAP(i)
@@ -164,22 +169,13 @@ class State(object):
 
     def is_valid(self, action):
         """
+        :param action: action to check for validity
         :return: is the action (with its tag) valid in the current state?
         """
         if action not in self.valid_actions():
             return False
-        parent, child = action.parent_child
-        if parent is not None:
-            parent = self.stack[action.parent]
-            if parent.text is not None:
-                return False  # Parent may not be a terminal
-        if child is not None:
-            child = self.stack[action.child]
-            if child is self.root:
-                return False  # Child may not be the root
-            if parent is not None and self.create_edge(action, parent, child) in parent.outgoing:
-                return False  # Edge may not already exist
-        return True
+        edge = self.create_edge(action)
+        return edge is None or edge not in edge.parent.outgoing  # Edge may not already exist
 
     def add_node(self, *args, **kwargs):
         """
@@ -191,20 +187,17 @@ class State(object):
             print("    %s" % node)
         return node
 
-    def create_edge(self, action, parent=None, child=None):
+    def create_edge(self, action):
         """
+        :param action: action to create edge for, assuming it is an *_EDGE or *_REMOTE action
         :return: new Edge from the given parent and child, possibly remote (depending on the action)
         """
         if action.edge is not None:
             return action.edge
-        assert action in (LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE),\
-            "Cannot create edge for action '%s'" % action
-        if parent is None and child is None:
-            parent, child = action.parent_child
-            if parent is not None:
-                parent = self.stack[action.parent]
-            if child is not None:
-                child = self.stack[action.child]
+        if action not in (LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
+            return None
+        parent = self.stack[action.parent]
+        child = self.stack[action.child]
         action.edge = Edge(parent, child, action.tag, remote=action.remote)
         return action.edge
 
@@ -256,14 +249,14 @@ class State(object):
         passage = from_text(paragraphs, self.passage_id)
         terminals = passage.layer(layer0.LAYER_ID).all
         l1 = layer1.Layer1(passage)
-        if self.train:  # We are in training and we have a gold passage
+        if self.passage:  # We are in training and we have a gold passage
             passage.nodes[ROOT_ID].extra["remarks"] = self.root.node_id  # For reference
             self.fix_terminal_tags(terminals)
         remotes = []  # To be handled after all nodes are created
         linkages = []  # To be handled after all non-linkage nodes are created
         self.topological_sort()  # Sort self.nodes
         for node in self.nodes:
-            if self.train and Config().verify:
+            if self.passage and Config().verify:
                 assert node.text or node.outgoing or node.implicit, "Non-terminal leaf node: %s" % node
                 assert node.node or node is self.root or node.is_linkage, "Non-root without incoming: %s" % node
             if node.is_linkage:

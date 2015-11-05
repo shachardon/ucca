@@ -1,6 +1,7 @@
 import os
 import time
 from itertools import groupby
+from numpy import random
 from random import shuffle
 from sys import stdout, stderr
 from xml.etree.ElementTree import ParseError
@@ -78,22 +79,20 @@ class Parser(object):
             passage, passage_id = self.read_passage(passage)
             self.state = State(passage, passage_id)
             history = set()
-            if train:
-                self.oracle = Oracle(passage)
+            self.oracle = Oracle(passage) if isinstance(passage, core.Passage) else None
             self.parse_passage(history, train)  # This is where the actual parsing takes place
+            if not train or Config().verify:
+                predicted_passages.append(self.state.create_passage())
             if Config().verbose:
                 print(" " * 18 + str(self.state))
-            if train:
+            if self.oracle:  # passage is a Passage object
                 if Config().verify:
-                    self.verify_passage(passage)
+                    self.verify_passage(passage, predicted_passages[-1])
                 print("accuracy: %.3f (%d/%d)" %
                       (self.correct_count/self.action_count, self.correct_count, self.action_count)
                       if self.action_count else "No actions done", end=Config().line_end)
-            else:
-                predicted_passages.append(self.state.create_passage())
             duration = time.time() - started
-            words = len(passage.layer(layer0.LAYER_ID).all) if isinstance(passage, core.Passage) \
-                else sum(map(len, passage))
+            words = len(passage.layer(layer0.LAYER_ID).all) if self.oracle else sum(map(len, passage))
             print("time: %0.3fs (%d words/second)" % (duration, words / duration),
                   end=Config().line_end + "\n")
             self.total_correct += self.correct_count
@@ -101,8 +100,9 @@ class Parser(object):
             total_duration += duration
             total_words += words
 
-        if train and self.total_actions:
-            print("Overall accuracy: %.3f (%d/%d)" % (
+        if self.oracle and self.total_actions:
+            print("Overall %s accuracy: %.3f (%d/%d)" % (
+                "train" if train else "test",
                 self.total_correct / self.total_actions, self.total_correct, self.total_actions))
         if passages:
             print("Total time: %.3fs (average time/passage: %.3fs, average words/second: %d)" % (
@@ -146,18 +146,19 @@ class Parser(object):
             if Config().check_loops and history is not None:
                 self.check_loop(history, train)
             features = self.feature_extractor.extract_features(self.state)
-            predicted_action = self.predict_action(features)
-            if train:
-                action = self.oracle.get_action(self.state)
-                if not self.model.update(features, predicted_action, action):
+            action = self.predict_action(features)
+            if self.oracle:
+                true_action = self.oracle.get_action(self.state)
+                if action == true_action:
                     self.correct_count += 1
+                elif train:
+                    self.model.update(features, action, true_action)
                 if Config().verbose:
                     print("  predicted: %-15s true: %-15s %s" % (
-                        predicted_action, action, self.state))
-            else:
-                action = predicted_action
-                if Config().verbose:
-                    print("  action: %-15s %s" % (predicted_action, self.state))
+                        action, true_action, self.state))
+                action = true_action
+            elif Config().verbose:
+                print("  action: %-15s %s" % (action, self.state))
             self.action_count += 1
             if not self.state.transition(action):
                 return  # action is FINISH
@@ -189,12 +190,11 @@ class Parser(object):
         except StopIteration as e:
             raise Exception("No valid actions available") from e
 
-    def verify_passage(self, passage):
+    def verify_passage(self, passage, predicted_passage):
         """
         Compare predicted passage to true passage and die if they differ
         :param passage: true passage
         """
-        predicted_passage = self.state.create_passage()
         assert passage.equals(predicted_passage), \
             "Oracle failed to produce true passage\n" + diff_passages(
                 passage, predicted_passage)
