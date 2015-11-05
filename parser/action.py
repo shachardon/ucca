@@ -19,6 +19,7 @@ class Action(object):
         if self.type_id is None:
             self.type_id = len(Action.type_to_id)
             Action.type_to_id[self.type] = self.type_id
+        self._id = None
 
     @staticmethod
     def from_string(s):
@@ -66,8 +67,10 @@ class Action(object):
 
     @property
     def id(self):
-        Action.get_all_actions()
-        return Action.all_action_ids[(self.type_id, self.tag)]
+        if self._id is None:
+            Action.get_all_actions()
+            self._id = Action.all_action_ids[(self.type_id, self.tag)]
+        return self._id
 
     @classmethod
     def get_all_actions(cls):
