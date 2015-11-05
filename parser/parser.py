@@ -65,7 +65,7 @@ class Parser(object):
             history = set()
             if train:
                 self.oracle = Oracle(passage)
-            self.parse_passage(history, train)
+            self.parse_passage(history, train)  # This is where the actual parsing takes place
             if Config().verbose:
                 print(" " * 18 + str(self.state))
             if train:
@@ -96,6 +96,11 @@ class Parser(object):
 
     @staticmethod
     def read_passage(passage):
+        """
+        Read a passage given in any format
+        :param passage: either a core.Passage, a file, or a list of list of strings (paragraphs, words)
+        :return: a core.Passage and its ID if given a Passage or file, or else the given list of lists
+        """
         if isinstance(passage, core.Passage):
             print("passage " + passage.ID, end=Config().line_end)
             passage_id = passage.ID
@@ -118,31 +123,39 @@ class Parser(object):
     def parse_passage(self, history=None, train=False):
         """
         Internal method to parse a single passage
-        :param history: set of hashes states in the parser's history
+        :param history: set of hashed states in the parser's history, if loop checking is enabled
         :param train: use oracle to train on given passages, or just parse with classifier?
         """
         while True:
             if Config().check_loops and history is not None:
-                h = hash(self.state)
-                assert h not in history, "Transition loop:\n" + self.state.str("\n") + \
-                                         "\n" + self.oracle.str("\n") if train else ""
-                history.add(h)
+                self.check_loop(history, train)
             features = self.feature_extractor.extract_features(self.state)
             predicted_action = self.predict_action(features)
             if train:
-                true_action = self.oracle.get_action(self.state)
-                if not self.model.update(features, predicted_action, true_action):
+                action = self.oracle.get_action(self.state)
+                if not self.model.update(features, predicted_action, action):
                     self.correct_count += 1
                 if Config().verbose:
                     print("  predicted: %-15s true: %-15s %s" % (
-                        predicted_action, true_action, self.state))
+                        predicted_action, action, self.state))
             else:
-                true_action = predicted_action
+                action = predicted_action
                 if Config().verbose:
                     print("  action: %-15s %s" % (predicted_action, self.state))
             self.action_count += 1
-            if not self.state.transition(true_action):
+            if not self.state.transition(action):
                 return  # action is FINISH
+
+    def check_loop(self, history, train):
+        """
+        Check if the current state has already occurred, indicating a loop
+        :param history: set of hashed states in the parser's history
+        :param train: whether to print the oracle in case of an assertion error
+        """
+        h = hash(self.state)
+        assert h not in history, "Transition loop:\n" + self.state.str("\n") + \
+                                 "\n" + self.oracle.str("\n") if train else ""
+        history.add(h)
 
     def predict_action(self, features):
         """
