@@ -215,7 +215,7 @@ def all_files(dirs):
 if __name__ == "__main__":
     args = Config().args
     parser = Parser(args.model)
-    parser.train(all_files(args.train))
+    parser.train(all_files(args.train), iterations=args.iterations)
     for pred_passage in parser.parse(all_files(args.passages)):
         suffix = ".pickle" if args.binary else ".xml"
         outfile = args.outdir + os.path.sep + args.prefix + pred_passage.ID + suffix

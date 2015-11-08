@@ -18,6 +18,7 @@ class Config(object, metaclass=Singleton):
         argparser.add_argument('-t', '--train', nargs='+', help="passage files/directories to train on")
         argparser.add_argument('-o', '--outdir', default='.', help="output directory")
         argparser.add_argument('-p', '--prefix', default='ucca_passage', help="output filename prefix")
+        argparser.add_argument('-I', '--iterations', type=int, default=1, help="number of training iterations")
         argparser.add_argument('-b', '--binary', action='store_true', default=False,
                                help="read and write passages in Pickle binary format, not XML")
         argparser.add_argument('-v', '--verbose', action='store_true', default=False,
@@ -30,6 +31,8 @@ class Config(object, metaclass=Singleton):
                                help="enable compound swap")
         argparser.add_argument('-s', '--seed', default=None, help="seed for np.random")
         self.args = argparser.parse_args()
+
+        self.iterations = self.args.iterations
 
         self.verbose = self.args.verbose
         self.line_end = "\n" if self.verbose else " "  # show all in one line unless verbose
