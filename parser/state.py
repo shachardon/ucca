@@ -95,7 +95,7 @@ class Edge(object):
         self.parent.outgoing.append(self)
         self.child.incoming.append(self)
         if Config().verbose:
-            print("    %s" % self)
+            print("    edge: %s" % self)
 
     def __repr__(self):
         return Edge.__name__ + "(" + self.tag + ", " + self.parent + ", " + self.child +\
@@ -118,8 +118,9 @@ class State(object):
     The parser's state, responsible for applying actions and creating the final Passage
     :param passage: a Passage object to get the tokens from, or a list of lists of strings
     :param passage_id: the ID of the passage to generate
+    :param callback: function to call after creating the list of nodes (e.g. POS tagger)
     """
-    def __init__(self, passage, passage_id):
+    def __init__(self, passage, passage_id, callback=None):
         self.passage = isinstance(passage, core.Passage)
         if self.passage:  # During training or evaluation, create from gold Passage
             self.nodes = [Node(i, orig_node=x, text=x.text, tag=x.tag) for i, x in
@@ -133,6 +134,8 @@ class State(object):
             self.nodes = [Node(i, text=token) for i, token in
                           enumerate(token for paragraph in passage for token in paragraph)]
             root_node = None
+        if callback is not None:
+            callback(self)
         self.terminals = list(self.nodes)
         self.buffer = deque(self.nodes)
         self.root = self.add_node(root_node)  # The root is not part of the stack/buffer
@@ -186,7 +189,7 @@ class State(object):
         node = Node(len(self.nodes), *args, **kwargs)
         self.nodes.append(node)
         if Config().verbose:
-            print("    %s" % node)
+            print("    node: %s" % node)
         return node
 
     def create_edge(self, action):
