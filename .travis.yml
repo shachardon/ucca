@@ -10,6 +10,7 @@ before_script:
   - mkdir pickle
   - tar xvzf ucca_corpus_pickle.tgz -C pickle
   - python setup.py install
+  - python -m nltk.downloader averaged_perceptron_tagger
 # command to run tests
 script:
   - python parser/parser.py -t pickle -bm model.pickle
