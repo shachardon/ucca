@@ -1,4 +1,4 @@
-import pickle
+import shelve
 from collections import defaultdict
 
 import numpy as np
@@ -63,9 +63,11 @@ class AveragedPerceptron(object):
         self.weights = dict(self.weights)  # "Lock" set of features; also allow pickle
 
     def save(self, filename):
-        with open(filename, "wb") as f:
-            pickle.dump(self.weights, f)
+        s = shelve.open(filename)
+        try:
+            s.update(self.weights)
+        finally:
+            s.close()
 
     def load(self, filename):
-        with open(filename, "rb") as f:
-            self.weights = pickle.load(f)
+        self.weights = shelve.open(filename)

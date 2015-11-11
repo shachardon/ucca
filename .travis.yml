@@ -1,6 +1,6 @@
 language: python
 python:
-  - "3.3"
+  - "3.4"
 sudo: false
 # command to install dependencies
 install: pip install -r requirements.txt
@@ -13,5 +13,5 @@ before_script:
   - python -m nltk.downloader averaged_perceptron_tagger
 # command to run tests
 script:
-  - python parser/parser.py -t pickle -bm model.pickle
-  - python parser/parser.py pickle -bm model.pickle
+  - python parser/parser.py -t pickle -bm model.db
+  - python parser/parser.py pickle -bm model.db
