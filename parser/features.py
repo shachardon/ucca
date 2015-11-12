@@ -86,7 +86,7 @@ class FeatureExtractor(object):
         for feature in self.features:
             values = calc_feature(feature, state)
             if values is not None:
-                features["%s=%s" % (feature.name, ",".join(values))] = 1
+                features["%s=%s" % (feature.name, " ".join(values))] = 1
         return features
 
 
