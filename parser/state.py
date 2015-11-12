@@ -142,7 +142,7 @@ class State(object):
         self.stack = [self.root]
         self.passage_id = passage_id
 
-    def valid_actions(self):
+    def valid_action_types(self):
         """
         :return: all action types applicable in the current state
         """
@@ -166,19 +166,17 @@ class State(object):
                 if s0 is not self.root and s1.text is None:
                     yield RIGHT_EDGE
                     yield RIGHT_REMOTE
-                if Config().compound_swap:
-                    for i in range(1, len(self.stack)):
-                        yield SWAP(i)
-                else:
-                    yield SWAP
+                yield SWAP
 
     def is_valid(self, action):
         """
         :param action: action to check for validity
         :return: is the action (with its tag) valid in the current state?
         """
-        if action not in self.valid_actions():
+        if not action.is_type(self.valid_action_types()):
             return False
+        if Config().compound_swap and action.is_type(SWAP):
+            return int(action.tag) < len(self.stack)
         edge = self.create_edge(action)
         return edge is None or edge not in edge.parent.outgoing  # Edge may not already exist
 
@@ -187,6 +185,8 @@ class State(object):
         Called during parsing to add a new Node (not core.Node) to the temporary representation
         """
         node = Node(len(self.nodes), *args, **kwargs)
+        if Config().verify:
+            assert node not in self.nodes, "Node already exists"
         self.nodes.append(node)
         if Config().verbose:
             print("    node: %s" % node)
@@ -199,10 +199,10 @@ class State(object):
         """
         if action.edge is not None:
             return action.edge
-        if action in (LEFT_EDGE, LEFT_REMOTE):
+        if action.is_type((LEFT_EDGE, LEFT_REMOTE)):
             parent = self.stack[-1]
             child = self.stack[-2]
-        elif action in (RIGHT_EDGE, RIGHT_REMOTE):
+        elif action.is_type((RIGHT_EDGE, RIGHT_REMOTE)):
             parent = self.stack[-2]
             child = self.stack[-1]
         else:
@@ -217,22 +217,22 @@ class State(object):
         :return: True if parsing should continue, False if finished
         """
         if Config().verify:
-            assert action in self.valid_actions(), "Invalid action in current state: %s" % action
-        if action == SHIFT:  # Push buffer head to stack; shift buffer
+            assert action in self.valid_action_types(), "Invalid action in current state: %s" % action
+        if action.is_type(SHIFT):  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
-        elif action == NODE:  # Create new parent node and add to the buffer
+        elif action.is_type(NODE):  # Create new parent node and add to the buffer
             parent = self.add_node(action.orig_node)
             Edge(parent, self.stack[-1], action.tag).add()
             self.buffer.appendleft(parent)
-        elif action == IMPLICIT:  # Create new child node and add to the buffer
+        elif action.is_type(IMPLICIT):  # Create new child node and add to the buffer
             child = self.add_node(action.orig_node, implicit=True)
             Edge(self.stack[-1], child, action.tag).add()
             self.buffer.appendleft(child)
-        elif action == REDUCE:  # Pop stack (no more edges to create with this node)
+        elif action.is_type(REDUCE):  # Pop stack (no more edges to create with this node)
             self.stack.pop()
-        elif action in (LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
+        elif action.is_type((LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE)):
             self.create_edge(action).add()
-        elif action == SWAP:  # Place second (or more) stack item back on the buffer
+        elif action.is_type(SWAP):  # Place second (or more) stack item back on the buffer
             distance = action.tag or 1
             assert distance > 0
             s = slice(-distance-1, -1)
@@ -240,7 +240,7 @@ class State(object):
                 print("    %s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
             self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
             del self.stack[s]
-        elif action == FINISH:  # Nothing left to do
+        elif action.is_type(FINISH):  # Nothing left to do
             return False
         else:
             raise Exception("Invalid action: " + action)

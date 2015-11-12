@@ -21,6 +21,11 @@ class Action(object):
             Action.type_to_id[self.type] = self.type_id
         self._id = None
 
+    def is_type(self, other):
+        if isinstance(other, Action):
+            return self.type_id == other.type_id
+        return self.type_id in (o.type_id for o in other)
+
     @staticmethod
     def from_string(s):
         m = re.match("(.*)-(.*)", s)
@@ -36,14 +41,14 @@ class Action(object):
         return self.type + ("-" + str(self.tag) if self.tag else "")
 
     def __eq__(self, other):
-        return self.type_id == other.type_id
+        return self.id == other.id
 
     def __call__(self, *args, **kwargs):
         return Action(self.type, *args, **kwargs)
 
     @property
     def remote(self):
-        return self in (LEFT_REMOTE, RIGHT_REMOTE)
+        return self.is_type((LEFT_REMOTE, RIGHT_REMOTE))
 
     @property
     def id(self):

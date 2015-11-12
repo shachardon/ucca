@@ -159,16 +159,24 @@ class Parser(object):
             features = self.feature_extractor.extract_features(self.state)
             action = self.predict_action(features)
             if self.oracle:
-                true_action = self.oracle.get_action(self.state)
+                try:
+                    true_action = self.oracle.get_action(self.state)
+                except AttributeError as e:
+                    if train:
+                        raise Exception("Error in oracle during training") from e
+                    else:
+                        true_action = None
                 if Config().verbose:
                     print("  predicted: %-15s true: %-15s %s" % (
-                        action, true_action, self.state))
-                if action.id == true_action.id:
+                        action, true_action if true_action is not None else "?", self.state))
+                if true_action is None:
+                    continue
+                if action == true_action:
                     self.correct_count += 1
                     action = true_action  # to copy orig_node
                 elif train:
                     self.model.update(features, action, true_action)
-                    if action in (NODE, IMPLICIT) or random.randint(0, 1):
+                    if action.is_type((NODE, IMPLICIT)) or random.randint(0, 1):
                         action = true_action
                         if Config().verbose:
                             print("  (taking true action)")
