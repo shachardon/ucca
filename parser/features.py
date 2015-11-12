@@ -1,6 +1,7 @@
 import re
 
-FEATURE_PATTERN = re.compile("([sb])(\d+)([lru]*)([wtepq]+)")
+FEATURE_ELEMENT_PATTERN = re.compile("([sb])(\d)([lru]*)([wtepq]+)")
+FEATURE_PATTERN = re.compile("^(%s)+$" % FEATURE_ELEMENT_PATTERN.pattern)
 
 FEATURE_NAMES = (
     # unigrams:
@@ -10,7 +11,7 @@ FEATURE_NAMES = (
     # bigrams:
     "s0ws1w", "s0ws1e", "s0es1w", "s0es1e", "s0wb0w", "s0wb0t",
     "s0eb0w", "s0eb0t", "s1wb0w", "s1wb0t", "s1eb0w", "s1eb0t",
-    "b0wb1w", "b02b1t", "b0tb1w", "b0tb1t",
+    "b0wb1w", "b0wb1t", "b0tb1w", "b0tb1t",
     # trigrams:
     "s0es1es2w", "s0es1es2e", "s0es1es2e", "s0es1eb0w", "s0es1eb0t",
     "s0es1wb0w", "s0es1wb0t", "s0ws1es2e", "s0ws1eb0t",
@@ -66,10 +67,13 @@ class FeatureExtractor(object):
     Object to extract features from the parser state to be used in action classification
     """
     def __init__(self):
+        assert all(FEATURE_PATTERN.match(f) for f in FEATURE_NAMES),\
+            "Features do not match pattern: " + ", ".join(f for f in FEATURE_NAMES
+                                                          if not FEATURE_PATTERN.match(f))
         # convert the list of features textual descriptions to the actual fields
         self.features = [Feature(feature_name,
                                  tuple(FeatureElement(*m.group(1, 2, 3, 4))
-                                       for m in re.finditer(FEATURE_PATTERN,
+                                       for m in re.finditer(FEATURE_ELEMENT_PATTERN,
                                                             feature_name)))
                          for feature_name in FEATURE_NAMES]
 
