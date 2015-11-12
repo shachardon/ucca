@@ -27,13 +27,34 @@ FEATURE_TO_ATTRIBUTE = {"w": "text", "t": "pos_tag"}
 
 
 class Feature(object):
+    """
+    A feature in parsed form, ready to be used for value calculation
+    """
     def __init__(self, name, elements):
+        """
+        :param name: name of the feature in the short-hand form, to be used for the dictionary
+        :param elements: collection of FeatureElement objects that represent the actual feature
+        """
         self.name = name
         self.elements = elements
 
 
 class FeatureElement(object):
+    """
+    One element in the values of a feature, e.g. from one node
+    """
     def __init__(self, source, index, children, properties):
+        """
+        :param source: "s" or "b", whether the node comes from the stack or buffer respectively
+        :param index: non-negative integer, the index of the element in the stack (reversed) or buffer
+        :param children: possibly empty string in [lru]*, to select a (grand) child instead of the node
+        :param properties: the actual values to choose, in [wtepq]+, if available (else omit feature)
+                           w: node text
+                           t: node POS tag
+                           e: tag of first incoming edge
+                           p: unique separator punctuation between nodes
+                           q: count of any separator punctuation between nodes
+        """
         self.source = source
         self.index = int(index)
         self.children = children
