@@ -43,6 +43,8 @@ class Parser(object):
         if not passages:
             if self.model_file is not None:  # Nothing to train on; pre-trained model given
                 self.model.load(self.model_file)
+                if not Config().quiet:
+                    print("Loaded model from '%s'" % self.model_file)
             return
 
         if not Config().quiet:
@@ -241,6 +243,6 @@ if __name__ == "__main__":
     for pred_passage in parser.parse(all_files(args.passages)):
         suffix = ".pickle" if args.binary else ".xml"
         outfile = args.outdir + os.path.sep + args.prefix + pred_passage.ID + suffix
-        if not args.quiet:
+        if args.verbose:
             print("Writing passage '%s'..." % outfile)
         passage2file(pred_passage, outfile, binary=args.binary)
