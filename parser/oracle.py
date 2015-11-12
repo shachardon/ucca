@@ -75,7 +75,10 @@ class Oracle(object):
                     return action(edge.tag, node)
 
         if not state.buffer:
-            raise Exception("No action is possible\n" + state.str("\n") + "\n" + self.str("\n"))
+            if Config().verify:
+                raise Exception("No action is possible\n" + state.str("\n") + "\n" + self.str("\n"))
+            else:
+                return FINISH
 
         return SHIFT
 

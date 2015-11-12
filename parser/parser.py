@@ -1,4 +1,5 @@
 import os
+import random
 import time
 from itertools import groupby
 from random import shuffle
@@ -6,7 +7,7 @@ from xml.etree.ElementTree import ParseError
 
 from nltk import pos_tag
 
-from action import Action
+from action import Action, NODE, IMPLICIT
 from averaged_perceptron import AveragedPerceptron
 from config import Config
 from diff import diff_passages
@@ -159,14 +160,18 @@ class Parser(object):
             action = self.predict_action(features)
             if self.oracle:
                 true_action = self.oracle.get_action(self.state)
-                if action == true_action:
-                    self.correct_count += 1
-                elif train:
-                    self.model.update(features, action, true_action)
                 if Config().verbose:
                     print("  predicted: %-15s true: %-15s %s" % (
                         action, true_action, self.state))
-                action = true_action
+                if action.id == true_action.id:
+                    self.correct_count += 1
+                    action = true_action  # to copy orig_node
+                elif train:
+                    self.model.update(features, action, true_action)
+                    if action in (NODE, IMPLICIT) or random.randint(0, 1):
+                        action = true_action
+                        if Config().verbose:
+                            print("  (taking true action)")
             elif Config().verbose:
                 print("  action: %-15s %s" % (action, self.state))
             self.action_count += 1
