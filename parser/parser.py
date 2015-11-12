@@ -10,7 +10,7 @@ from action import Action
 from averaged_perceptron import AveragedPerceptron
 from config import Config
 from diff import diff_passages
-from features import extract_features
+from features import FeatureExtractor
 from oracle import Oracle
 from scripts.util import file2passage, passage2file
 from state import State
@@ -31,6 +31,7 @@ class Parser(object):
 
         self.model = AveragedPerceptron(len(Action.get_all_actions()))
         self.model_file = model_file
+        self.feature_extractor = FeatureExtractor()
 
     def train(self, passages, iterations=1):
         """
@@ -152,7 +153,7 @@ class Parser(object):
         while True:
             if Config().check_loops and history is not None:
                 self.check_loop(history, train)
-            features = extract_features(self.state)
+            features = self.feature_extractor.extract_features(self.state)
             action = self.predict_action(features)
             if self.oracle:
                 true_action = self.oracle.get_action(self.state)

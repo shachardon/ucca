@@ -1,7 +1,8 @@
-from itertools import islice
-from re import finditer
+import re
 
-FEATURES = (
+FEATURE_PATTERN = re.compile("([sb])(\d+)([lru]*)([wtepq]+)")
+
+FEATURE_NAMES = (
     # unigrams:
     "s0te", "s0we", "s1te", "s1we", "s2te", "s2we", "s3te", "s3we",
     "b0wt", "b1wt", "b2wt", "b3wt",
@@ -25,33 +26,57 @@ FEATURES = (
 FEATURE_TO_ATTRIBUTE = {"w": "text", "t": "pos_tag"}
 
 
-def extract_features(state):
+class Feature(object):
+    def __init__(self, name, elements):
+        self.name = name
+        self.elements = elements
+
+
+class FeatureElement(object):
+    def __init__(self, source, index, children, properties):
+        self.source = source
+        self.index = int(index)
+        self.children = children
+        self.properties = properties
+
+
+class FeatureExtractor(object):
     """
-    Calculate feature values according to current state
-    :param state: current state of the parser
+    Object to extract features from the parser state to be used in action classification
     """
-    features = {}
-    for feature in FEATURES:
-        values = calc_feature(feature, state)
-        if values is not None:
-            features["%s=%s" % (feature, ",".join(values))] = 1
-    return features
+    def __init__(self):
+        # convert the list of features textual descriptions to the actual fields
+        self.features = [Feature(feature_name,
+                                 tuple(FeatureElement(*m.group(1, 2, 3, 4))
+                                       for m in re.finditer(FEATURE_PATTERN,
+                                                            feature_name)))
+                         for feature_name in FEATURE_NAMES]
+
+    def extract_features(self, state):
+        """
+        Calculate feature values according to current state
+        :param state: current state of the parser
+        """
+        features = {}
+        for feature in self.features:
+            values = calc_feature(feature, state)
+            if values is not None:
+                features["%s=%s" % (feature, ",".join(values))] = 1
+        return features
 
 
 def calc_feature(feature, state):
     values = []
-    for m in finditer("([sb])(\d+)([lru]*)([wtepq]+)", feature):
-        source, index, children, properties = m.group(1, 2, 3, 4)
-        index = int(index)
-        if source == "s":
-            if len(state.stack) <= index:
+    for element in feature.elements:
+        if element.source == "s":
+            if len(state.stack) <= element.index:
                 return None
-            node = state.stack[-1 - index]
+            node = state.stack[-1 - element.index]
         else:  # source == "b"
-            if len(state.buffer) <= index:
+            if len(state.buffer) <= element.index:
                 return None
-            node = state.buffer[index]
-        for child in children:
+            node = state.buffer[element.index]
+        for child in element.children:
             if not node.outgoing:
                 return None
             if len(node.outgoing) == 1:
@@ -63,7 +88,7 @@ def calc_feature(feature, state):
                 node = node.outgoing[-1].child
             else:  # child == "u" and len(node.outgoing) > 1
                 return None
-        for p in properties:
+        for p in element.properties:
             v = get_prop(node, p)
             if v is None:
                 return None
