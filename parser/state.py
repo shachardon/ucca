@@ -217,7 +217,7 @@ class State(object):
         :return: True if parsing should continue, False if finished
         """
         if Config().verify:
-            assert action in self.valid_action_types(), "Invalid action in current state: %s" % action
+            assert action.is_type(self.valid_action_types()), "Invalid action in current state: %s" % action
         if action.is_type(SHIFT):  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
         elif action.is_type(NODE):  # Create new parent node and add to the buffer
