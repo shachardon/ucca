@@ -35,7 +35,9 @@ class Config(object, metaclass=Singleton):
                                help="enable compound swap")
         argparser.add_argument('-M', '--maxswap', type=int, default=11,
                                help="maximum distance for compound swap")
-        argparser.add_argument('-s', '--seed', default=None, help="seed for np.random")
+        argparser.add_argument('-P', '--overrideprob', type=float, default=1.0,
+                               help="probability to override predicted action by true action during training")
+        argparser.add_argument('-s', '--seed', type=int, default=None, help="seed for np.random")
         self.args = argparser.parse_args()
 
         self.iterations = self.args.iterations
@@ -51,4 +53,5 @@ class Config(object, metaclass=Singleton):
         self.compound_swap = self.args.compoundswap
         self.max_swap = self.args.maxswap
 
+        self.override_action_probability = self.args.overrideprob
         self.seed = self.args.seed
