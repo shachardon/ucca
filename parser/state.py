@@ -25,6 +25,8 @@ class Node(object):
         self.node_index = int(self.node_id.split(core.Node.ID_SEPARATOR)[1]) if orig_node else None
         self.outgoing = []  # Edge list
         self.incoming = []  # Edge list
+        self.children = []  # Node list
+        self.parents = []  # Node list
         self.node = None  # Associated core.Node, when creating final Passage
         self.implicit = implicit  # True or False
 
@@ -93,7 +95,9 @@ class Edge(object):
             assert self not in self.parent.outgoing, "Trying to create outgoing edge twice: %s" % self
             assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
         self.parent.outgoing.append(self)
+        self.parent.children.append(self.child)
         self.child.incoming.append(self)
+        self.child.parents.append(self.parent)
         if Config().verbose:
             print("    edge: %s" % self)
 
@@ -177,8 +181,18 @@ class State(object):
             return False
         if Config().compound_swap and action.is_type(SWAP):
             return int(action.tag) < len(self.stack)
-        edge = self.create_edge(action)
-        return edge is None or edge not in edge.parent.outgoing  # Edge may not already exist
+        # To avoid infinite loops, prevent
+        if action.is_type(NODE) and not self.stack[-1].children:
+            return False
+        if action.is_type(IMPLICIT) and not self.stack[-1].parents:
+            return False
+        parent, child = self.get_parent_child(action)
+        if parent is not None and child in parent.children:
+            return False
+        # Uncomment this instead of the above in order to allow multiple edges between nodes:
+        # edge = self.create_edge(action)
+        # return edge is None or edge not in edge.parent.outgoing  # Edge with this tag may not already exist
+        return True
 
     def add_node(self, *args, **kwargs):
         """
@@ -192,6 +206,14 @@ class State(object):
             print("    node: %s" % node)
         return node
 
+    def get_parent_child(self, action):
+        if action.is_type((LEFT_EDGE, LEFT_REMOTE)):
+            return self.stack[-1], self.stack[-2]
+        elif action.is_type((RIGHT_EDGE, RIGHT_REMOTE)):
+            return self.stack[-2], self.stack[-1]
+        else:
+            return None, None
+
     def create_edge(self, action):
         """
         :param action: action to create edge for, assuming it is an *_EDGE or *_REMOTE action
@@ -199,13 +221,8 @@ class State(object):
         """
         if action.edge is not None:
             return action.edge
-        if action.is_type((LEFT_EDGE, LEFT_REMOTE)):
-            parent = self.stack[-1]
-            child = self.stack[-2]
-        elif action.is_type((RIGHT_EDGE, RIGHT_REMOTE)):
-            parent = self.stack[-2]
-            child = self.stack[-1]
-        else:
+        parent, child = self.get_parent_child(action)
+        if parent is None or child is None:
             return None
         action.edge = Edge(parent, child, action.tag, remote=action.remote)
         return action.edge
