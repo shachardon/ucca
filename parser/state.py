@@ -152,24 +152,30 @@ class State(object):
         :return: is the action (including tag) valid in the current state?
         """
         if action.is_type(FINISH):
+            # The root must have at least one child at the end of the parse
             return bool(self.root.outgoing)
         if action.is_type(SHIFT):
+            # The buffer must not be empty in order to shift from it
             return bool(self.buffer)
-        if action.is_type(SWAP):
-            distance = 1 if action.tag is None else int(action.tag)
-            return len(self.stack) > distance
-        if not self.stack:  # All other actions require non-empty stack
+        if not self.stack:
+            # All other actions require non-empty stack
             return False
         s0 = self.stack[-1]
-        if action.is_type(NODE):  # The root may not have parents; prevent unary node chains;
+        if action.is_type(NODE):
+            # The root may not have parents;
+            # prevent unary node chains;
             # edge tag must be T iff child is terminal
             return s0 is not self.root and (s0.text is not None or s0.outgoing) and (
                 (s0.text is not None) == (action.tag == layer1.EdgeTags.Terminal))
-        if action.is_type(IMPLICIT):  # Terminals may not have (implicit) children; prevent unary node chains
+        if action.is_type(IMPLICIT):
+            # Terminals may not have (implicit) children;
+            # prevent unary node chains
             return s0.text is None and not s0.implicit
-        if action.is_type(REDUCE):  # May not reduce the root without it having outgoing edges
+        if action.is_type(REDUCE):
+            # May not reduce the root without it having outgoing edges
             return s0 is not self.root or s0.outgoing
-        if len(self.stack) == 1:  # All other actions require at least two elements on the stack
+        if len(self.stack) == 1:
+            # All other actions require at least two elements on the stack
             return False
         if action.is_type((LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE)):
             parent, child = self.get_parent_child(action)
@@ -180,6 +186,10 @@ class State(object):
                 child not in parent.children)
             # Uncomment this instead of the above in order to allow multiple edges between nodes:
             # return self.create_edge(action) not in parent.outgoing  # May not already exist
+        if action.is_type(SWAP):
+            # A regular swap is possible since the stack has at least two elements;
+            # a compound swap is possible if the stack is longer than the distance
+            return action.tag is None or len(self.stack) > int(action.tag)
         raise Exception("Invalid action: %s" % action)
 
     def add_node(self, *args, **kwargs):
