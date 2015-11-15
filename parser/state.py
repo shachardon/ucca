@@ -177,7 +177,7 @@ class State(object):
         if len(self.stack) == 1:
             # All other actions require at least two elements on the stack
             return False
-        if action.is_type((LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE)):
+        if action.is_type(LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
             parent, child = self.get_parent_child(action)
             # Root may not be the child; terminal may not be the parent; no root->terminal edges;
             # edge must not already exist
@@ -211,9 +211,9 @@ class State(object):
         self.log.append("edge: %s" % edge)
 
     def get_parent_child(self, action):
-        if action.is_type((LEFT_EDGE, LEFT_REMOTE)):
+        if action.is_type(LEFT_EDGE, LEFT_REMOTE):
             return self.stack[-1], self.stack[-2]
-        elif action.is_type((RIGHT_EDGE, RIGHT_REMOTE)):
+        elif action.is_type(RIGHT_EDGE, RIGHT_REMOTE):
             return self.stack[-2], self.stack[-1]
         else:
             return None, None
@@ -249,7 +249,7 @@ class State(object):
             self.buffer.appendleft(child)
         elif action.is_type(REDUCE):  # Pop stack (no more edges to create with this node)
             self.stack.pop()
-        elif action.is_type((LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE)):
+        elif action.is_type(LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
             self.add_edge(self.create_edge(action))
         elif action.is_type(SWAP):  # Place second (or more) stack item back on the buffer
             distance = action.tag or 1

@@ -21,10 +21,8 @@ class Action(object):
             Action.type_to_id[self.type] = self.type_id
         self._id = None
 
-    def is_type(self, other):
-        if isinstance(other, Action):
-            return self.type_id == other.type_id
-        return self.type_id in (o.type_id for o in other)
+    def is_type(self, *others):
+        return self.type_id in (o.type_id for o in others)
 
     @staticmethod
     def from_string(s):
@@ -48,7 +46,7 @@ class Action(object):
 
     @property
     def remote(self):
-        return self.is_type((LEFT_REMOTE, RIGHT_REMOTE))
+        return self.is_type(LEFT_REMOTE, RIGHT_REMOTE)
 
     @property
     def id(self):

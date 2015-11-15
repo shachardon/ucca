@@ -175,7 +175,7 @@ class Parser(object):
                     action = true_action  # to copy orig_node
                 elif train:
                     self.model.update(features, action, true_action)
-                    if action.is_type((NODE, IMPLICIT)) or (
+                    if action.is_type(NODE, IMPLICIT) or (
                                 random.random() < Config().override_action_probability):
                         action = true_action
                         prefix = "*"
