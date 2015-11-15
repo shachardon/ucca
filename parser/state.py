@@ -221,7 +221,8 @@ class State(object):
         elif action.is_type(REDUCE):  # Pop stack (no more edges to create with this node)
             self.stack.pop()
         elif action.is_type(LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
-            self.add_edge(self.create_edge(action))
+            parent, child = self.get_parent_child(action)
+            self.add_edge(Edge(parent, child, action.tag, remote=action.remote))
         elif action.is_type(SWAP):  # Place second (or more) stack item back on the buffer
             distance = action.tag or 1
             s = slice(-distance - 1, -1)
@@ -260,19 +261,6 @@ class State(object):
             return self.stack[-2], self.stack[-1]
         else:
             return None, None
-
-    def create_edge(self, action):
-        """
-        :param action: action to create edge for, assuming it is an *_EDGE or *_REMOTE action
-        :return: new Edge from the given parent and child, possibly remote (depending on the action)
-        """
-        if action.edge is not None:
-            return action.edge
-        parent, child = self.get_parent_child(action)
-        if parent is None or child is None:
-            return None
-        action.edge = Edge(parent, child, action.tag, remote=action.remote)
-        return action.edge
 
     def create_passage(self):
         """
