@@ -152,10 +152,10 @@ class State(object):
         :return: is the action (including tag) valid in the current state?
         """
         if action.is_type(FINISH):
-            # The root must have at least one child at the end of the parse
+            # Root must have at least one child at the end of the parse
             return bool(self.root.outgoing)
         if action.is_type(SHIFT):
-            # The buffer must not be empty in order to shift from it
+            # Buffer must not be empty in order to shift from it
             return bool(self.buffer)
         if not self.stack:
             # All other actions require non-empty stack
@@ -163,13 +163,14 @@ class State(object):
         s0 = self.stack[-1]
         if action.is_type(NODE):
             # The root may not have parents;
-            # prevent unary node chains;
-            # edge tag must be T iff child is terminal
-            return s0 is not self.root and (s0.text is not None or s0.outgoing) and (
+            # Prevent unary node chains;
+            # Edge tag must be T iff child is terminal
+            return s0 is not self.root and (
+                s0.text is not None or len(s0.outgoing) > 1) and (
                 (s0.text is not None) == (action.tag == layer1.EdgeTags.Terminal))
         if action.is_type(IMPLICIT):
             # Terminals may not have (implicit) children;
-            # prevent unary node chains
+            # Prevent implicit node chains
             return s0.text is None and not s0.implicit
         if action.is_type(REDUCE):
             # May not reduce the root without it having outgoing edges
@@ -179,16 +180,21 @@ class State(object):
             return False
         if action.is_type(LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
             parent, child = self.get_parent_child(action)
-            # Root may not be the child; terminal may not be the parent; no root->terminal edges;
-            # edge must not already exist
+            # Root may not be the child;
+            # Terminal may not be the parent;
+            # No root->terminal edges;
+            # Edge must not already exist;
+            # Edge tag must be T iff child is terminal
             return child is not self.root and parent.text is None and (
                 parent is not self.root or child.text is None) and (
-                child not in parent.children)
-            # Uncomment this instead of the above in order to allow multiple edges between nodes:
-            # return self.create_edge(action) not in parent.outgoing  # May not already exist
+                child not in parent.children) and (
+                (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal))
+            # Include this (instead of child not in children) to allow multiple edges between nodes:
+            # (as long as their tags are different)
+            # self.create_edge(action) not in parent.outgoing
         if action.is_type(SWAP):
             # A regular swap is possible since the stack has at least two elements;
-            # a compound swap is possible if the stack is longer than the distance
+            # A compound swap is possible if the stack is longer than the distance
             distance = action.tag or 1
             if distance < 1 or distance >= len(self.stack):
                 return False
