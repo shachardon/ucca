@@ -43,9 +43,11 @@ class Parser(object):
         """
         if not passages:
             if self.model_file is not None:  # Nothing to train on; pre-trained model given
+                if not Config().quiet:
+                    print("Loading model from '%s'... " % self.model_file, end="")
                 self.model.load(self.model_file)
                 if not Config().quiet:
-                    print("Loaded model from '%s'" % self.model_file)
+                    print("Done.")
             return
 
         if not Config().quiet:
@@ -60,9 +62,11 @@ class Parser(object):
             print("Trained %d iterations on %d passages" % (iterations, len(passages)))
 
         if self.model_file is not None:  # Save trained model
+            if not Config().quiet:
+                print("Saving model to '%s'... " % self.model_file, end="")
             self.model.save(self.model_file)
             if not Config().quiet:
-                print("Saved model to '%s'" % self.model_file)
+                print("Done.")
 
         return self.model
 

@@ -163,14 +163,14 @@ class State(object):
         s0 = self.stack[-1]
         if action.is_type(NODE):
             # The root may not have parents;
-            # Prevent unary node chains;
+            # Prevent unary node chains (to prevent loops);
             # Edge tag must be T iff child is terminal
             return s0 is not self.root and (
                 s0.text is not None or len(s0.outgoing) > 1) and (
                 (s0.text is not None) == (action.tag == layer1.EdgeTags.Terminal))
         if action.is_type(IMPLICIT):
             # Terminals may not have (implicit) children;
-            # Prevent implicit node chains
+            # Prevent implicit node chains (to prevent loops)
             return s0.text is None and not s0.implicit
         if action.is_type(REDUCE):
             # May not reduce the root without it having outgoing edges
@@ -198,12 +198,49 @@ class State(object):
             distance = action.tag or 1
             if distance < 1 or distance >= len(self.stack):
                 return False
-            return self.stack[-distance-1].index <= s0.index
+            # To prevent swap loops: only swap if the nodes are currently in their original order
+            return self.stack[-distance - 1].index <= s0.index
         raise Exception("Invalid action: %s" % action)
+
+    def transition(self, action):
+        """
+        Main part of the parser: apply action given by oracle or classifier
+        :param action: Action object to apply
+        """
+        self.log = []
+        if action.is_type(SHIFT):  # Push buffer head to stack; shift buffer
+            self.stack.append(self.buffer.popleft())
+        elif action.is_type(NODE):  # Create new parent node and add to the buffer
+            parent = self.add_node(action.orig_node)
+            self.add_edge(Edge(parent, self.stack[-1], action.tag))
+            self.buffer.appendleft(parent)
+        elif action.is_type(IMPLICIT):  # Create new child node and add to the buffer
+            child = self.add_node(action.orig_node, implicit=True)
+            self.add_edge(Edge(self.stack[-1], child, action.tag))
+            self.buffer.appendleft(child)
+        elif action.is_type(REDUCE):  # Pop stack (no more edges to create with this node)
+            self.stack.pop()
+        elif action.is_type(LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
+            self.add_edge(self.create_edge(action))
+        elif action.is_type(SWAP):  # Place second (or more) stack item back on the buffer
+            distance = action.tag or 1
+            s = slice(-distance - 1, -1)
+            self.log.append("%s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
+            self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
+            del self.stack[s]
+        elif action.is_type(FINISH):  # Nothing left to do
+            self.finished = True
+        else:
+            raise Exception("Invalid action: " + action)
+        if Config().verify:
+            intersection = set(self.stack).intersection(self.buffer)
+            assert not intersection, "Stack and buffer overlap: %s" % intersection
 
     def add_node(self, *args, **kwargs):
         """
         Called during parsing to add a new Node (not core.Node) to the temporary representation
+        :param args: ordinal arguments for Node()
+        :param kwargs: keyword arguments for Node()
         """
         node = Node(len(self.nodes), *args, **kwargs)
         if Config().verify:
@@ -236,40 +273,6 @@ class State(object):
             return None
         action.edge = Edge(parent, child, action.tag, remote=action.remote)
         return action.edge
-
-    def transition(self, action):
-        """
-        Main part of the parser: apply action given by oracle or classifier
-        :param action: Action object to apply
-        """
-        self.log = []
-        if action.is_type(SHIFT):  # Push buffer head to stack; shift buffer
-            self.stack.append(self.buffer.popleft())
-        elif action.is_type(NODE):  # Create new parent node and add to the buffer
-            parent = self.add_node(action.orig_node)
-            self.add_edge(Edge(parent, self.stack[-1], action.tag))
-            self.buffer.appendleft(parent)
-        elif action.is_type(IMPLICIT):  # Create new child node and add to the buffer
-            child = self.add_node(action.orig_node, implicit=True)
-            self.add_edge(Edge(self.stack[-1], child, action.tag))
-            self.buffer.appendleft(child)
-        elif action.is_type(REDUCE):  # Pop stack (no more edges to create with this node)
-            self.stack.pop()
-        elif action.is_type(LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
-            self.add_edge(self.create_edge(action))
-        elif action.is_type(SWAP):  # Place second (or more) stack item back on the buffer
-            distance = action.tag or 1
-            s = slice(-distance-1, -1)
-            self.log.append("%s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
-            self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
-            del self.stack[s]
-        elif action.is_type(FINISH):  # Nothing left to do
-            self.finished = True
-        else:
-            raise Exception("Invalid action: " + action)
-        if Config().verify:
-            intersection = set(self.stack).intersection(self.buffer)
-            assert not intersection, "Stack and buffer overlap: %s" % intersection
 
     def create_passage(self):
         """
