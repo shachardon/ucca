@@ -45,9 +45,10 @@ class Parser(object):
             if self.model_file is not None:  # Nothing to train on; pre-trained model given
                 if not Config().quiet:
                     print("Loading model from '%s'... " % self.model_file, end="")
+                started = time.time()
                 self.model.load(self.model_file)
                 if not Config().quiet:
-                    print("Done.")
+                    print("Done (%.3fs)." % (time.time() - started))
             return
 
         if not Config().quiet:
@@ -64,9 +65,10 @@ class Parser(object):
         if self.model_file is not None:  # Save trained model
             if not Config().quiet:
                 print("Saving model to '%s'... " % self.model_file, end="")
+            started = time.time()
             self.model.save(self.model_file)
             if not Config().quiet:
-                print("Done.")
+                print("Done (%.3fs)." % (time.time() - started))
 
         return self.model
 
