@@ -90,8 +90,6 @@ class Parser(object):
             self.oracle = Oracle(passage) if isinstance(passage, core.Passage) else None
             self.parse_passage(history, train)  # This is where the actual parsing takes place
             predicted_passage = self.state.create_passage() if not train or Config().verify else passage
-            if Config().verbose:
-                print(" " * 18 + str(self.state))
             if self.oracle:  # passage is a Passage object
                 if Config().verify:
                     self.verify_passage(passage, predicted_passage)
@@ -153,11 +151,14 @@ class Parser(object):
         :param history: set of hashed states in the parser's history, if loop checking is enabled
         :param train: use oracle to train on given passages, or just parse with classifier?
         """
+        if Config().verbose:
+            print("  initial state: %s" % self.state)
         while True:
             if Config().check_loops and history is not None:
                 self.check_loop(history, train)
             features = self.feature_extractor.extract_features(self.state)
             action = self.predict_action(features)
+            prefix = ""  # Will be "*" if true action is taken instead of predicted one
             if self.oracle:
                 try:
                     true_action = self.oracle.get_action(self.state)
@@ -167,12 +168,9 @@ class Parser(object):
                         raise Exception("Error in oracle during training") from e
                     else:
                         true_action = None
-                if Config().verbose:
-                    print("  predicted: %-15s true: %-15s %s" % (
-                        action, true_action if true_action is not None else "?", self.state))
                 if true_action is None:
-                    continue
-                if action == true_action:
+                    true_action = "?"
+                elif action == true_action:
                     self.correct_count += 1
                     action = true_action  # to copy orig_node
                 elif train:
@@ -180,12 +178,16 @@ class Parser(object):
                     if action.is_type((NODE, IMPLICIT)) or (
                                 random.random() < Config().override_action_probability):
                         action = true_action
-                        if Config().verbose:
-                            print("  (taking true action)")
-            elif Config().verbose:
-                print("  action: %-15s %s" % (action, self.state))
+                        prefix = "*"
             self.action_count += 1
             self.state.transition(action)
+            if Config().verbose:
+                if self.oracle:
+                    print(" %s predicted: %-15s true: %-15s %s" % (prefix, action, true_action, self.state))
+                else:
+                    print(" %s action: %-15s %s" % (prefix, action, self.state))
+                for line in self.state.log:
+                    print("    " + line)
             if self.state.finished:
                 return  # action is FINISH
 

@@ -98,8 +98,6 @@ class Edge(object):
         self.parent.children.append(self.child)
         self.child.incoming.append(self)
         self.child.parents.append(self.parent)
-        if Config().verbose:
-            print("    edge: %s" % self)
 
     def __repr__(self):
         return Edge.__name__ + "(" + self.tag + ", " + self.parent + ", " + self.child +\
@@ -125,6 +123,8 @@ class State(object):
     :param callback: function to call after creating the list of nodes (e.g. POS tagger)
     """
     def __init__(self, passage, passage_id, callback=None):
+        self.log = []
+        self.finished = False
         self.passage = isinstance(passage, core.Passage)
         if self.passage:  # During training or evaluation, create from gold Passage
             self.nodes = [Node(i, orig_node=x, text=x.text, tag=x.tag) for i, x in
@@ -145,7 +145,6 @@ class State(object):
         self.root = self.add_node(root_node)  # The root is not part of the stack/buffer
         self.stack = [self.root]
         self.passage_id = passage_id
-        self.finished = False
 
     def is_valid(self, action):
         """
@@ -190,9 +189,12 @@ class State(object):
         if Config().verify:
             assert node not in self.nodes, "Node already exists"
         self.nodes.append(node)
-        if Config().verbose:
-            print("    node: %s" % node)
+        self.log.append("node: %s" % node)
         return node
+
+    def add_edge(self, edge):
+        edge.add()
+        self.log.append("edge: %s" % edge)
 
     def get_parent_child(self, action):
         if action.is_type((LEFT_EDGE, LEFT_REMOTE)):
@@ -220,26 +222,26 @@ class State(object):
         Main part of the parser: apply action given by oracle or classifier
         :param action: Action object to apply
         """
+        self.log = []
         if action.is_type(SHIFT):  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
         elif action.is_type(NODE):  # Create new parent node and add to the buffer
             parent = self.add_node(action.orig_node)
-            Edge(parent, self.stack[-1], action.tag).add()
+            self.add_edge(Edge(parent, self.stack[-1], action.tag))
             self.buffer.appendleft(parent)
         elif action.is_type(IMPLICIT):  # Create new child node and add to the buffer
             child = self.add_node(action.orig_node, implicit=True)
-            Edge(self.stack[-1], child, action.tag).add()
+            self.add_edge(Edge(self.stack[-1], child, action.tag))
             self.buffer.appendleft(child)
         elif action.is_type(REDUCE):  # Pop stack (no more edges to create with this node)
             self.stack.pop()
         elif action.is_type((LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE)):
-            self.create_edge(action).add()
+            self.add_edge(self.create_edge(action))
         elif action.is_type(SWAP):  # Place second (or more) stack item back on the buffer
             distance = action.tag or 1
             assert distance > 0
             s = slice(-distance-1, -1)
-            if Config().verbose:
-                print("    %s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
+            self.log.append("%s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
             self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
             del self.stack[s]
         elif action.is_type(FINISH):  # Nothing left to do
