@@ -161,6 +161,7 @@ class Parser(object):
             if self.oracle:
                 try:
                     true_action = self.oracle.get_action(self.state)
+                    assert self.state.is_valid(action), "Oracle returned invalid action: %s" % action
                 except AttributeError as e:
                     if train:
                         raise Exception("Error in oracle during training") from e
@@ -176,15 +177,16 @@ class Parser(object):
                     action = true_action  # to copy orig_node
                 elif train:
                     self.model.update(features, action, true_action)
-                    if action.is_type((NODE, IMPLICIT)) or \
-                                    random.random() < Config().override_action_probability:
+                    if action.is_type((NODE, IMPLICIT)) or (
+                                random.random() < Config().override_action_probability):
                         action = true_action
                         if Config().verbose:
                             print("  (taking true action)")
             elif Config().verbose:
                 print("  action: %-15s %s" % (action, self.state))
             self.action_count += 1
-            if not self.state.transition(action):
+            self.state.transition(action)
+            if self.state.finished:
                 return  # action is FINISH
 
     def check_loop(self, history, train):

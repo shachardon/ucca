@@ -145,54 +145,42 @@ class State(object):
         self.root = self.add_node(root_node)  # The root is not part of the stack/buffer
         self.stack = [self.root]
         self.passage_id = passage_id
-
-    def valid_action_types(self):
-        """
-        :return: all action types applicable in the current state
-        """
-        if self.root.outgoing:
-            yield FINISH
-        if self.buffer:
-            yield SHIFT
-        if self.stack:
-            s0 = self.stack[-1]
-            if s0 is not self.root:
-                yield NODE
-            if s0.text is None:
-                yield IMPLICIT
-            if s0 is not self.root or s0.outgoing:
-                yield REDUCE
-            if len(self.stack) > 1:
-                s1 = self.stack[-2]
-                if s1 is not self.root and s0.text is None:
-                    yield LEFT_EDGE
-                    yield LEFT_REMOTE
-                if s0 is not self.root and s1.text is None:
-                    yield RIGHT_EDGE
-                    yield RIGHT_REMOTE
-                yield SWAP
+        self.finished = False
 
     def is_valid(self, action):
         """
         :param action: action to check for validity
-        :return: is the action (with its tag) valid in the current state?
+        :return: is the action (including tag) valid in the current state?
         """
-        if not action.is_type(self.valid_action_types()):
+        if action.is_type(FINISH):
+            return bool(self.root.outgoing)
+        if action.is_type(SHIFT):
+            return bool(self.buffer)
+        if action.is_type(SWAP):
+            distance = 1 if action.tag is None else int(action.tag)
+            return len(self.stack) > distance
+        if not self.stack:  # All other actions require non-empty stack
             return False
-        if Config().compound_swap and action.is_type(SWAP):
-            return int(action.tag) < len(self.stack)
-        # To avoid infinite loops, prevent
-        if action.is_type(NODE) and not self.stack[-1].children:
+        s0 = self.stack[-1]
+        if action.is_type(NODE):  # The root may not have parents; prevent unary node chains
+            return s0 is not self.root and (s0.text is not None or s0.outgoing)
+        if action.is_type(IMPLICIT):  # Terminals may not have (implicit) children; prevent unary node chains
+            return s0.text is None and not s0.implicit
+        if action.is_type(REDUCE):  # May not reduce the root without it having outgoing edges
+            return s0 is not self.root or s0.outgoing
+        if len(self.stack) == 1:  # All other actions require at least two elements on the stack
             return False
-        if action.is_type(IMPLICIT) and not self.stack[-1].parents:
-            return False
-        parent, child = self.get_parent_child(action)
-        if parent is not None and child in parent.children:
-            return False
-        # Uncomment this instead of the above in order to allow multiple edges between nodes:
-        # edge = self.create_edge(action)
-        # return edge is None or edge not in edge.parent.outgoing  # Edge with this tag may not already exist
-        return True
+        if action.is_type((LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE)):
+            parent, child = self.get_parent_child(action)
+            # Root may not be the child; terminal may not be the parent; no root->terminal edges;
+            # edge must not already exist; edge tag must be T iff child is terminal
+            return child is not self.root and parent.text is None and (
+                parent is not self.root or child.text is None) and (
+                child not in parent.children) and (
+                (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal))
+            # Uncomment this instead of the above in order to allow multiple edges between nodes:
+            # return self.create_edge(action) not in parent.outgoing  # May not already exist
+        raise Exception("Invalid action: %s" % action)
 
     def add_node(self, *args, **kwargs):
         """
@@ -231,10 +219,7 @@ class State(object):
         """
         Main part of the parser: apply action given by oracle or classifier
         :param action: Action object to apply
-        :return: True if parsing should continue, False if finished
         """
-        if Config().verify:
-            assert action.is_type(self.valid_action_types()), "Invalid action in current state: %s" % action
         if action.is_type(SHIFT):  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
         elif action.is_type(NODE):  # Create new parent node and add to the buffer
@@ -258,13 +243,12 @@ class State(object):
             self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
             del self.stack[s]
         elif action.is_type(FINISH):  # Nothing left to do
-            return False
+            self.finished = True
         else:
             raise Exception("Invalid action: " + action)
         if Config().verify:
             intersection = set(self.stack).intersection(self.buffer)
             assert not intersection, "Stack and buffer overlap: %s" % intersection
-        return True
 
     def create_passage(self):
         """
