@@ -161,8 +161,10 @@ class State(object):
         if not self.stack:  # All other actions require non-empty stack
             return False
         s0 = self.stack[-1]
-        if action.is_type(NODE):  # The root may not have parents; prevent unary node chains
-            return s0 is not self.root and (s0.text is not None or s0.outgoing)
+        if action.is_type(NODE):  # The root may not have parents; prevent unary node chains;
+            # edge tag must be T iff child is terminal
+            return s0 is not self.root and (s0.text is not None or s0.outgoing) and (
+                (s0.text is not None) == (action.tag == layer1.EdgeTags.Terminal))
         if action.is_type(IMPLICIT):  # Terminals may not have (implicit) children; prevent unary node chains
             return s0.text is None and not s0.implicit
         if action.is_type(REDUCE):  # May not reduce the root without it having outgoing edges
@@ -172,11 +174,10 @@ class State(object):
         if action.is_type((LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE)):
             parent, child = self.get_parent_child(action)
             # Root may not be the child; terminal may not be the parent; no root->terminal edges;
-            # edge must not already exist; edge tag must be T iff child is terminal
+            # edge must not already exist
             return child is not self.root and parent.text is None and (
                 parent is not self.root or child.text is None) and (
-                child not in parent.children) and (
-                (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal))
+                child not in parent.children)
             # Uncomment this instead of the above in order to allow multiple edges between nodes:
             # return self.create_edge(action) not in parent.outgoing  # May not already exist
         raise Exception("Invalid action: %s" % action)
