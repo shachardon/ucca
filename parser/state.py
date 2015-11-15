@@ -189,7 +189,10 @@ class State(object):
         if action.is_type(SWAP):
             # A regular swap is possible since the stack has at least two elements;
             # a compound swap is possible if the stack is longer than the distance
-            return action.tag is None or len(self.stack) > int(action.tag)
+            distance = action.tag or 1
+            if distance < 1 or distance >= len(self.stack):
+                return False
+            return self.stack[-distance-1].index <= s0.index
         raise Exception("Invalid action: %s" % action)
 
     def add_node(self, *args, **kwargs):
@@ -250,7 +253,6 @@ class State(object):
             self.add_edge(self.create_edge(action))
         elif action.is_type(SWAP):  # Place second (or more) stack item back on the buffer
             distance = action.tag or 1
-            assert distance > 0
             s = slice(-distance-1, -1)
             self.log.append("%s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
             self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
