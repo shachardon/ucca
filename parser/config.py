@@ -33,8 +33,10 @@ class Config(object, metaclass=Singleton):
                                help="verify oracle successfully reproduces the passage")
         argparser.add_argument('-c', '--compoundswap', action='store_true', default=False,
                                help="enable compound swap")
-        argparser.add_argument('-M', '--maxswap', type=int, default=11,
+        argparser.add_argument('-S', '--maxswap', type=int, default=11,
                                help="maximum distance for compound swap")
+        argparser.add_argument('-N', '--maxnodes', type=float, default=2.0,
+                               help="maximum ratio between non-terminal to terminal nodes")
         argparser.add_argument('-P', '--overrideprob', type=float, default=1.0,
                                help="probability to override predicted action by true action during training")
         argparser.add_argument('-s', '--seed', type=int, default=None, help="seed for np.random")
@@ -52,6 +54,8 @@ class Config(object, metaclass=Singleton):
 
         self.compound_swap = self.args.compoundswap
         self.max_swap = self.args.maxswap
+
+        self.max_nodes_ratio = self.args.maxnodes
 
         self.override_action_probability = self.args.overrideprob
         self.seed = self.args.seed

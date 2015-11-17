@@ -164,6 +164,8 @@ class State(object):
         """
         if action.is_type(FINISH):
             assert self.root.outgoing, "Root must have at least one child at the end of the parse"
+            for terminal in self.terminals:
+                assert terminal.incoming, "Every terminal must have a parent at the end of the parse"
         elif action.is_type(SHIFT):
             assert self.buffer, "Buffer must not be empty in order to shift from it"
         else:
@@ -171,11 +173,13 @@ class State(object):
             s0 = self.stack[-1]
             if action.is_type(NODE):
                 assert s0 is not self.root, "The root may not have parents"
-                assert (s0.text is not None) == (action.tag == layer1.EdgeTags.Terminal),\
+                assert (s0.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
                     "Edge tag must be T iff child is terminal"
+                self.assert_node_ratio()
             elif action.is_type(IMPLICIT):
                 assert s0.text is None, "Terminals may not have (implicit) children"
                 assert not s0.implicit, "Implicit node loop"
+                self.assert_node_ratio()
             elif action.is_type(REDUCE):
                 assert s0 is not self.root or s0.outgoing, "May not reduce the root without children"
             else:
@@ -186,7 +190,7 @@ class State(object):
                     assert parent.text is None, "Terminal may not be the parent"
                     assert parent is not self.root or child.text is None, "root->terminal edge"
                     assert child not in parent.children, "Edge must not already exist"
-                    assert (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal),\
+                    assert (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
                         "Edge tag must be T iff child is terminal"
                     # Include this (instead of child not in children) to allow multiple edges between nodes:
                     # (as long as their tags are different)
@@ -197,7 +201,8 @@ class State(object):
                     distance = action.tag or 1
                     assert 1 <= distance < len(self.stack), "Invalid swap distance: %d" % distance
                     # To prevent swap loops: only swap if the nodes are currently in their original order
-                    assert self.stack[-distance - 1].index <= s0.index, "Swapping already-swapped nodes"
+                    assert s0.text is not None or self.stack[-distance - 1].index <= s0.index, \
+                        "Swapping already-swapped nodes"
                 else:
                     raise Exception("Invalid action: %s" % action)
 
@@ -351,6 +356,11 @@ class State(object):
         for node in self.nodes:
             node.outgoing.sort(key=lambda x: x.child.node_index or self.nodes.index(x.child))
             node.incoming.sort(key=lambda x: x.parent.node_index or self.nodes.index(x.parent))
+
+    def assert_node_ratio(self):
+        ratio = len(self.nodes) / len(self.terminals) - 1
+        max_ratio = Config().max_nodes_ratio
+        assert ratio <= max_ratio, "Reached maximum ratio (%.3f) of non-terminals to terminals" % max_ratio
 
     def str(self, sep):
         return "stack: [%-20s]%sbuffer: [%s]" % (" ".join(map(str, self.stack)), sep,
