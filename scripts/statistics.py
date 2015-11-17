@@ -7,6 +7,7 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.interpolate.fitpack2 import UnivariateSpline
 
 import layer0
 import layer1
@@ -57,6 +58,16 @@ def main():
         raise Exception("Either --directory or --infile must be supplied")
 
     assert data.size, "Empty data"
+
+    n = int(len(data) / 20)
+    s = data[:, 2]/data[:, 1]
+    p, x = np.histogram(s, bins=n)
+    x = x[:-1] + (x[1] - x[0])/2   # convert bin edges to centers
+    f = UnivariateSpline(x, p, s=n)
+    plt.plot(x, f(x))
+    plt.scatter(s, f(s))
+    if args.outfile:
+        plt.savefig(os.path.splitext(args.outfile)[0] + "_nonterms_dist.png")
 
     plt.scatter(data[:, 1], data[:, 2], label="nonterminals")
     plt.plot(data[:, 1], 1.33 * data[:, 1], label="y = 1.33 x")
