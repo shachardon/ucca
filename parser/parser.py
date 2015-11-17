@@ -163,12 +163,14 @@ class Parser(object):
             if Config().check_loops and history is not None:
                 self.check_loop(history, train)
             features = self.feature_extractor.extract_features(self.state)
-            action = self.predict_action(features)
-            prefix = ""  # Will be "*" if true action is taken instead of predicted one
-            if self.oracle:
+            predicted_action = self.predict_action(features)
+            action = predicted_action
+            prefix = " "  # Will be "*" if true action is taken instead of predicted one
+            if self.oracle is not None:
                 try:
                     true_action = self.oracle.get_action(self.state)
-                    assert self.state.is_valid(action), "Oracle returned invalid action: %s" % action
+                    assert self.state.is_valid(true_action),\
+                        "Oracle returned invalid action: %s" % true_action
                 except AttributeError as e:
                     if train:
                         raise Exception("Error in oracle during training") from e
@@ -176,12 +178,12 @@ class Parser(object):
                         true_action = None
                 if true_action is None:
                     true_action = "?"
-                elif action == true_action:
+                elif predicted_action == true_action:
                     self.correct_count += 1
                     action = true_action  # to copy orig_node
                 elif train:
-                    self.model.update(features, action, true_action)
-                    if action.is_type(NODE, IMPLICIT) or (
+                    self.model.update(features, predicted_action, true_action)
+                    if predicted_action.is_type(NODE, IMPLICIT) or (
                                 random.random() < Config().override_action_probability):
                         action = true_action
                         prefix = "*"
@@ -189,9 +191,10 @@ class Parser(object):
             self.state.transition(action)
             if Config().verbose:
                 if self.oracle:
-                    print(" %s predicted: %-15s true: %-15s %s" % (prefix, action, true_action, self.state))
+                    print("%s predicted: %-15s true: %-15s %s" % (
+                        prefix, predicted_action, true_action, self.state))
                 else:
-                    print(" %s action: %-15s %s" % (prefix, action, self.state))
+                    print("%s action: %-15s %s" % (prefix, predicted_action, self.state))
                 for line in self.state.log:
                     print("    " + line)
             if self.state.finished:
