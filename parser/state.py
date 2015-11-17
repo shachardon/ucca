@@ -25,10 +25,35 @@ class Node(object):
         self.node_index = int(self.node_id.split(core.Node.ID_SEPARATOR)[1]) if orig_node else None
         self.outgoing = []  # Edge list
         self.incoming = []  # Edge list
-        self.children = []  # Node list
-        self.parents = []  # Node list
+        self.children = []  # Node list: the children of all edges in outgoing
+        self.parents = []  # Node list: the parents of all edges in incoming
         self.node = None  # Associated core.Node, when creating final Passage
         self.implicit = implicit  # True or False
+        self.swap_index = self.index  # Used to make sure nodes are not swapped more than once
+
+    def update_swap_index(self, s, buffer):
+        """
+        Update the node's swap index according to the nodes before and after it.
+        Usually the swap index is usually just the index, and that is what it is initialized to.
+        If the buffer is not empty and the next node on it is not a terminal, it means that it is
+        a non-terminal that was created at some point, probably before this node (because this method
+        should be run just when this node is created).
+        In that case, the buffer head's index will be lower than this node's index, and we will
+        update this node's swap index to be the arithmetic average between the previous node
+        (stack top) and the next node (buffer head).
+        This will make sure that when we perform the validity check on the SWAP action,
+        we will correctly identify this node as always having appearing before b (what is the
+        current buffer head). Otherwise, we would prevent swapping this node with b even though
+        it should be a legal action (because they have never been swapped before).
+        :param s: stack top
+        :param buffer: the whole buffer (may be empty)
+        """
+        if not buffer:
+            return
+        b = buffer[0]
+        if b.text is not None or b.swap_index > self.swap_index:
+            return
+        self.swap_index = (s.swap_index + b.swap_index) / 2
 
     def add_to_l1(self, l1, parent, tag, terminals):
         """
@@ -201,7 +226,7 @@ class State(object):
                     distance = action.tag or 1
                     assert 1 <= distance < len(self.stack), "Invalid swap distance: %d" % distance
                     # To prevent swap loops: only swap if the nodes are currently in their original order
-                    assert s0.text is not None or self.stack[-distance - 1].index <= s0.index, \
+                    assert s0.text is not None or self.stack[-distance - 1].swap_index <= s0.swap_index, \
                         "Swapping already-swapped nodes"
                 else:
                     raise Exception("Invalid action: %s" % action)
@@ -216,13 +241,13 @@ class State(object):
             self.stack.append(self.buffer.popleft())
         elif action.is_type(NODE):  # Create new parent node and add to the buffer
             parent = self.add_node(action.orig_node)
+            parent.update_swap_index(self.stack[-1], self.buffer)
             self.add_edge(Edge(parent, self.stack[-1], action.tag))
             self.buffer.appendleft(parent)
-            # self.stack.append(parent)
         elif action.is_type(IMPLICIT):  # Create new child node and add to the buffer
             child = self.add_node(action.orig_node, implicit=True)
+            child.update_swap_index(self.stack[-1], self.buffer)
             self.add_edge(Edge(self.stack[-1], child, action.tag))
-            # self.stack.append(child)
             self.buffer.appendleft(child)
         elif action.is_type(REDUCE):  # Pop stack (no more edges to create with this node)
             self.stack.pop()
