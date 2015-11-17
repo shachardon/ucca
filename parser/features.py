@@ -82,7 +82,7 @@ class FeatureExtractor(object):
         Calculate feature values according to current state
         :param state: current state of the parser
         """
-        features = {}
+        features = {"b": 1}  # Bias
         for feature in self.features:
             values = calc_feature(feature, state)
             if values is not None:
