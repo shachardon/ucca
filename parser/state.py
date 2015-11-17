@@ -151,56 +151,55 @@ class State(object):
         :param action: action to check for validity
         :return: is the action (including tag) valid in the current state?
         """
+        try:
+            self.assert_valid(action)
+        except AssertionError:
+            return False
+        return True
+
+    def assert_valid(self, action):
+        """
+        Raise AssertionError if the action is invalid in the current state
+        :param action: action to check for validity
+        """
         if action.is_type(FINISH):
-            # Root must have at least one child at the end of the parse
-            return bool(self.root.outgoing)
-        if action.is_type(SHIFT):
-            # Buffer must not be empty in order to shift from it
-            return bool(self.buffer)
-        if not self.stack:
-            # All other actions require non-empty stack
-            return False
-        s0 = self.stack[-1]
-        if action.is_type(NODE):
-            # The root may not have parents;
-            # Prevent unary node chains (to prevent loops);
-            # Edge tag must be T iff child is terminal
-            return s0 is not self.root and (
-                s0.text is not None or len(s0.outgoing) > 1) and (
-                (s0.text is not None) == (action.tag == layer1.EdgeTags.Terminal))
-        if action.is_type(IMPLICIT):
-            # Terminals may not have (implicit) children;
-            # Prevent implicit node chains (to prevent loops)
-            return s0.text is None and not s0.implicit
-        if action.is_type(REDUCE):
-            # May not reduce the root without it having outgoing edges
-            return s0 is not self.root or s0.outgoing
-        if len(self.stack) == 1:
-            # All other actions require at least two elements on the stack
-            return False
-        if action.is_type(LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
-            parent, child = self.get_parent_child(action)
-            # Root may not be the child;
-            # Terminal may not be the parent;
-            # No root->terminal edges;
-            # Edge must not already exist;
-            # Edge tag must be T iff child is terminal
-            return child is not self.root and parent.text is None and (
-                parent is not self.root or child.text is None) and (
-                child not in parent.children) and (
-                (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal))
-            # Include this (instead of child not in children) to allow multiple edges between nodes:
-            # (as long as their tags are different)
-            # self.create_edge(action) not in parent.outgoing
-        if action.is_type(SWAP):
-            # A regular swap is possible since the stack has at least two elements;
-            # A compound swap is possible if the stack is longer than the distance
-            distance = action.tag or 1
-            if distance < 1 or distance >= len(self.stack):
-                return False
-            # To prevent swap loops: only swap if the nodes are currently in their original order
-            return self.stack[-distance - 1].index <= s0.index
-        raise Exception("Invalid action: %s" % action)
+            assert self.root.outgoing, "Root must have at least one child at the end of the parse"
+        elif action.is_type(SHIFT):
+            assert self.buffer, "Buffer must not be empty in order to shift from it"
+        else:
+            assert self.stack, "Action requires non-empty stack: %s" % action
+            s0 = self.stack[-1]
+            if action.is_type(NODE):
+                assert s0 is not self.root, "The root may not have parents"
+                assert (s0.text is not None) == (action.tag == layer1.EdgeTags.Terminal),\
+                    "Edge tag must be T iff child is terminal"
+            elif action.is_type(IMPLICIT):
+                assert s0.text is None, "Terminals may not have (implicit) children"
+                assert not s0.implicit, "Implicit node loop"
+            elif action.is_type(REDUCE):
+                assert s0 is not self.root or s0.outgoing, "May not reduce the root without children"
+            else:
+                assert len(self.stack) > 1, "Action requires at least two stack elements: %s" % action
+                if action.is_type(LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
+                    parent, child = self.get_parent_child(action)
+                    assert child is not self.root, "Root may not be the child"
+                    assert parent.text is None, "Terminal may not be the parent"
+                    assert parent is not self.root or child.text is None, "root->terminal edge"
+                    assert child not in parent.children, "Edge must not already exist"
+                    assert (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal),\
+                        "Edge tag must be T iff child is terminal"
+                    # Include this (instead of child not in children) to allow multiple edges between nodes:
+                    # (as long as their tags are different)
+                    # assert self.create_edge(action) not in parent.outgoing, "Edge must not already exist"
+                elif action.is_type(SWAP):
+                    # A regular swap is possible since the stack has at least two elements;
+                    # A compound swap is possible if the stack is longer than the distance
+                    distance = action.tag or 1
+                    assert 1 <= distance < len(self.stack), "Invalid swap distance: %d" % distance
+                    # To prevent swap loops: only swap if the nodes are currently in their original order
+                    assert self.stack[-distance - 1].index <= s0.index, "Swapping already-swapped nodes"
+                else:
+                    raise Exception("Invalid action: %s" % action)
 
     def transition(self, action):
         """
@@ -214,9 +213,11 @@ class State(object):
             parent = self.add_node(action.orig_node)
             self.add_edge(Edge(parent, self.stack[-1], action.tag))
             self.buffer.appendleft(parent)
+            # self.stack.append(parent)
         elif action.is_type(IMPLICIT):  # Create new child node and add to the buffer
             child = self.add_node(action.orig_node, implicit=True)
             self.add_edge(Edge(self.stack[-1], child, action.tag))
+            # self.stack.append(child)
             self.buffer.appendleft(child)
         elif action.is_type(REDUCE):  # Pop stack (no more edges to create with this node)
             self.stack.pop()

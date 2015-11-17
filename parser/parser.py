@@ -162,39 +162,41 @@ class Parser(object):
         while True:
             if Config().check_loops and history is not None:
                 self.check_loop(history, train)
+
+            true_action = None
+            if self.oracle is not None:
+                try:
+                    true_action = self.oracle.get_action(self.state)
+                    self.state.assert_valid(true_action)
+                except AttributeError as e:
+                    if train:
+                        raise Exception("Error in oracle during training") from e
+                except AssertionError as e:
+                    raise Exception("Oracle returned invalid action: %s" % true_action) from e
+
             features = self.feature_extractor.extract_features(self.state)
             predicted_action = self.predict_action(features)
             action = predicted_action
             prefix = " "  # Will be "*" if true action is taken instead of predicted one
-            if self.oracle is not None:
-                try:
-                    true_action = self.oracle.get_action(self.state)
-                    assert self.state.is_valid(true_action),\
-                        "Oracle returned invalid action: %s" % true_action
-                except AttributeError as e:
-                    if train:
-                        raise Exception("Error in oracle during training") from e
-                    else:
-                        true_action = None
-                if true_action is None:
-                    true_action = "?"
-                elif predicted_action == true_action:
-                    self.correct_count += 1
-                    action = true_action  # to copy orig_node
-                elif train:
-                    self.model.update(features, predicted_action, true_action)
-                    if predicted_action.is_type(NODE, IMPLICIT) or (
-                                random.random() < Config().override_action_probability):
-                        action = true_action
-                        prefix = "*"
+            if true_action is None:
+                true_action = "?"
+            elif predicted_action == true_action:
+                self.correct_count += 1
+                action = true_action  # to copy orig_node
+            elif train:
+                self.model.update(features, predicted_action, true_action)
+                if predicted_action.is_type(NODE, IMPLICIT) or (
+                            random.random() < Config().override_action_probability):
+                    action = true_action
+                    prefix = "*"
             self.action_count += 1
             self.state.transition(action)
             if Config().verbose:
-                if self.oracle:
+                if self.oracle is None:
+                    print("%s action: %-15s %s" % (prefix, predicted_action, self.state))
+                else:
                     print("%s predicted: %-15s true: %-15s %s" % (
                         prefix, predicted_action, true_action, self.state))
-                else:
-                    print("%s action: %-15s %s" % (prefix, predicted_action, self.state))
                 for line in self.state.log:
                     print("    " + line)
             if self.state.finished:
