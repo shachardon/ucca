@@ -94,15 +94,27 @@ class Parser(object):
             self.state = State(passage, passage_id, self.pos_tag)
             history = set()
             self.oracle = Oracle(passage) if isinstance(passage, core.Passage) else None
-            self.parse_passage(history, train)  # This is where the actual parsing takes place
-            predicted_passage = self.state.create_passage() if not train or Config().verify else passage
-            if self.oracle:  # passage is a Passage object
-                if Config().verify:
-                    self.verify_passage(passage, predicted_passage)
+            failed = False
+            try:
+                self.parse_passage(history, train)  # This is where the actual parsing takes place
+            except AssertionError as e:
+                if train:
+                    raise
+                failed = True
+                predicted_passage = None
+                if Config().verbose:
+                    print(e)
                 if not Config().quiet:
-                    print("accuracy: %.3f (%d/%d)" %
-                          (self.correct_count/self.action_count, self.correct_count, self.action_count)
-                          if self.action_count else "No actions done", end=Config().line_end)
+                    print("failed,", end=Config().line_end)
+            if not failed:
+                predicted_passage = self.state.create_passage() if not train or Config().verify else passage
+                if self.oracle:  # passage is a Passage object
+                    if Config().verify:
+                        self.verify_passage(passage, predicted_passage)
+                    if not Config().quiet:
+                        print("accuracy: %.3f (%d/%d)" %
+                              (self.correct_count/self.action_count, self.correct_count, self.action_count)
+                              if self.action_count else "No actions done", end=Config().line_end)
             duration = time.time() - started
             words = len(passage.layer(layer0.LAYER_ID).all) if self.oracle else sum(map(len, passage))
             if not Config().quiet:
@@ -270,6 +282,8 @@ if __name__ == "__main__":
     parser = Parser(args.model)
     parser.train(all_files(args.train), iterations=args.iterations)
     for pred_passage in parser.parse(all_files(args.passages)):
+        if pred_passage is None:
+            continue
         suffix = ".pickle" if args.binary else ".xml"
         outfile = args.outdir + os.path.sep + args.prefix + pred_passage.ID + suffix
         if args.verbose:
