@@ -8,7 +8,7 @@ from collections import Counter
 import layer1
 from util import file2passage
 
-desc = """Finds edge tags that are empirically always unique: occur at most once in edges going out of a node
+desc = """Finds edge tags that are empirically always unique: occur at most once in edges per node
 """
 
 
@@ -16,8 +16,10 @@ def main():
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-d', '--directory', required=True, help="directory with passage files to process")
     parser.add_argument('-o', '--outfile', default="data/unique_roles.txt", help="output file for data")
+    parser.add_argument('-D', '--direction', default="out", help="direction of edges to check (out|in)")
     args = parser.parse_args()
 
+    out = args.direction == "out"
     if not os.path.isdir(args.directory):
         raise Exception("Not a directory: " + args.directory)
     roles = set(tag for name, tag in layer1.EdgeTags.__dict__.items()
@@ -26,7 +28,7 @@ def main():
         sys.stderr.write("Reading passage '%s'...\n" % filename)
         passage = file2passage(args.directory + os.path.sep + filename)
         for node in passage.layer(layer1.LAYER_ID).all:
-            counts = Counter(edge.tag for edge in node)
+            counts = Counter(edge.tag for edge in (node if out else node.incoming))
             roles.difference_update(tag for tag, count in counts.items() if count > 1)
 
     lines = "\n".join(sorted(roles))
