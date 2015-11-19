@@ -88,13 +88,29 @@ class Node(object):
                                                layer1.EdgeTags.LinkArgument)
                                      for e in self.outgoing)
 
+    @property
+    def ancestors(self):
+        """
+        Find all parents of this node recursively, stopping if a cycle is detected (so self not included)
+        """
+        parents_ancestors = [d for parent in self.parents for d in parent.ancestors if d is not self]
+        return set(self.parents + parents_ancestors)
+
+    @property
+    def descendants(self):
+        """
+        Find all children of this node recursively, stopping if a cycle is detected (so self not included)
+        """
+        children_descendants = [d for child in self.children for d in child.descendants if d is not self]
+        return set(self.children + children_descendants)
+
     def __repr__(self):
         return Node.__name__ + "(" + str(self.index) + \
                ((", " + self.text) if self.text else "") + \
                ((", " + self.node_id) if self.node_id else "") + ")"
 
     def __str__(self):
-        return self.text or self.node_id or str(self.index)
+        return '"%s"' % self.text if self.text else self.node_id or str(self.index)
 
     def __eq__(self, other):
         return self.index == other.index and self.outgoing == other.outgoing
@@ -119,6 +135,8 @@ class Edge(object):
         if Config().verify:
             assert self not in self.parent.outgoing, "Trying to create outgoing edge twice: %s" % self
             assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
+            for d in self.child.descendants:
+                assert self.parent not in d.children, "Detected cycle created by edge: %s" % self
         self.parent.outgoing.append(self)
         self.parent.children.append(self.child)
         self.child.incoming.append(self)
@@ -200,6 +218,8 @@ class State(object):
                 assert s0 is not self.root, "The root may not have parents"
                 assert (s0.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
                     "Edge tag must be T iff child is terminal"
+                # TODO check if it's ok to assert that s0 has no parents
+                # or possibly that it has no incoming edges with action.tag
                 self.assert_node_ratio()
             elif action.is_type(IMPLICIT):
                 assert s0.text is None, "Terminals may not have (implicit) children"
@@ -217,6 +237,8 @@ class State(object):
                     assert child not in parent.children, "Edge must not already exist"
                     assert (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
                         "Edge tag must be T iff child is terminal"
+                    for d in child.descendants:
+                        assert parent not in d.children, "Detected cycle created by edge: %s" % self
                     # Include this (instead of child not in children) to allow multiple edges between nodes:
                     # (as long as their tags are different)
                     # assert self.create_edge(action) not in parent.outgoing, "Edge must not already exist"
@@ -225,8 +247,10 @@ class State(object):
                     # A compound swap is possible if the stack is longer than the distance
                     distance = action.tag or 1
                     assert 1 <= distance < len(self.stack), "Invalid swap distance: %d" % distance
+                    swapped = self.stack[-distance - 1]
+                    assert s0.text is None or swapped.text is None, "Swapping terminals is not allowed"
                     # To prevent swap loops: only swap if the nodes are currently in their original order
-                    assert s0.text is not None or self.stack[-distance - 1].swap_index <= s0.swap_index, \
+                    assert s0.text is not None or swapped.swap_index <= s0.swap_index, \
                         "Swapping already-swapped nodes"
                 else:
                     raise Exception("Invalid action: %s" % action)
