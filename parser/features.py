@@ -1,9 +1,9 @@
 import re
 
-FEATURE_ELEMENT_PATTERN = re.compile("([sb])(\d)([lru]*)([wtepq]+)")
-FEATURE_PATTERN = re.compile("^(%s)+$" % FEATURE_ELEMENT_PATTERN.pattern)
+FEATURE_ELEMENT_PATTERN = re.compile("([sb])(\d)([lru]*)([wtepqPC]+)")
+FEATURE_TEMPLATE_PATTERN = re.compile("^(%s)+$" % FEATURE_ELEMENT_PATTERN.pattern)
 
-FEATURE_NAMES = (
+FEATURE_TEMPLATES = (
     # unigrams:
     "s0te", "s0we", "s1te", "s1we", "s2te", "s2we", "s3te", "s3we",
     "b0wt", "b1wt", "b2wt", "b3wt",
@@ -22,14 +22,16 @@ FEATURE_NAMES = (
     # separator:
     "s0wp", "s0wep", "s0wq", "s0weq", "s0es1ep", "s0es1eq",
     "s1wp", "s1wep", "s1wq", "s1weq",
+    # counts:
+    "s0P", "s0C", "s1P", "s0C",
 )
 
 FEATURE_TO_ATTRIBUTE = {"w": "text", "t": "pos_tag"}
 
 
-class Feature(object):
+class FeatureTemplate(object):
     """
-    A feature in parsed form, ready to be used for value calculation
+    A feature template in parsed form, ready to be used for value calculation
     """
     def __init__(self, name, elements):
         """
@@ -40,7 +42,7 @@ class Feature(object):
         self.elements = elements
 
 
-class FeatureElement(object):
+class FeatureTemplateElement(object):
     """
     One element in the values of a feature, e.g. from one node
     """
@@ -55,6 +57,8 @@ class FeatureElement(object):
                            e: tag of first incoming edge
                            p: unique separator punctuation between nodes
                            q: count of any separator punctuation between nodes
+                           P: number of parents
+                           C: number of children
         """
         self.source = source
         self.index = int(index)
@@ -67,32 +71,34 @@ class FeatureExtractor(object):
     Object to extract features from the parser state to be used in action classification
     """
     def __init__(self):
-        assert all(FEATURE_PATTERN.match(f) for f in FEATURE_NAMES),\
-            "Features do not match pattern: " + ", ".join(f for f in FEATURE_NAMES
-                                                          if not FEATURE_PATTERN.match(f))
+        assert all(FEATURE_TEMPLATE_PATTERN.match(f) for f in FEATURE_TEMPLATES),\
+            "Features do not match pattern: " + ", ".join(f for f in FEATURE_TEMPLATES
+                                                          if not FEATURE_TEMPLATE_PATTERN.match(f))
         # convert the list of features textual descriptions to the actual fields
-        self.features = [Feature(feature_name,
-                                 tuple(FeatureElement(*m.group(1, 2, 3, 4))
-                                       for m in re.finditer(FEATURE_ELEMENT_PATTERN,
-                                                            feature_name)))
-                         for feature_name in FEATURE_NAMES]
+        self.feature_templates = [FeatureTemplate(feature_name,
+                                                  tuple(FeatureTemplateElement(*m.group(1, 2, 3, 4))
+                                                        for m in re.finditer(FEATURE_ELEMENT_PATTERN,
+                                                                             feature_name)))
+                                  for feature_name in FEATURE_TEMPLATES]
 
     def extract_features(self, state):
         """
         Calculate feature values according to current state
         :param state: current state of the parser
         """
-        features = {"b": 1}  # Bias
-        for feature in self.features:
-            values = calc_feature(feature, state)
+        features = {
+            "b": 1,  # Bias
+        }
+        for feature_template in self.feature_templates:
+            values = calc_feature(feature_template, state)
             if values is not None:
-                features["%s=%s" % (feature.name, " ".join(values))] = 1
+                features["%s=%s" % (feature_template.name, " ".join(values))] = 1
         return features
 
 
-def calc_feature(feature, state):
+def calc_feature(feature_template, state):
     values = []
-    for element in feature.elements:
+    for element in feature_template.elements:
         if element.source == "s":
             if len(state.stack) <= element.index:
                 return None
@@ -117,7 +123,7 @@ def calc_feature(feature, state):
             v = get_prop(node, p)
             if v is None:
                 return None
-            values.append(v)
+            values.append(str(v))
     return values
 
 
@@ -126,12 +132,16 @@ def get_prop(node, p):
         return get_attr(node, FEATURE_TO_ATTRIBUTE[p])
     elif p == "e" and node.incoming:
         return node.incoming[0].tag
-    else:
-        return None
     # elif p == "p":  # TODO add these
     #     pass
     # elif p == "q":
     #     pass
+    elif p == "P":
+        return len(node.incoming)
+    elif p == "C":
+        return len(node.outgoing)
+    else:
+        return None
 
 
 def get_attr(node, attr):
