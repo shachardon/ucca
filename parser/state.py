@@ -89,20 +89,18 @@ class Node(object):
                                      for e in self.outgoing)
 
     @property
-    def ancestors(self):
-        """
-        Find all parents of this node recursively, stopping if a cycle is detected (so self not included)
-        """
-        parents_ancestors = [d for parent in self.parents for d in parent.ancestors if d is not self]
-        return set(self.parents + parents_ancestors)
-
-    @property
     def descendants(self):
         """
         Find all children of this node recursively, stopping if a cycle is detected (so self not included)
         """
-        children_descendants = [d for child in self.children for d in child.descendants if d is not self]
-        return set(self.children + children_descendants)
+        result = []
+        queue = deque(node for node in self.children if node is not self)
+        while queue:
+            node = queue.popleft()
+            if node is not self and node not in result:
+                queue.extend(node.children)
+                result.append(node)
+        return result
 
     def __repr__(self):
         return Node.__name__ + "(" + str(self.index) + \
