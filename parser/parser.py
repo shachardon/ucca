@@ -56,7 +56,7 @@ class Parser(object):
             print("Training %d iterations" % iterations)
         for iteration in range(1, iterations + 1):
             if not Config().quiet:
-                print("Iteration %d: " % iteration, end="")
+                print("Iteration %d: " % iteration)
             passages = [passage for predicted_passage, passage in self.parse(passages, train=True)]
             shuffle(passages)
         self.model.average_weights()
