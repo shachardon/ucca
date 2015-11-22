@@ -300,7 +300,8 @@ if __name__ == "__main__":
         results = []
         for guessed_passage, ref_passage in parser.parse(read_passages(args.passages)):
             if isinstance(ref_passage, core.Passage):
-                results.append(evaluate(guessed_passage, ref_passage, verbose=args.verbose))
+                results.append(evaluate(guessed_passage, ref_passage,
+                                        verbose=args.verbose and guessed_passage is not None))
             if guessed_passage is not None:
                 write_passage(guessed_passage, args.outdir, args.prefix, args.binary, args.verbose)
         if results:
