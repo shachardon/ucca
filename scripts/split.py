@@ -15,12 +15,21 @@ def split_passages(directory, train=TRAIN_DEFAULT, dev=DEV_DEFAULT):
         if not path.exists(subdirectory):
             mkdir(subdirectory)
     filenames = sorted(listdir(directory))
+    print("Creating link in train/ to: ", end="")
     for f in filenames[:train]:
         symlink('../' + directory + f, 'train/' + f)
+        print(f, end=" ")
+    print()
+    print("Creating link in dev/ to: ", end="")
     for f in filenames[train:train + dev]:
         symlink('../' + directory + f, 'dev/' + f)
+        print(f, end=" ")
+    print()
+    print("Creating link in test/ to: ", end="")
     for f in filenames[train + dev:]:
         symlink('../' + directory + f, 'test/' + f)
+        print(f, end=" ")
+    print()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=desc)
