@@ -5,11 +5,8 @@ from operator import attrgetter
 
 from action import SHIFT, NODE, IMPLICIT, REDUCE, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, SWAP, FINISH
 from config import Config
-from convert import is_punctuation
 from oracle import ROOT_ID
-from ucca import core
-from ucca import layer0
-from ucca import layer1
+from ucca import core, layer0, layer1, convert
 
 
 class Node(object):
@@ -153,7 +150,7 @@ class State(object):
             root_node = passage.by_id(ROOT_ID)
         else:  # During parsing, create from plain text: assume passage is list of lists of strings
             self.tokens = passage
-            self.nodes = [Node(i, text=token, paragraph=paragraph, tag=is_punctuation(token))
+            self.nodes = [Node(i, text=token, paragraph=paragraph, tag=convert.is_punctuation(token))
                           for i, (paragraph, token) in
                           enumerate((paragraph, token) for paragraph, paragraph_tokens in
                                     enumerate(passage) for token in paragraph_tokens)]
@@ -301,12 +298,8 @@ class State(object):
         """
         passage = core.Passage(self.passage_id)
         l0 = layer0.Layer0(passage)
-        for i, par in enumerate(self.tokens):
-            for token in par:
-                l0.add_terminal(text=token, punct=is_punctuation(token),
-                                paragraph=(i + 1))
-
-        terminals = passage.layer(layer0.LAYER_ID).all
+        terminals = [l0.add_terminal(text=terminal.text, punct=terminal.tag == layer0.NodeTags.Punct,
+                                     paragraph=terminal.paragraph) for terminal in self.terminals]
         l1 = layer1.Layer1(passage)
         if self.passage:  # We are in training and we have a gold passage
             passage.nodes[ROOT_ID].extra["remarks"] = self.root.node_id  # For reference
