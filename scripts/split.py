@@ -11,30 +11,35 @@ DEV_DEFAULT = 35
 # TEST on all the rest
 
 
-def link(src, dest):
-    try:
-        symlink(src, dest)
-    except NotImplementedError:
+def copy(src, dest, link=False):
+    if link:
+        try:
+            symlink(src, dest)
+        except (NotImplementedError, OSError):
+            copyfile(src, dest)
+    else:
         copyfile(src, dest)
 
-def split_passages(directory, train=TRAIN_DEFAULT, dev=DEV_DEFAULT):
+def split_passages(directory, train=TRAIN_DEFAULT, dev=DEV_DEFAULT, link=False):
     for subdirectory in 'train', 'dev', 'test':
         if not path.exists(subdirectory):
             mkdir(subdirectory)
     filenames = sorted(listdir(directory))
-    print("Creating link in train/ to: ", end="")
+    prefix = "../" if link else ""
+    print_format = "Creating link in %s to: " if link else "Copying to %s: "
+    print(print_format % "train/", end="")
     for f in filenames[:train]:
-        symlink('../' + directory + f, 'train/' + f)
+        copy(prefix + directory + f, 'train/' + f, link)
         print(f, end=" ")
     print()
-    print("Creating link in dev/ to: ", end="")
+    print(print_format % "dev/", end="")
     for f in filenames[train:train + dev]:
-        symlink('../' + directory + f, 'dev/' + f)
+        copy(prefix + directory + f, 'dev/' + f, link)
         print(f, end=" ")
     print()
-    print("Creating link in test/ to: ", end="")
+    print(print_format % "test/", end="")
     for f in filenames[train + dev:]:
-        symlink('../' + directory + f, 'test/' + f)
+        copy(prefix + directory + f, 'test/' + f, link)
         print(f, end=" ")
     print()
 
@@ -46,6 +51,8 @@ if __name__ == '__main__':
                         help="size of train split (default: %d)" % TRAIN_DEFAULT)
     parser.add_argument('-d', '--dev', default=DEV_DEFAULT,
                         help="size of dev split (default: %d)" % DEV_DEFAULT)
+    parser.add_argument('-l', '--link', action='store_true',
+                        help="create symbolic link instead of copying")
     args = parser.parse_args()
 
-    split_passages(args.directory, args.train, args.dev)
+    split_passages(args.directory, args.train, args.dev, link=args.link)
