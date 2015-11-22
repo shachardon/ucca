@@ -252,49 +252,58 @@ def get_scores(p1, p2, eval_type):
         for error, freq in err_counter.most_common():
             print(error[0], '\t', error[1], '\t', freq)
             
+def evaluate_and_print(guess_passage, gold_passage):
+    options = type('Options', (object,), { "units": true, "fscore": True, "errors": True })
+    for passage in (guess_passage, gold_passage):
+        flatten_centers(passage)  # flatten Cs inside Cs
+
+    for evaluation_type in "labeled", "unlabeled", "weak_labeled":
+        get_scores(passages[0], passages[1], evaluation_type)
+
 ################
 # MAIN         #
 ################
 
-opt_parser = cmd_line_parser()
-(options, args) = opt_parser.parse_args()
-if len(args) > 0:
-    opt_parser.error("all arguments must be flagged")
+if __name__ == "__main__":
+    opt_parser = cmd_line_parser()
+    (options, args) = opt_parser.parse_args()
+    if len(args) > 0:
+        opt_parser.error("all arguments must be flagged")
 
-if options.guessed is None or options.ref is None:
-    opt_parser.error("missing arguments. type --help for help.")
-if options.pid is not None and options.from_xids is not None:
-    opt_parser.error("inconsistent parameters. you can't have both a pid and from_xids paramters.")
+    if options.guessed is None or options.ref is None:
+        opt_parser.error("missing arguments. type --help for help.")
+    if options.pid is not None and options.from_xids is not None:
+        opt_parser.error("inconsistent parameters. you can't have both a pid and from_xids paramters.")
 
-# if options.db_filename is None:
-    # Read the xmls from files
-xmls = []
-files = [options.guessed, options.ref]
-for filename in files:
-    in_file = open(filename)
-    xmls.append(ElementTree().parse(in_file))
-    in_file.close()
-# elif options.ref_from_file:
-#     xmls = ucca_db.get_xml_trees(options.db_filename, options.pid, [options.guessed])
-#     in_file = open(options.ref)
-#     xmls.append(ElementTree().parse(in_file))
-#     in_file.close()
-# else:
-#     keys = [options.guessed, options.ref]
-#     if options.from_xids:
-#         xmls = ucca_db.get_by_xids(options.db_filename, keys)
-#     else:
-#         xmls = ucca_db.get_xml_trees(options.db_filename, options.pid, keys)
+    # if options.db_filename is None:
+        # Read the xmls from files
+    xmls = []
+    files = [options.guessed, options.ref]
+    for filename in files:
+        in_file = open(filename)
+        xmls.append(ElementTree().parse(in_file))
+        in_file.close()
+    # elif options.ref_from_file:
+    #     xmls = ucca_db.get_xml_trees(options.db_filename, options.pid, [options.guessed])
+    #     in_file = open(options.ref)
+    #     xmls.append(ElementTree().parse(in_file))
+    #     in_file.close()
+    # else:
+    #     keys = [options.guessed, options.ref]
+    #     if options.from_xids:
+    #         xmls = ucca_db.get_by_xids(options.db_filename, keys)
+    #     else:
+    #         xmls = ucca_db.get_xml_trees(options.db_filename, options.pid, keys)
 
-passages = [convert.from_standard(x) for x in xmls]
+    passages = [convert.from_standard(x) for x in xmls]
 
-for passage in passages:
-    flatten_centers(passage)  # flatten Cs inside Cs
+    for passage in passages:
+        flatten_centers(passage)  # flatten Cs inside Cs
 
-if options.units or options.fscore or options.errors:
-    for evaluation_type in "labeled", "unlabeled", "weak_labeled":
-        get_scores(passages[0], passages[1], evaluation_type)
-#else:
-#    scene_structures = [layer1s.SceneStructure(x) for x in passages]
-#    comp = comparison.PassageComparison(scene_structures[0], scene_structures[1])
-#    comp.text_report(sys.stdout)
+    if options.units or options.fscore or options.errors:
+        for evaluation_type in "labeled", "unlabeled", "weak_labeled":
+            get_scores(passages[0], passages[1], evaluation_type)
+    #else:
+    #    scene_structures = [layer1s.SceneStructure(x) for x in passages]
+    #    comp = comparison.PassageComparison(scene_structures[0], scene_structures[1])
+    #    comp.text_report(sys.stdout)
