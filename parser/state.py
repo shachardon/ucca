@@ -1,27 +1,28 @@
+import sys
 from collections import deque, defaultdict
 from itertools import groupby
 from operator import attrgetter
-import sys
 
 from action import SHIFT, NODE, IMPLICIT, REDUCE, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, SWAP, FINISH
 from config import Config
-from ucca.convert import from_text
+from convert import is_punctuation
+from oracle import ROOT_ID
+from ucca import core
 from ucca import layer0
 from ucca import layer1
-from ucca import core
-from oracle import ROOT_ID
 
 
 class Node(object):
     """
     Temporary representation for core.Node with only relevant information for parsing
     """
-    def __init__(self, index, orig_node=None, text=None, tag=None, implicit=False):
+    def __init__(self, index, orig_node=None, text=None, paragraph=None, tag=None, implicit=False):
         self.index = index  # Index in the configuration's node list
         self.orig_node = orig_node  # Associated core.Node from the original Passage, during training
         self.node_id = orig_node.ID if orig_node else None  # ID of the original node
         self.text = text  # Text for terminals, None for non-terminals
-        self.tag = tag  # During training, the node tag of the original node (Word/Punctuation)
+        self.paragraph = paragraph  # int for terminals, None for non-terminals
+        self.tag = tag  # Node tag of the original node (Word/Punctuation)
         self.node_index = int(self.node_id.split(core.Node.ID_SEPARATOR)[1]) if orig_node else None
         self.outgoing = []  # Edge list
         self.incoming = []  # Edge list
@@ -144,16 +145,18 @@ class State(object):
         self.finished = False
         self.passage = isinstance(passage, core.Passage)
         if self.passage:  # During training or evaluation, create from gold Passage
-            self.nodes = [Node(i, orig_node=x, text=x.text, tag=x.tag) for i, x in
-                          enumerate(passage.layer(layer0.LAYER_ID).all)]
+            self.nodes = [Node(i, orig_node=x, text=x.text, paragraph=x.paragraph, tag=x.tag)
+                          for i, x in enumerate(passage.layer(layer0.LAYER_ID).all)]
             self.tokens = [[terminal.text for terminal in terminals]
                            for _, terminals in groupby(passage.layer(layer0.LAYER_ID).all,
                                                        key=attrgetter('paragraph'))]
             root_node = passage.by_id(ROOT_ID)
         else:  # During parsing, create from plain text: assume passage is list of lists of strings
             self.tokens = passage
-            self.nodes = [Node(i, text=token) for i, token in
-                          enumerate(token for paragraph in passage for token in paragraph)]
+            self.nodes = [Node(i, text=token, paragraph=paragraph, tag=is_punctuation(token))
+                          for i, (paragraph, token) in
+                          enumerate((paragraph, token) for paragraph, paragraph_tokens in
+                                    enumerate(passage) for token in paragraph_tokens)]
             root_node = None
         if callback is not None:
             callback(self)
@@ -296,8 +299,13 @@ class State(object):
         Create final passage from temporary representation
         :return: core.Passage created from self.nodes
         """
-        paragraphs = [" ".join(paragraph) for paragraph in self.tokens]
-        passage = from_text(paragraphs, self.passage_id)
+        passage = core.Passage(self.passage_id)
+        l0 = layer0.Layer0(passage)
+        for i, par in enumerate(self.tokens):
+            for token in par:
+                l0.add_terminal(text=token, punct=is_punctuation(token),
+                                paragraph=(i + 1))
+
         terminals = passage.layer(layer0.LAYER_ID).all
         l1 = layer1.Layer1(passage)
         if self.passage:  # We are in training and we have a gold passage

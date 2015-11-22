@@ -1,6 +1,6 @@
 import re
 
-from ucca import layer1
+from ucca import layer0, layer1
 
 FEATURE_ELEMENT_PATTERN = re.compile("([sb])(\d)([lru]*)([wtepqPC]+)")
 FEATURE_TEMPLATE_PATTERN = re.compile("^(%s)+$" % FEATURE_ELEMENT_PATTERN.pattern)
@@ -120,7 +120,11 @@ def calc_feature(feature_template, state):
             else:  # child == "u" and len(node.outgoing) > 1
                 return None
         for p in element.properties:
-            v = get_prop(node, p)
+            try:
+                v = get_separator_prop(state.stack[-1:-3:-1], state.terminals, p) if p in "pq" \
+                    else get_prop(node, p)
+            except (AttributeError, IndexError):
+                v = None
             if v is None:
                 return None
             values.append(str(v))
@@ -128,24 +132,28 @@ def calc_feature(feature_template, state):
 
 
 def get_prop(node, p):
-    try:
-        if p == "w":
-            return get_head_terminal(node).text
-        elif p == "t":
-            return get_head_terminal(node).pos_tag
-        elif p == "e" and node.incoming:
-            return node.incoming[0].tag
-        # elif p == "p":  # TODO add these
-        #     pass
-        # elif p == "q":
-        #     pass
-        elif p == "P":
-            return len(node.incoming)
-        elif p == "C":
-            return len(node.outgoing)
-    except AttributeError:
-        pass
-    return None
+    if p == "w":
+        return get_head_terminal(node).text
+    if p == "t":
+        return get_head_terminal(node).pos_tag
+    if p == "e":
+        return node.incoming[0].tag
+    if p == "P":
+        return len(node.incoming)
+    if p == "C":
+        return len(node.outgoing)
+
+
+def get_separator_prop(nodes, terminals, p):
+    if len(nodes) < 2:
+        return None
+    t0, t1 = sorted([get_head_terminal(node) for node in nodes], key=lambda t: t.index)
+    punctuation = [terminal for terminal in terminals[t0.index + 1:t1.index]
+                   if terminal.tag == layer0.NodeTags.Punct]
+    if p == "p" and len(punctuation) == 1:
+        return punctuation[0].text
+    if p == "q":
+        return len(punctuation)
 
 
 EDGE_PRIORITY = {tag: i for i, tag in enumerate((
