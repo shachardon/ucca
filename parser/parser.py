@@ -95,13 +95,13 @@ class Parser(object):
             history = set()
             self.oracle = Oracle(passage) if isinstance(passage, core.Passage) else None
             failed = False
+            predicted_passage = None
             try:
                 self.parse_passage(history, train)  # This is where the actual parsing takes place
             except AssertionError as e:
                 if train:
                     raise
                 failed = True
-                predicted_passage = None
                 if Config().verbose:
                     print(e)
                 if not Config().quiet:
@@ -298,10 +298,10 @@ if __name__ == "__main__":
     parser.train(read_passages(args.train), iterations=args.iterations)
     if args.passages:
         results = []
-        for pred_passage, passage in parser.parse(read_passages(args.passages)):
-            if isinstance(passage, core.Passage):
-                results.append(evaluate(pred_passage, passage, verbose=args.verbose))
-            if pred_passage is not None:
-                write_passage(pred_passage, args.outdir, args.prefix, args.binary, args.verbose)
+        for guessed_passage, ref_passage in parser.parse(read_passages(args.passages)):
+            if isinstance(ref_passage, core.Passage):
+                results.append(evaluate(guessed_passage, ref_passage, verbose=args.verbose))
+            if guessed_passage is not None:
+                write_passage(guessed_passage, args.outdir, args.prefix, args.binary, args.verbose)
         if results:
             print_aggregate(results)
