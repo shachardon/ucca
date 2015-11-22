@@ -13,6 +13,7 @@ from config import Config
 from diff import diff_passages
 from features import FeatureExtractor
 from oracle import Oracle
+from scripts.evaluate import evaluate, print_aggregate
 from scripts.util import file2passage, passage2file
 from state import State
 from ucca import core, layer0
@@ -52,15 +53,15 @@ class Parser(object):
             return
 
         if not Config().quiet:
-            print("Training %d iterations on %d passages" % (iterations, len(passages)))
+            print("Training %d iterations" % iterations)
         for iteration in range(1, iterations + 1):
             if not Config().quiet:
-                print("Iteration %d" % iteration, end=": ")
+                print("Iteration %d: " % iteration, end="")
+            passages = [passage for predicted_passage, passage in self.parse(passages, train=True)]
             shuffle(passages)
-            all(self.parse(passages, train=True))
         self.model.average_weights()
         if not Config().quiet:
-            print("Trained %d iterations on %d passages" % (iterations, len(passages)))
+            print("Trained %d iterations" % iterations)
 
         if self.model_file is not None:  # Save trained model
             if not Config().quiet:
@@ -75,21 +76,20 @@ class Parser(object):
     def parse(self, passages, train=False):
         """
         Parse given passages
-        :param passages: iterable of either Passage objects, or of lists of lists of tokens
+        :param passages: iterable of pairs of (either Passage objects, or of lists of lists of tokens),
+                                               and passage IDs
         :param train: use oracle to train on given passages, or just parse with classifier?
-        :return: generator of parsed passages
+        :return: generator of pairs of (parsed passage, original passage)
         """
         self.total_actions = 0
         self.total_correct = 0
         total_duration = 0
         total_words = 0
-        if not Config().quiet:
-            print((str(len(passages)) if passages else "No") + " passages to parse")
-        for passage in passages:
+        num_passages = 0
+        for passage, passage_id in passages:
             started = time.time()
             self.action_count = 0
             self.correct_count = 0
-            passage, passage_id = self.read_passage(passage)
             assert not train or isinstance(passage, core.Passage), "Cannot train on unannotated passage"
             self.state = State(passage, passage_id, self.pos_tag)
             history = set()
@@ -124,15 +124,17 @@ class Parser(object):
             self.total_actions += self.action_count
             total_duration += duration
             total_words += words
-            yield predicted_passage
+            num_passages += 1
+            yield predicted_passage, passage
 
+        print("Parsed %d passages" % num_passages)
         if not Config().quiet and self.oracle and self.total_actions:
             print("Overall %s accuracy: %.3f (%d/%d)" % (
                 "train" if train else "test",
                 self.total_correct / self.total_actions, self.total_correct, self.total_actions))
-        if not Config().quiet and passages:
+        if not Config().quiet and num_passages:
             print("Total time: %.3fs (average time/passage: %.3fs, average words/second: %d)" % (
-                total_duration, total_duration / len(passages), total_words / total_duration),
+                total_duration, total_duration / num_passages, total_words / total_duration),
                   flush=True)
 
     @staticmethod
@@ -144,11 +146,11 @@ class Parser(object):
         """
         if isinstance(passage, core.Passage):
             if not Config().quiet:
-                print("passage " + passage.ID, end=Config().line_end)
+                print("passage " + passage.ID, end=Config().line_end, flush=True)
             passage_id = passage.ID
         elif os.path.exists(passage):  # a file
             if not Config().quiet:
-                print("passage '%s'" % passage, end=Config().line_end)
+                print("passage '%s'" % passage, end=Config().line_end, flush=True)
             try:
                 passage = file2passage(passage)  # XML or binary format
                 passage_id = passage.ID
@@ -277,15 +279,27 @@ def all_files(dirs):
     return [f for f in dirs if not os.path.isdir(f)]
 
 
+def read_passages(passages):
+    return (Parser.read_passage(passage) for passage in all_files(passages))
+
+
+def write_passage(passage, outdir, prefix, binary, verbose):
+    suffix = ".pickle" if binary else ".xml"
+    outfile = outdir + os.path.sep + prefix + passage.ID + suffix
+    if verbose:
+        print("Writing passage '%s'..." % outfile)
+    passage2file(passage, outfile, binary=binary)
+
+
 if __name__ == "__main__":
     args = Config().args
     parser = Parser(args.model)
-    parser.train(all_files(args.train), iterations=args.iterations)
-    for pred_passage in parser.parse(all_files(args.passages)):
-        if pred_passage is None:
-            continue
-        suffix = ".pickle" if args.binary else ".xml"
-        outfile = args.outdir + os.path.sep + args.prefix + pred_passage.ID + suffix
-        if args.verbose:
-            print("Writing passage '%s'..." % outfile)
-        passage2file(pred_passage, outfile, binary=args.binary)
+    parser.train(read_passages(args.train), iterations=args.iterations)
+    results = []
+    for pred_passage, passage in parser.parse(read_passages(args.passages)):
+        if isinstance(passage, core.Passage):
+            results.append(evaluate(pred_passage, passage, verbose=args.verbose))
+        if pred_passage is not None:
+            write_passage(pred_passage, args.outdir, args.prefix, args.binary, args.verbose)
+    if results:
+        print_aggregate(results)

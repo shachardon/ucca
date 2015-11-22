@@ -26,8 +26,9 @@ class Oracle(object):
             return FINISH
 
         if state.stack:
-            incoming = self.edges_remaining.intersection(state.stack[-1].orig_node.incoming)
-            outgoing = self.edges_remaining.intersection(state.stack[-1].orig_node.outgoing)
+            s0 = state.stack[-1]
+            incoming = self.edges_remaining.intersection(s0.orig_node.incoming)
+            outgoing = self.edges_remaining.intersection(s0.orig_node.outgoing)
             if not incoming and not outgoing:
                 return REDUCE
 
@@ -38,12 +39,13 @@ class Oracle(object):
                 return SHIFT
 
             if len(state.stack) > 1:
+                s1 = state.stack[-2]
                 # Check for binary edges
                 for edges, prefix in (((e for e in incoming if
-                                        e.parent.ID == state.stack[-2].node_id),
+                                        e.parent.ID == s1.node_id),
                                        "RIGHT"),
                                       ((e for e in outgoing if
-                                        e.child.ID == state.stack[-2].node_id),
+                                        e.child.ID == s1.node_id),
                                        "LEFT")):
                     for edge in edges:
                         self.edges_remaining.remove(edge)

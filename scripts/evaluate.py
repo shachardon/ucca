@@ -73,7 +73,7 @@ def to_text(p, terms):
     return ' '.join(pre_context) + ' { ' + ' '.join(words) + ' } ' + ' '.join(post_context)
 
 
-def mutual_yields(passage1, passage2, eval_type, separate_remotes=True):
+def mutual_yields(passage1, passage2, eval_type, separate_remotes=True, verbose=True):
     """
     returns a set of all the yields such that both passages have a unit with that yield.
     eval type can be:
@@ -104,21 +104,26 @@ def mutual_yields(passage1, passage2, eval_type, separate_remotes=True):
                         mutual_ys.add(y)
                     else:
                         error_counter[(str(tags1), str(tags2))] += 1
-                        if ('E' in tags1 and 'C' in tags2) or \
-                           ('C' in tags1 and 'E' in tags2):
-                            print('C-E', to_text(passage1, y))
-                        elif ('P' in tags1 and 'C' in tags2) or \
-                             ('C' in tags1 and {'P', 'S'} & tags2):
-                            print('P|S-C', to_text(passage1, y))
-                        elif ('A' in tags1 and 'E' in tags2) or \
-                             ('E' in tags1 and 'A' in tags2):
-                            print('A-E', to_text(passage1, y))
+                        if verbose:
+                            if ('E' in tags1 and 'C' in tags2) or \
+                               ('C' in tags1 and 'E' in tags2):
+                                print('C-E', to_text(passage1, y))
+                            elif ('P' in tags1 and 'C' in tags2) or \
+                                 ('C' in tags1 and {'P', 'S'} & tags2):
+                                print('P|S-C', to_text(passage1, y))
+                            elif ('A' in tags1 and 'E' in tags2) or \
+                                 ('E' in tags1 and 'A' in tags2):
+                                print('A-E', to_text(passage1, y))
 
         return mutual_ys, error_counter
-    
-    map1, map1_remotes = create_passage_yields(passage1, not separate_remotes)
+
     map2, map2_remotes = create_passage_yields(passage2, not separate_remotes)
-    
+
+    if passage1 is None:
+        return set(), set(), set(map2.keys()), set(), set(), set(map2_remotes.keys()), Counter()
+
+    map1, map1_remotes = create_passage_yields(passage1, not separate_remotes)
+
     output, errors = _find_mutuals(map1, map2)
     output_remotes = None
     if separate_remotes:
@@ -207,26 +212,64 @@ def get_text(p, positions):
             if 0 < pos <= len(p.layer("0").all)]
 
 
-def get_scores(p1, p2, eval_type):
+class Results(object):
+    def __init__(self, regular_scores, remote_scores):
+        self.regular_scores = regular_scores
+        self.remote_scores = remote_scores
+
+    def print(self):
+        print("\nRegular Edges:")
+        self.regular_scores.print()
+
+        print("\nRemote Edges:")
+        self.remote_scores.print()
+        print()
+
+    @classmethod
+    def aggregate(cls, results):
+        return Results(Scores.aggregate(r.regular_scores for r in results),
+                       Scores.aggregate(r.remote_scores for r in results))
+
+
+class Scores(object):
+    def __init__(self, num_matches, num_only_guessed, num_only_ref):
+        self.num_matches = num_matches
+        self.num_only_guessed = num_only_guessed
+        self.num_only_ref = num_only_ref
+        self.num_guessed = num_matches + num_only_guessed
+        self.num_ref = num_matches + num_only_ref
+        self.p = "NaN" if self.num_guessed == 0 else 1.0 * num_matches / self.num_guessed
+        self.r = "NaN" if self.num_ref == 0 else 1.0 * num_matches / self.num_ref
+        if "NaN" in (self.p, self.r):
+            self.f1 = "NaN"
+        elif (self.p, self.r) == (0, 0):
+            self.f1 = 0
+        else:
+            self.f1 = 2 * self.p * self.r / float(self.p + self.r)
+
+    def print(self):
+        print("Precision: {:.3} ({}/{})".format(self.p, self.num_matches, self.num_guessed))
+        print("Recall: {:.3} ({}/{})".format(self.r, self.num_matches, self.num_ref))
+        print("F1: {:.3}".format(self.f1))
+
+    @classmethod
+    def aggregate(cls, scores):
+        return Scores(sum(s.num_matches for s in scores),
+                      sum(s.num_only_guessed for s in scores),
+                      sum(s.num_only_ref for s in scores))
+
+
+def get_scores(p1, p2, eval_type, units, fscore, errors, verbose=True):
     """
     prints the relevant statistics and f-scores. eval_type can be 'unlabeled', 'labeled' or 'weak_labeled'.
     """
-    def _print_scores(num_matches, num_only_guessed, num_only_ref):
-        """Prints the F scores according to the given numbers."""
-        num_guessed = num_matches + num_only_guessed
-        num_ref = num_matches + num_only_ref
-        p = "NaN" if num_guessed == 0 else 1.0 * num_matches / num_guessed
-        r = "NaN" if num_ref == 0 else 1.0 * num_matches / num_ref
-        f = "NaN" if "NaN" in (p, r) else 0.0 if (p, r) == (0, 0) else 2 * p * r / float(p + r)
-
-        print("Precision: {:.3} ({}/{})".format(p, num_matches, num_guessed))
-        print("Recall: {:.3} ({}/{})".format(r, num_matches, num_ref))
-        print("F1: {:.3}".format(f))
-
-    mutual, all1, all2, mutual_rem, all1_rem, all2_rem, err_counter = mutual_yields(p1, p2, eval_type)
-    print("Evaluation type: (" + eval_type + ")")
+    mutual, all1, all2, mutual_rem, all1_rem, all2_rem, err_counter = \
+        mutual_yields(p1, p2, eval_type, verbose=verbose)
+    if verbose:
+        print("Evaluation type: (" + eval_type + ")")
+    res = None
     
-    if options.units:
+    if verbose and units and p1 is not None:
         print("==> Mutual Units:")
         for y in mutual:
             print(get_text(p1, y))
@@ -239,26 +282,44 @@ def get_scores(p1, p2, eval_type):
         for y in all2 - mutual:
             print(get_text(p1, y))
 
-    if options.fscore:
-        print("\nRegular Edges:")
-        _print_scores(len(mutual), len(all1 - mutual), len(all2 - mutual))
+    if fscore:
+        res = Results(Scores(len(mutual), len(all1 - mutual), len(all2 - mutual)),
+                      Scores(len(mutual_rem), len(all1_rem - mutual_rem), len(all2_rem - mutual_rem)))
+        if verbose:
+            res.print()
 
-        print("\nRemote Edges:")
-        _print_scores(len(mutual_rem), len(all1_rem - mutual_rem), len(all2_rem - mutual_rem))
-        print()
-
-    if options.errors:
+    if verbose and errors and err_counter:
         print("\nConfusion Matrix:\n")
         for error, freq in err_counter.most_common():
             print(error[0], '\t', error[1], '\t', freq)
-            
-def evaluate_and_print(guess_passage, gold_passage):
-    options = type('Options', (object,), { "units": true, "fscore": True, "errors": True })
-    for passage in (guess_passage, gold_passage):
-        flatten_centers(passage)  # flatten Cs inside Cs
 
-    for evaluation_type in "labeled", "unlabeled", "weak_labeled":
-        get_scores(passages[0], passages[1], evaluation_type)
+    return res
+
+EVAL_TYPES = "labeled", "unlabeled", "weak_labeled"
+
+
+def evaluate(guessed_passage, ref_passage, verbose=True, units=True, fscore=True, errors=True):
+    for passage in (guessed_passage, ref_passage):
+        if passage is not None:
+            flatten_centers(passage)  # flatten Cs inside Cs
+
+    res = {}
+    for evaluation_type in EVAL_TYPES:
+        res[evaluation_type] = get_scores(guessed_passage, ref_passage, evaluation_type,
+                                          units, fscore, errors, verbose)
+
+    return res
+
+
+def aggregate(results):
+    return {t: Results.aggregate(r[t] for r in results) for t in EVAL_TYPES}
+
+
+def print_aggregate(results):
+    for t, r in aggregate(results).items():
+        print("Evaluation type: (" + t + ")")
+        r.print()
+
 
 ################
 # MAIN         #
@@ -273,16 +334,15 @@ if __name__ == "__main__":
     if options.guessed is None or options.ref is None:
         opt_parser.error("missing arguments. type --help for help.")
     if options.pid is not None and options.from_xids is not None:
-        opt_parser.error("inconsistent parameters. you can't have both a pid and from_xids paramters.")
+        opt_parser.error("inconsistent parameters. you can't have both a pid and from_xids parameters.")
 
     # if options.db_filename is None:
         # Read the xmls from files
     xmls = []
     files = [options.guessed, options.ref]
     for filename in files:
-        in_file = open(filename)
-        xmls.append(ElementTree().parse(in_file))
-        in_file.close()
+        with open(filename) as in_file:
+            xmls.append(ElementTree().parse(in_file))
     # elif options.ref_from_file:
     #     xmls = ucca_db.get_xml_trees(options.db_filename, options.pid, [options.guessed])
     #     in_file = open(options.ref)
@@ -297,12 +357,9 @@ if __name__ == "__main__":
 
     passages = [convert.from_standard(x) for x in xmls]
 
-    for passage in passages:
-        flatten_centers(passage)  # flatten Cs inside Cs
-
     if options.units or options.fscore or options.errors:
-        for evaluation_type in "labeled", "unlabeled", "weak_labeled":
-            get_scores(passages[0], passages[1], evaluation_type)
+        evaluate(passages[0], passages[1],
+                 units=options.units, fscore=options.fscore, errors=options.errors)
     #else:
     #    scene_structures = [layer1s.SceneStructure(x) for x in passages]
     #    comp = comparison.PassageComparison(scene_structures[0], scene_structures[1])
