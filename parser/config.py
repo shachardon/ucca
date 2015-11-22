@@ -27,7 +27,7 @@ class Config(object, metaclass=Singleton):
                                help="display detailed information while parsing")
         argparser.add_argument('-q', '--quiet', action='store_true', default=False,
                                help="display absolutely no information while parsing")
-        argparser.add_argument('-r', '--learningrate', type=float, default=0.001,
+        argparser.add_argument('-r', '--learningrate', type=float, default=1,
                                help="learning rate for the model weight updates")
         argparser.add_argument('-l', '--checkloops', action='store_true', default=False,
                                help="check for infinite loops")
