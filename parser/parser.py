@@ -296,11 +296,12 @@ if __name__ == "__main__":
     args = Config().args
     parser = Parser(args.model)
     parser.train(read_passages(args.train), iterations=args.iterations)
-    results = []
-    for pred_passage, passage in parser.parse(read_passages(args.passages)):
-        if isinstance(passage, core.Passage):
-            results.append(evaluate(pred_passage, passage, verbose=args.verbose))
-        if pred_passage is not None:
-            write_passage(pred_passage, args.outdir, args.prefix, args.binary, args.verbose)
-    if results:
-        print_aggregate(results)
+    if args.passages:
+        results = []
+        for pred_passage, passage in parser.parse(read_passages(args.passages)):
+            if isinstance(passage, core.Passage):
+                results.append(evaluate(pred_passage, passage, verbose=args.verbose))
+            if pred_passage is not None:
+                write_passage(pred_passage, args.outdir, args.prefix, args.binary, args.verbose)
+        if results:
+            print_aggregate(results)
