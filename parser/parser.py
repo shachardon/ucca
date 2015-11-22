@@ -105,7 +105,7 @@ class Parser(object):
                 if Config().verbose:
                     print(e)
                 if not Config().quiet:
-                    print("failed,", end=Config().line_end)
+                    print("failed, ", end="")
             if not failed:
                 predicted_passage = self.state.create_passage() if not train or Config().verify else passage
                 if self.oracle:  # passage is a Passage object
