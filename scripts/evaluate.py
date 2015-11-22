@@ -227,8 +227,9 @@ class Results(object):
 
     @classmethod
     def aggregate(cls, results):
-        return Results(Scores.aggregate(r.regular_scores for r in results),
-                       Scores.aggregate(r.remote_scores for r in results))
+        regular_scores, remote_scores = zip(*((r.regular_scores, r.remote_scores) for r in results))
+        return Results(Scores.aggregate(regular_scores),
+                       Scores.aggregate(remote_scores))
 
 
 class Scores(object):
@@ -254,9 +255,11 @@ class Scores(object):
 
     @classmethod
     def aggregate(cls, scores):
-        return Scores(sum(s.num_matches for s in scores),
-                      sum(s.num_only_guessed for s in scores),
-                      sum(s.num_only_ref for s in scores))
+        num_matches, num_only_guessed, num_only_ref = zip(*(
+            (s.num_matches, s.num_only_guessed, s.num_only_ref) for s in scores))
+        return Scores(sum(num_matches),
+                      sum(num_only_guessed),
+                      sum(num_only_ref))
 
 
 def get_scores(p1, p2, eval_type, units, fscore, errors, verbose=True):
