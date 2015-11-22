@@ -78,14 +78,11 @@ class AveragedPerceptron(object):
         self.weights = self._totals / self._update_index
 
     def save(self, filename):
-        s = shelve.open(filename)
-        try:
-            s["feature_dictionary"] = self.feature_dictionary
-            s["weights"] = self.weights
-        finally:
-            s.close()
+        with shelve.open(filename) as db:
+            db["feature_dictionary"] = self.feature_dictionary
+            db["weights"] = self.weights
 
     def load(self, filename):
-        s = shelve.open(filename)
-        self.weights = s["weights"]
-        self.feature_dictionary = s["feature_dictionary"]
+        with shelve.open(filename) as db:
+            self.weights = s["weights"]
+            self.feature_dictionary = s["feature_dictionary"]
