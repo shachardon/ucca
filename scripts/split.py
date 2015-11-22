@@ -1,6 +1,7 @@
 import argparse
 from posix import mkdir
 from os import symlink, path, listdir
+from shutil import copyfile
 
 desc = """Split a directory of files into 'train', 'dev' and 'test' directories.
 All files not in either 'train' or 'dev' will go into 'test'.
@@ -9,6 +10,12 @@ TRAIN_DEFAULT = 290
 DEV_DEFAULT = 35
 # TEST on all the rest
 
+
+def link(src, dest):
+    try:
+        symlink(src, dest)
+    except NotImplementedError:
+        copyfile(src, dest)
 
 def split_passages(directory, train=TRAIN_DEFAULT, dev=DEV_DEFAULT):
     for subdirectory in 'train', 'dev', 'test':
