@@ -1,5 +1,7 @@
 import re
 
+from ucca import layer1
+
 FEATURE_ELEMENT_PATTERN = re.compile("([sb])(\d)([lru]*)([wtepqPC]+)")
 FEATURE_TEMPLATE_PATTERN = re.compile("^(%s)+$" % FEATURE_ELEMENT_PATTERN.pattern)
 
@@ -25,8 +27,6 @@ FEATURE_TEMPLATES = (
     # counts:
     "s0P", "s0C", "s1P", "s0C",
 )
-
-FEATURE_TO_ATTRIBUTE = {"w": "text", "t": "pos_tag"}
 
 
 class FeatureTemplate(object):
@@ -128,34 +128,52 @@ def calc_feature(feature_template, state):
 
 
 def get_prop(node, p):
-    if p in "wt":
-        return get_attr(node, FEATURE_TO_ATTRIBUTE[p])
-    elif p == "e" and node.incoming:
-        return node.incoming[0].tag
-    # elif p == "p":  # TODO add these
-    #     pass
-    # elif p == "q":
-    #     pass
-    elif p == "P":
-        return len(node.incoming)
-    elif p == "C":
-        return len(node.outgoing)
-    else:
-        return None
+    try:
+        if p == "w":
+            return get_head_terminal(node).text
+        elif p == "t":
+            return get_head_terminal(node).pos_tag
+        elif p == "e" and node.incoming:
+            return node.incoming[0].tag
+        # elif p == "p":  # TODO add these
+        #     pass
+        # elif p == "q":
+        #     pass
+        elif p == "P":
+            return len(node.incoming)
+        elif p == "C":
+            return len(node.outgoing)
+    except AttributeError:
+        pass
+    return None
 
 
-def get_attr(node, attr):
-    """
-    If the node has only one terminal child (recursively) or is a terminal, return the
-    terminal's attribute. Else, return None.
-    :param node: a state Node object
-    :param attr: the attribute name to get
-    """
-    while True:
-        value = getattr(node, attr, None)
-        if value is not None:
-            return value
-        if node.outgoing:
-            node = node.outgoing[0].child
-        else:
+EDGE_PRIORITY = {tag: i for i, tag in enumerate((
+    layer1.EdgeTags.Center,
+    layer1.EdgeTags.Connector,
+    layer1.EdgeTags.ParallelScene,
+    layer1.EdgeTags.Process,
+    layer1.EdgeTags.State,
+    layer1.EdgeTags.Participant,
+    layer1.EdgeTags.Adverbial,
+    layer1.EdgeTags.Elaborator,
+    layer1.EdgeTags.Relator,
+    layer1.EdgeTags.Function,
+    layer1.EdgeTags.Linker,
+    layer1.EdgeTags.LinkRelation,
+    layer1.EdgeTags.LinkArgument,
+    layer1.EdgeTags.Ground,
+    layer1.EdgeTags.Terminal,
+    layer1.EdgeTags.Punctuation,
+))}
+
+
+def get_head_terminal(node):
+    while node.text is None:  # Not a terminal
+        if not node.outgoing:
             return None
+        sorted_edges = sorted([edge for edge in node.outgoing
+                               if not edge.remote and not edge.child.implicit],
+                              key=lambda edge: EDGE_PRIORITY[edge.tag])
+        node = sorted_edges[0].child
+    return node
