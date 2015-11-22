@@ -27,6 +27,8 @@ def split_passages(directory, train=TRAIN_DEFAULT, dev=DEV_DEFAULT, link=False):
     filenames = sorted(listdir(directory))
     prefix = "../" if link else ""
     print_format = "Creating link in %s to: " if link else "Copying to %s: "
+    if not directory.endswith("/"):
+        directory = directory + "/"
     print(print_format % "train/", end="")
     for f in filenames[:train]:
         copy(prefix + directory + f, 'train/' + f, link)
