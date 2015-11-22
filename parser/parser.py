@@ -280,7 +280,8 @@ def all_files(dirs):
 
 
 def read_passages(passages):
-    return (Parser.read_passage(passage) for passage in all_files(passages))
+    files = all_files(passages)
+    return (Parser.read_passage(passage) for passage in files) if files else []
 
 
 def write_passage(passage, outdir, prefix, binary, verbose):
