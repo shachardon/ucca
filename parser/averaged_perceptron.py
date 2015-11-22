@@ -32,12 +32,13 @@ class AveragedPerceptron(object):
             scores += value * weights
         return scores
 
-    def update(self, features, pred_action, true_action):
+    def update(self, features, pred_action, true_action, learning_rate=1):
         """
         Update classifier weights according to predicted and true action
         :param features: extracted feature values
         :param pred_action: action predicted by the classifier
         :param true_action: action returned by oracle
+        :param learning_rate: how much to scale the feature vector for the weight update
         """
         def update_feature(f, a, v):
             n = self._update_index - self._last_update[f][a]
@@ -49,8 +50,8 @@ class AveragedPerceptron(object):
         for feature, value in features.items():
             if not value:
                 continue
-            update_feature(feature, true_action.id, value)
-            update_feature(feature, pred_action.id, -value)
+            update_feature(feature, true_action.id, learning_rate * value)
+            update_feature(feature, pred_action.id, -learning_rate * value)
 
     def average_weights(self):
         """

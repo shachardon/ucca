@@ -198,7 +198,7 @@ class Parser(object):
                 self.correct_count += 1
                 action = true_action  # to copy orig_node
             elif train:
-                self.model.update(features, predicted_action, true_action)
+                self.model.update(features, predicted_action, true_action, Config().learning_rate)
                 if predicted_action.is_type(NODE, IMPLICIT) or (
                             random.random() < Config().override_action_probability):
                     action = true_action

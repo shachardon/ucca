@@ -27,6 +27,8 @@ class Config(object, metaclass=Singleton):
                                help="display detailed information while parsing")
         argparser.add_argument('-q', '--quiet', action='store_true', default=False,
                                help="display absolutely no information while parsing")
+        argparser.add_argument('-r', '--learningrate', type=float, default=0.001,
+                               help="learning rate for the model weight updates")
         argparser.add_argument('-l', '--checkloops', action='store_true', default=False,
                                help="check for infinite loops")
         argparser.add_argument('-V', '--verify', action='store_true', default=False,
@@ -49,6 +51,7 @@ class Config(object, metaclass=Singleton):
         self.quiet = self.args.quiet
         assert not(self.verbose and self.quiet), "--verbose and --quiet are incompatible"
 
+        self.learning_rate = self.args.learningrate
         self.check_loops = self.args.checkloops
         self.verify = self.args.verify
 
