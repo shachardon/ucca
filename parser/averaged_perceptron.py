@@ -1,3 +1,4 @@
+import os
 import shelve
 
 import numpy as np
@@ -83,6 +84,8 @@ class AveragedPerceptron(object):
             db["weights"] = self.weights
 
     def load(self, filename):
+        if not os.path.isfile(filename):
+            raise IOError("Model file not found: " + filename)
         with shelve.open(filename) as db:
             self.weights = db["weights"]
             self.feature_dictionary = db["feature_dictionary"]
