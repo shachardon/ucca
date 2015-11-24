@@ -84,5 +84,5 @@ class AveragedPerceptron(object):
 
     def load(self, filename):
         with shelve.open(filename) as db:
-            self.weights = s["weights"]
-            self.feature_dictionary = s["feature_dictionary"]
+            self.weights = db["weights"]
+            self.feature_dictionary = db["feature_dictionary"]
