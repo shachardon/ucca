@@ -84,8 +84,9 @@ class AveragedPerceptron(object):
             db["weights"] = self.weights
 
     def load(self, filename):
-        with shelve.open(filename) as db:
-            if not db:
-                raise IOError("Model file not found or is empty: " + filename)
-            self.weights = db["weights"]
-            self.feature_dictionary = db["feature_dictionary"]
+        try:
+            with shelve.open(filename, flag="r") as db:
+                self.weights = db["weights"]
+                self.feature_dictionary = db["feature_dictionary"]
+        except:
+            raise IOError("Model file not found: " + filename)
