@@ -14,5 +14,9 @@ before_script:
   - python -m nltk.downloader averaged_perceptron_tagger
 # command to run tests
 script:
-  - python parser/parser.py -t train -bm model.db
-  - python parser/parser.py dev -bm model.db
+  - python parser/parser.py -t doc/toy.xml -m toy
+  - python parser/parser.py doc/toy.xml -m toy
+# Uncomment this to train on the full training set (takes ~30 minutes):
+#  - python parser/parser.py -t train -bm model
+# Uncomment this to test on the full dev set:
+#  - python parser/parser.py dev -bm model
