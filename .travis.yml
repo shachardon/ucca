@@ -6,7 +6,7 @@ sudo: false
 install: pip install -r requirements.txt
 # command to prepare for tests
 before_script:
-# Uncomment this to get the full corpus (required totrain/test on it):
+# Uncomment this to get the full corpus (required to train/test on it):
 #  - curl -O http://www.cs.huji.ac.il/~danielh/ucca/ucca_corpus_pickle.tgz
 #  - mkdir pickle
 #  - tar xvzf ucca_corpus_pickle.tgz -C pickle
@@ -15,7 +15,7 @@ before_script:
   - python -m nltk.downloader averaged_perceptron_tagger
 # command to run tests
 script:
-  - python parser/parser.py -t doc/toy.xml -m model_toy
+  - python parser/parser.py -I 10 -t doc/toy.xml -m model_toy
   - python parser/parser.py doc/toy.xml -m model_toy
 # Uncomment this to train on the full training set (takes ~30 minutes):
 #  - python parser/parser.py -t train -bm model

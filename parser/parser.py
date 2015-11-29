@@ -57,7 +57,8 @@ class Parser(object):
         for iteration in range(1, iterations + 1):
             if not Config().quiet:
                 print("Iteration %d: " % iteration)
-            passages = [passage for predicted_passage, passage in self.parse(passages, train=True)]
+            passages = [(passage, passage.ID) for predicted_passage, passage in
+                        self.parse(passages, train=True)]
             shuffle(passages)
         self.model.average_weights()
         if not Config().quiet:
@@ -110,7 +111,7 @@ class Parser(object):
                 predicted_passage = self.state.create_passage() if not train or Config().verify else passage
                 if self.oracle:  # passage is a Passage object
                     if Config().verify:
-                        self.verify_passage(passage, predicted_passage)
+                        self.verify_passage(passage, predicted_passage, train)
                     if not Config().quiet:
                         print("accuracy: %.3f (%d/%d)" %
                               (self.correct_count/self.action_count, self.correct_count, self.action_count)
@@ -244,15 +245,15 @@ class Parser(object):
             raise Exception("No valid actions available") from e
 
     @staticmethod
-    def verify_passage(passage, predicted_passage):
+    def verify_passage(passage, predicted_passage, train):
         """
         Compare predicted passage to true passage and die if they differ
         :param passage: true passage
         :param predicted_passage: predicted passage to compare
         """
-        assert passage.equals(predicted_passage), \
-            "Failed to produce true passage\n" + diff_passages(
-                passage, predicted_passage)
+        assert passage.equals(predicted_passage), "Failed to produce true passage" + \
+                                                  (diff_passages(
+                                                      passage, predicted_passage) if train else "")
 
     @staticmethod
     def pos_tag(state):

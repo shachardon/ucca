@@ -55,4 +55,4 @@ def diff_passages(true_passage, pred_passage):
         outfile = "ucca_passage%s.xml" % pred_passage.ID
         sys.stderr.write("Writing passage '%s'...\n" % outfile)
         passage2file(pred_passage, outfile)
-    return "\n".join(lines)
+    return "\n" + "\n".join(lines)
