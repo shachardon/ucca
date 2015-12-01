@@ -228,8 +228,7 @@ class State(object):
                     assert child not in parent.children, "Edge must not already exist"
                     assert (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
                         "Edge tag must be T iff child is terminal"
-                    for d in child.descendants:
-                        assert parent not in d.children, "Detected cycle created by edge: %s" % self
+                    assert parent not in child.descendants, "Detected cycle created by edge: %s" % self
                     # Include this (instead of child not in children) to allow multiple edges between nodes:
                     # (as long as their tags are different)
                     # assert self.create_edge(action) not in parent.outgoing, "Edge must not already exist"
