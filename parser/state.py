@@ -28,6 +28,16 @@ class Node(object):
         self.node = None  # Associated core.Node, when creating final Passage
         self.implicit = implicit  # True or False
         self.swap_index = self.index  # Used to make sure nodes are not swapped more than once
+        self._terminals = None
+
+    def add_incoming(self, edge):
+        self.incoming.append(edge)
+        self.parents.append(edge.parent)
+
+    def add_outgoing(self, edge):
+        self.outgoing.append(edge)
+        self.children.append(edge.child)
+        self._terminals = None  # Invalidate terminals because we might have added some
 
     def add_to_l1(self, l1, parent, tag, terminals):
         """
@@ -75,6 +85,19 @@ class Node(object):
                 result.append(node)
         return result
 
+    @property
+    def terminals(self):
+        if self._terminals is None:
+            q = [self]
+            terminals = []
+            while q:
+                n = q.pop()
+                q.extend(n.children)
+                if n.text is not None:
+                    terminals.append(n)
+            self._terminals = sorted(terminals, key=attrgetter("index"))
+        return self._terminals
+
     def __repr__(self):
         return Node.__name__ + "(" + str(self.index) + \
                ((", " + self.text) if self.text else "") + \
@@ -108,10 +131,8 @@ class Edge(object):
             assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
             for d in self.child.descendants:
                 assert self.parent not in d.children, "Detected cycle created by edge: %s" % self
-        self.parent.outgoing.append(self)
-        self.parent.children.append(self.child)
-        self.child.incoming.append(self)
-        self.child.parents.append(self.parent)
+        self.parent.add_outgoing(self)
+        self.child.add_incoming(self)
 
     def __repr__(self):
         return Edge.__name__ + "(" + self.tag + ", " + self.parent + ", " + self.child +\
@@ -145,7 +166,7 @@ class State(object):
                           for i, x in enumerate(passage.layer(layer0.LAYER_ID).all)]
             self.tokens = [[terminal.text for terminal in terminals]
                            for _, terminals in groupby(passage.layer(layer0.LAYER_ID).all,
-                                                       key=attrgetter('paragraph'))]
+                                                       key=attrgetter("paragraph"))]
             root_node = passage.by_id(ROOT_ID)
         else:  # During parsing, create from plain text: assume passage is list of lists of strings
             self.tokens = passage

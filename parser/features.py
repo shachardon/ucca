@@ -2,28 +2,36 @@ import re
 
 from ucca import layer0, layer1
 
-FEATURE_ELEMENT_PATTERN = re.compile("([sb])(\d)([lru]*)([wtepqPC]+)")
+FEATURE_ELEMENT_PATTERN = re.compile("([sb])(\d)([lru]*)([wtepqxyPC]+)")
 FEATURE_TEMPLATE_PATTERN = re.compile("^(%s)+$" % FEATURE_ELEMENT_PATTERN.pattern)
 
 FEATURE_TEMPLATES = (
-    # unigrams:
+    # unigrams (Zhang and Clark 2009):
     "s0te", "s0we", "s1te", "s1we", "s2te", "s2we", "s3te", "s3we",
     "b0wt", "b1wt", "b2wt", "b3wt",
     "s0lwe", "s0rwe", "s0uwe", "s1lwe", "s1rwe", "s1uwe",
-    # bigrams:
+    # bigrams (Zhang and Clark 2009):
     "s0ws1w", "s0ws1e", "s0es1w", "s0es1e", "s0wb0w", "s0wb0t",
     "s0eb0w", "s0eb0t", "s1wb0w", "s1wb0t", "s1eb0w", "s1eb0t",
     "b0wb1w", "b0wb1t", "b0tb1w", "b0tb1t",
-    # trigrams:
+    # trigrams (Zhang and Clark 2009):
     "s0es1es2w", "s0es1es2e", "s0es1es2e", "s0es1eb0w", "s0es1eb0t",
     "s0es1wb0w", "s0es1wb0t", "s0ws1es2e", "s0ws1eb0t",
-    # extended:
+    # extended (Zhu et al. 2013):
     "s0llwe", "s0lrwe", "s0luwe", "s0rlwe", "s0rrwe",
     "s0ruwe", "s0ulwe", "s0urwe", "s0uuwe", "s1llwe",
     "s1lrwe", "s1luwe", "s1rlwe", "s1rrwe", "s1ruwe",
-    # separator:
+    # separator (Zhu et al. 2013):
     "s0wp", "s0wep", "s0wq", "s0weq", "s0es1ep", "s0es1eq",
     "s1wp", "s1wep", "s1wq", "s1weq",
+    # disco, unigrams (Maier 2015):
+    "s0xwe", "s1xwe", "s2xwe", "s3xwe",
+    "s0xte", "s1xte", "s2xte", "s3xte",
+    "s0xy", "s1xy", "s2xy", "s3xy",
+    # disco, bigrams (Maier 2015):
+    "s0xs1e", "s0xs1w", "s0xs1x", "s0ws1x", "s0es1x",
+    "s0xs2e", "s0xs2w", "s0xs2x", "s0es2x",
+    "s0ys1y", "s0ys2y", "s0xb0t", "s0xb0w",
     # counts:
     "s0P", "s0C", "s1P", "s0C",
 )
@@ -51,12 +59,14 @@ class FeatureTemplateElement(object):
         :param source: "s" or "b", whether the node comes from the stack or buffer respectively
         :param index: non-negative integer, the index of the element in the stack (reversed) or buffer
         :param children: possibly empty string in [lru]*, to select a (grand) child instead of the node
-        :param properties: the actual values to choose, in [wtepq]+, if available (else omit feature)
+        :param properties: the actual values to choose, if available (else omit feature), out of:
                            w: node text
                            t: node POS tag
                            e: tag of first incoming edge
                            p: unique separator punctuation between nodes
                            q: count of any separator punctuation between nodes
+                           x: gap type
+                           y: sum of gap lengths
                            P: number of parents
                            C: number of children
         """
@@ -138,10 +148,15 @@ def get_prop(node, p):
         return get_head_terminal(node).pos_tag
     if p == "e":
         return node.incoming[0].tag
+    if p == "x":
+        return gap_type(node)
+    if p == "y":
+        return gap_length_sum(node)
     if p == "P":
         return len(node.incoming)
     if p == "C":
         return len(node.outgoing)
+    raise Exception("Unknown property: " + p)
 
 
 def get_separator_prop(nodes, terminals, p):
@@ -185,3 +200,21 @@ def get_head_terminal(node):
                               key=lambda edge: EDGE_PRIORITY[edge.tag])
         node = sorted_edges[0].child
     return node
+
+
+def has_gaps(node):
+    return any(t1.index - t2.index > 1 for (t1, t2) in zip(node.terminals[1:], node.terminals[:-1]))
+
+
+def gap_length_sum(node):
+    return sum(t1.index - t2.index - 1 for (t1, t2) in zip(node.terminals[1:], node.terminals[:-1]))
+
+
+def gap_type(node):
+    if node.text is not None:
+        return "none"
+    if has_gaps(node):
+        return "pass"
+    if any(child.text is None and has_gaps(child) for child in node.children):
+        return "source"
+    return "none"
