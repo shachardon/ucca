@@ -244,9 +244,9 @@ class Scores(object):
         if "NaN" in (self.p, self.r):
             self.f1 = "NaN"
         elif (self.p, self.r) == (0, 0):
-            self.f1 = 0
+            self.f1 = 0.0
         else:
-            self.f1 = 2 * self.p * self.r / float(self.p + self.r)
+            self.f1 = 2.0 * self.p * self.r / float(self.p + self.r)
 
     def print(self):
         print("Precision: {:.3} ({}/{})".format(self.p, self.num_matches, self.num_guessed))
