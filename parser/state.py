@@ -309,9 +309,10 @@ class State(object):
         else:
             return None, None
 
-    def create_passage(self):
+    def create_passage(self, assert_proper=True):
         """
         Create final passage from temporary representation
+        :param assert_proper: fail if this results in an improper passage
         :return: core.Passage created from self.nodes
         """
         passage = core.Passage(self.passage_id)
@@ -326,7 +327,7 @@ class State(object):
         linkages = []  # To be handled after all non-linkage nodes are created
         self.topological_sort()  # Sort self.nodes
         for node in self.nodes:
-            if self.passage and Config().verify:
+            if self.passage and assert_proper:
                 assert node.text or node.outgoing or node.implicit, "Non-terminal leaf node: %s" % node
                 assert node.node or node is self.root or node.is_linkage, "Non-root without incoming: %s" % node
             if node.is_linkage:
@@ -339,23 +340,33 @@ class State(object):
                         edge.child.add_to_l1(l1, node, edge.tag, terminals)
 
         for node, edge in remotes:  # Add remote edges
-            node.node.add(edge.tag, edge.child.node, edge_attrib={"remote": True})
+            try:
+                assert node.node is not None, "Remote edge from nonexistent node"
+                node.node.add(edge.tag, edge.child.node, edge_attrib={"remote": True})
+            except AssertionError:
+                if assert_proper:
+                    raise
 
         for node in linkages:  # Add linkage nodes and edges
-            link_relation = None
-            link_args = []
-            for edge in node.outgoing:
-                if edge.tag == layer1.EdgeTags.LinkRelation:
-                    assert link_relation is None, "Multiple link relations: %s, %s" % (link_relation, edge.child.node)
-                    link_relation = edge.child.node
-                elif edge.tag == layer1.EdgeTags.LinkArgument:
-                    link_args.append(edge.child.node)
-            assert link_relation is not None, "No link relations: %s" % node
-            if len(link_args) < 2:
-                print("Less than two link arguments for linkage %s" % node, file=sys.stderr)
-            node.node = l1.add_linkage(link_relation, *link_args)
-            if node.node_id:  # We are in training and we have a gold passage
-                node.node.extra["remarks"] = node.node_id  # For reference
+            try:
+                link_relation = None
+                link_args = []
+                for edge in node.outgoing:
+                    assert edge.child.node is not None, "Linkage edge to nonexistent node"
+                    if edge.tag == layer1.EdgeTags.LinkRelation:
+                        assert link_relation is None, "Multiple link relations: %s, %s" % (link_relation, edge.child.node)
+                        link_relation = edge.child.node
+                    elif edge.tag == layer1.EdgeTags.LinkArgument:
+                        link_args.append(edge.child.node)
+                assert link_relation is not None, "No link relations: %s" % node
+                if len(link_args) < 2:
+                    print("Less than two link arguments for linkage %s" % node, file=sys.stderr)
+                node.node = l1.add_linkage(link_relation, *link_args)
+                if node.node_id:  # We are in training and we have a gold passage
+                    node.node.extra["remarks"] = node.node_id  # For reference
+            except AssertionError:
+                if assert_proper:
+                    raise
 
         return passage
 

@@ -97,18 +97,19 @@ class Parser(object):
             self.state = State(passage, passage_id, self.pos_tag)
             history = set()
             self.oracle = Oracle(passage) if isinstance(passage, core.Passage) else None
-            failed = False
             try:
                 self.parse_passage(history, train)  # This is where the actual parsing takes place
             except AssertionError as e:
                 if train:
                     raise
-                failed = True
                 if Config().verbose:
                     print(e)
                 if not Config().quiet:
                     print("failed, ", end="")
-            predicted_passage = self.state.create_passage() if not train or Config().verify else passage
+            if not train or Config().verify:
+                predicted_passage = self.state.create_passage(assert_proper=Config().verify)
+            else:
+                predicted_passage = passages
             if self.oracle:  # passage is a Passage object
                 if Config().verify:
                     self.verify_passage(passage, predicted_passage, train)
@@ -183,7 +184,9 @@ class Parser(object):
                     if train:
                         raise Exception("Error in oracle during training") from e
                 except AssertionError as e:
-                    raise Exception("Oracle returned invalid action: %s" % true_action) from e
+                    if Config().verbose:
+                        print("Oracle returned invalid action: %s" % true_action)
+                        print(e)
 
             features = self.feature_extractor.extract_features(self.state)
             predicted_action = self.predict_action(features)
