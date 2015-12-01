@@ -94,7 +94,7 @@ class Parser(object):
             self.action_count = 0
             self.correct_count = 0
             assert not train or isinstance(passage, core.Passage), "Cannot train on unannotated passage"
-            self.state = State(passage, passage_id, self.pos_tag)
+            self.state = State(passage, passage_id, callback=self.pos_tag)
             history = set()
             self.oracle = Oracle(passage) if isinstance(passage, core.Passage) else None
             try:
@@ -187,20 +187,19 @@ class Parser(object):
                     if Config().verbose:
                         print("Oracle returned invalid action: %s" % true_action)
                         print(e)
+                        true_action = None
 
             features = self.feature_extractor.extract_features(self.state)
-            predicted_action = self.predict_action(features)
+            predicted_action = self.predict_action(features, true_action)
             action = predicted_action
             prefix = " "  # Will be "*" if true action is taken instead of predicted one
             if true_action is None:
                 true_action = "?"
             elif predicted_action == true_action:
                 self.correct_count += 1
-                action = true_action  # to copy orig_node
             elif train:
                 self.model.update(features, predicted_action, true_action, Config().learning_rate)
-                if predicted_action.is_type(NODE, IMPLICIT) or (
-                            random.random() < Config().override_action_probability):
+                if random.random() < Config().override_action_probability:
                     action = true_action
                     prefix = "*"
             self.action_count += 1
@@ -227,21 +226,28 @@ class Parser(object):
                                  "\n" + self.oracle.str("\n") if train else ""
         history.add(h)
 
-    def predict_action(self, features):
+    def predict_action(self, features, true_action=None):
         """
         Choose action based on classifier
         :param features: extracted feature values
+        :param true_action: from the oracle, to copy orig_node if the same action is selected
         :return: valid action with maximum probability according to classifier
         """
         scores = self.model.score(features)
-        best_action = Action.by_id(scores.argmax())
+        best_action = self.select_action(scores.argmax(), true_action)
         if self.state.is_valid(best_action):
             return best_action
-        actions = (Action.by_id(i) for i in scores.argsort()[-2::-1])  # Exclude max, already checked
+        scores_sorted = scores.argsort()[-2::-1]  # Exclude max, already checked
+        actions = (self.select_action(i, true_action) for i in scores_sorted)
         try:
             return next(action for action in actions if self.state.is_valid(action))
         except StopIteration as e:
             raise Exception("No valid actions available") from e
+
+    @staticmethod
+    def select_action(i, true_action):
+        action = Action.by_id(i)
+        return true_action if true_action is not None and action == true_action else action
 
     @staticmethod
     def verify_passage(passage, predicted_passage, show_diff):

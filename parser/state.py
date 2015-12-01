@@ -200,8 +200,6 @@ class State(object):
         """
         if action.is_type(FINISH):
             assert self.root.outgoing, "Root must have at least one child at the end of the parse"
-            for terminal in self.terminals:
-                assert terminal.incoming, "Every terminal must have a parent at the end of the parse"
         elif action.is_type(SHIFT):
             assert self.buffer, "Buffer must not be empty in order to shift from it"
         else:
@@ -213,9 +211,13 @@ class State(object):
                     "Edge tag must be T iff child is terminal"
                 # TODO check if it's ok to assert that s0 has no parents
                 # or possibly that it has no incoming edges with action.tag
+                if self.passage:
+                    assert action.orig_node is not None, "May only create real nodes during training"
             elif action.is_type(IMPLICIT):
                 assert s0.text is None, "Terminals may not have (implicit) children"
                 assert not s0.implicit, "Implicit node loop"
+                if self.passage:
+                    assert action.orig_node is not None, "May only create real nodes during training"
             elif action.is_type(REDUCE):
                 assert s0 is not self.root or s0.outgoing, "May not reduce the root without children"
             else:
