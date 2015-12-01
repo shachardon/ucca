@@ -88,6 +88,8 @@ class Parser(object):
         total_words = 0
         num_passages = 0
         for passage, passage_id in passages:
+            if not Config().quiet:
+                print("passage " + passage_id, end=Config().line_end, flush=True)
             started = time.time()
             self.action_count = 0
             self.correct_count = 0
@@ -96,7 +98,6 @@ class Parser(object):
             history = set()
             self.oracle = Oracle(passage) if isinstance(passage, core.Passage) else None
             failed = False
-            predicted_passage = None
             try:
                 self.parse_passage(history, train)  # This is where the actual parsing takes place
             except AssertionError as e:
@@ -145,12 +146,8 @@ class Parser(object):
         :return: a core.Passage and its ID if given a Passage or file, or else the given list of lists
         """
         if isinstance(passage, core.Passage):
-            if not Config().quiet:
-                print("passage " + passage.ID, end=Config().line_end, flush=True)
             passage_id = passage.ID
         elif os.path.exists(passage):  # a file
-            if not Config().quiet:
-                print("passage '%s'" % passage, end=Config().line_end, flush=True)
             try:
                 passage = file2passage(passage)  # XML or binary format
                 passage_id = passage.ID
