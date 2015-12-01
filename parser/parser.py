@@ -107,15 +107,14 @@ class Parser(object):
                     print(e)
                 if not Config().quiet:
                     print("failed, ", end="")
-            if not failed:
-                predicted_passage = self.state.create_passage() if not train or Config().verify else passage
-                if self.oracle:  # passage is a Passage object
-                    if Config().verify:
-                        self.verify_passage(passage, predicted_passage, train)
-                    if not Config().quiet:
-                        print("accuracy: %.3f (%d/%d)" %
-                              (self.correct_count/self.action_count, self.correct_count, self.action_count)
-                              if self.action_count else "No actions done", end=Config().line_end)
+            predicted_passage = self.state.create_passage() if not train or Config().verify else passage
+            if self.oracle:  # passage is a Passage object
+                if Config().verify:
+                    self.verify_passage(passage, predicted_passage, train)
+                if not Config().quiet:
+                    print("accuracy: %.3f (%d/%d)" %
+                          (self.correct_count/self.action_count, self.correct_count, self.action_count)
+                          if self.action_count else "No actions done", end=Config().line_end)
             duration = time.time() - started
             words = len(passage.layer(layer0.LAYER_ID).all) if self.oracle else sum(map(len, passage))
             if not Config().quiet:
