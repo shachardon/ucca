@@ -129,8 +129,7 @@ class Edge(object):
         if Config().verify:
             assert self not in self.parent.outgoing, "Trying to create outgoing edge twice: %s" % self
             assert self not in self.child.incoming, "Trying to create incoming edge twice: %s" % self
-            for d in self.child.descendants:
-                assert self.parent not in d.children, "Detected cycle created by edge: %s" % self
+            assert self.parent not in self.child.descendants, "Detected cycle created by edge: %s" % self
         self.parent.add_outgoing(self)
         self.child.add_incoming(self)
 

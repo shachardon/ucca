@@ -245,15 +245,18 @@ class Parser(object):
             raise Exception("No valid actions available") from e
 
     @staticmethod
-    def verify_passage(passage, predicted_passage, train):
+    def verify_passage(passage, predicted_passage, show_diff):
         """
         Compare predicted passage to true passage and die if they differ
         :param passage: true passage
         :param predicted_passage: predicted passage to compare
+        :param show_diff: if passages differ, show the difference between them?
+                          Depends on predicted_passage having the original node IDs annotated
+                          in the "remarks" field for each node.
         """
         assert passage.equals(predicted_passage), "Failed to produce true passage" + \
                                                   (diff_passages(
-                                                      passage, predicted_passage) if train else "")
+                                                      passage, predicted_passage) if show_diff else "")
 
     @staticmethod
     def pos_tag(state):
