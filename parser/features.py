@@ -212,9 +212,9 @@ def gap_length_sum(node):
 
 def gap_type(node):
     if node.text is not None:
-        return "none"
+        return "n"  # None
     if has_gaps(node):
-        return "pass"
+        return "p"  # Pass
     if any(child.text is None and has_gaps(child) for child in node.children):
-        return "source"
-    return "none"
+        return "s"  # Source
+    return "n"  # None
