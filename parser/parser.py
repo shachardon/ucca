@@ -7,10 +7,11 @@ from xml.etree.ElementTree import ParseError
 
 from nltk import pos_tag
 
-from action import Action, NODE, IMPLICIT
+from action import Action
 from averaged_perceptron import AveragedPerceptron
 from config import Config
 from diff import diff_passages
+from evaluate import average_f1
 from features import FeatureExtractor
 from oracle import Oracle
 from scripts.evaluate import evaluate, print_aggregate
@@ -35,61 +36,63 @@ class Parser(object):
         self.model_file = model_file
         self.feature_extractor = FeatureExtractor()
 
-    def train(self, passages, iterations=1):
+    def train(self, passages, dev=None, iterations=1):
         """
         Train parser on given passages
         :param passages: iterable of Passage objects to train on
+        :param dev: iterable of Passage objects to tune on
         :param iterations: number of iterations to perform
         :return: trained model
         """
         if not passages:
             if self.model_file is not None:  # Nothing to train on; pre-trained model given
-                if not Config().quiet:
-                    print("Loading model from '%s'... " % self.model_file, end="", flush=True)
-                started = time.time()
                 self.model.load(self.model_file)
-                if not Config().quiet:
-                    print("Done (%.3fs)." % (time.time() - started))
-            return
+            return self.model
 
-        if not Config().quiet:
-            print("Training %d iterations" % iterations)
+        print("Training %d iterations" % iterations)
         for iteration in range(1, iterations + 1):
-            if not Config().quiet:
-                print("Iteration %d: " % iteration)
-            passages = [(passage, passage.ID) for predicted_passage, passage in
-                        self.parse(passages, train=True)]
+            print("Iteration %d: " % iteration)
+            passages = [(passage, passage.ID) for _, passage in
+                        self.parse(passages, mode="train")]
             shuffle(passages)
+            if dev:
+                print("Evaluating on dev passages")
+                dev, scores = zip(*[((passage, passage.ID),
+                                     evaluate(predicted_passage, passage,
+                                              verbose=False, units=False, errors=False))
+                                    for predicted_passage, passage in
+                                    self.parse(dev, mode="dev")])
+                score = average_f1(scores)
+                print("Average F1 score on dev: %.3f" % score)
+            print()
         self.model.average_weights()
-        if not Config().quiet:
-            print("Trained %d iterations" % iterations)
+        print("Trained %d iterations" % iterations)
 
         if self.model_file is not None:  # Save trained model
-            if not Config().quiet:
-                print("Saving model to '%s'... " % self.model_file, end="", flush=True)
-            started = time.time()
             self.model.save(self.model_file)
-            if not Config().quiet:
-                print("Done (%.3fs)." % (time.time() - started))
+        print()
 
         return self.model
 
-    def parse(self, passages, train=False):
+    def parse(self, passages, mode="test"):
         """
         Parse given passages
         :param passages: iterable of pairs of (either Passage objects, or of lists of lists of tokens),
                                                and passage IDs
-        :param train: use oracle to train on given passages, or just parse with classifier?
+        :param mode: "train", "test" or "dev".
+                     If "train", use oracle to train on given passages.
+                     Otherwise, just parse with classifier.
         :return: generator of pairs of (parsed passage, original passage)
         """
+        train = (mode == "train")
+        assert train or mode in ("test", "dev"), "Invalid parse mode: %s" % mode
         self.total_actions = 0
         self.total_correct = 0
         total_duration = 0
         total_words = 0
         num_passages = 0
         for passage, passage_id in passages:
-            if not Config().quiet:
-                print("passage " + passage_id, end=Config().line_end, flush=True)
+            print("passage " + passage_id, end=Config().line_end, flush=True)
             started = time.time()
             self.action_count = 0
             self.correct_count = 0
@@ -104,8 +107,7 @@ class Parser(object):
                     raise
                 if Config().verbose:
                     print(e)
-                if not Config().quiet:
-                    print("failed, ", end="")
+                print("failed, ", end="")
             if not train or Config().verify:
                 predicted_passage = self.state.create_passage(assert_proper=Config().verify)
             else:
@@ -113,15 +115,13 @@ class Parser(object):
             if self.oracle:  # passage is a Passage object
                 if Config().verify:
                     self.verify_passage(passage, predicted_passage, train)
-                if not Config().quiet:
-                    print("accuracy: %.3f (%d/%d)" %
-                          (self.correct_count/self.action_count, self.correct_count, self.action_count)
-                          if self.action_count else "No actions done", end=Config().line_end)
+                print("accuracy: %.3f (%d/%d)" %
+                      (self.correct_count/self.action_count, self.correct_count, self.action_count)
+                      if self.action_count else "No actions done", end=Config().line_end)
             duration = time.time() - started
             words = len(passage.layer(layer0.LAYER_ID).all) if self.oracle else sum(map(len, passage))
-            if not Config().quiet:
-                print("time: %0.3fs (%d words/second)" % (duration, words / duration),
-                      end=Config().line_end + "\n", flush=True)
+            print("time: %0.3fs (%d words/second)" % (duration, words / duration),
+                  end=Config().line_end + "\n", flush=True)
             self.total_correct += self.correct_count
             self.total_actions += self.action_count
             total_duration += duration
@@ -130,11 +130,11 @@ class Parser(object):
             yield predicted_passage, passage
 
         print("Parsed %d passages" % num_passages)
-        if not Config().quiet and self.oracle and self.total_actions:
-            print("Overall %s accuracy: %.3f (%d/%d)" % (
-                "train" if train else "test",
-                self.total_correct / self.total_actions, self.total_correct, self.total_actions))
-        if not Config().quiet and num_passages:
+        if self.oracle and self.total_actions:
+            print("Overall %s accuracy: %.3f (%d/%d)" %
+                  (mode,
+                   self.total_correct / self.total_actions, self.total_correct, self.total_actions))
+        if num_passages:
             print("Total time: %.3fs (average time/passage: %.3fs, average words/second: %d)" % (
                 total_duration, total_duration / num_passages, total_words / total_duration),
                   flush=True)
@@ -304,8 +304,10 @@ def write_passage(passage, outdir, prefix, binary, verbose):
 if __name__ == "__main__":
     args = Config().args
     parser = Parser(args.model)
-    parser.train(read_passages(args.train), iterations=args.iterations)
+    parser.train(read_passages(args.train), dev=read_passages(args.dev), iterations=args.iterations)
     if args.passages:
+        if args.train:
+            print("Evaluating on test passages")
         results = []
         for guessed_passage, ref_passage in parser.parse(read_passages(args.passages)):
             if isinstance(ref_passage, core.Passage):
@@ -314,4 +316,7 @@ if __name__ == "__main__":
             if guessed_passage is not None:
                 write_passage(guessed_passage, args.outdir, args.prefix, args.binary, args.verbose)
         if results:
+            print()
+            print("Aggregated scores:")
+            print()
             print_aggregate(results)

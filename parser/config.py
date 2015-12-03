@@ -13,9 +13,10 @@ class Singleton(type):
 class Config(object, metaclass=Singleton):
     def __init__(self):
         argparser = argparse.ArgumentParser(description="""Transition-based parser for UCCA.""")
-        argparser.add_argument('passages', nargs='*', help="passage files/directories to test on")
+        argparser.add_argument('passages', nargs='*', help="passage files/directories to test on/parse")
         argparser.add_argument('-m', '--model', default=None, help="model file to load/save")
         argparser.add_argument('-t', '--train', nargs='+', help="passage files/directories to train on")
+        argparser.add_argument('-d', '--dev', nargs='+', help="passage files/directories to tune on")
         argparser.add_argument('-o', '--outdir', default='.', help="output directory")
         argparser.add_argument('-p', '--prefix', default='ucca_passage',
                                help="output filename prefix")
@@ -25,8 +26,6 @@ class Config(object, metaclass=Singleton):
                                help="read and write passages in Pickle binary format, not XML")
         argparser.add_argument('-v', '--verbose', action='store_true', default=False,
                                help="display detailed information while parsing")
-        argparser.add_argument('-q', '--quiet', action='store_true', default=False,
-                               help="display absolutely no information while parsing")
         argparser.add_argument('-r', '--learningrate', type=float, default=1,
                                help="learning rate for the model weight updates")
         argparser.add_argument('-l', '--checkloops', action='store_true', default=False,
@@ -48,8 +47,6 @@ class Config(object, metaclass=Singleton):
 
         self.verbose = self.args.verbose
         self.line_end = "\n" if self.verbose else " "  # show all in one line unless verbose
-        self.quiet = self.args.quiet
-        assert not(self.verbose and self.quiet), "--verbose and --quiet are incompatible"
 
         self.learning_rate = self.args.learningrate
         self.check_loops = self.args.checkloops

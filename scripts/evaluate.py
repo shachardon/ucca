@@ -302,6 +302,18 @@ EVAL_TYPES = "labeled", "unlabeled", "weak_labeled"
 
 
 def evaluate(guessed_passage, ref_passage, verbose=True, units=True, fscore=True, errors=True):
+    """
+    :param guessed_passage: Passage object to evaluate
+    :param ref_passage: reference Passage object to compare to
+    :param verbose: whether to print the results
+    :param units: whether to evaluate common units
+    :param fscore: whether to compute precision, recall and f1 score
+    :param errors: whether to print the mistakes
+    :return: dictionary with entries "labeled", "unlabeled", "weak_labeled",
+             each a Results object with regular_scores and remote_scores fields,
+             each a Scores object with fields:
+             num_matches, num_only_guessed, num_only_ref, num_guessed, num_ref, p, r, f1
+    """
     for passage in (guessed_passage, ref_passage):
         if passage is not None:
             flatten_centers(passage)  # flatten Cs inside Cs
@@ -312,6 +324,12 @@ def evaluate(guessed_passage, ref_passage, verbose=True, units=True, fscore=True
                                           units, fscore, errors, verbose)
 
     return res
+
+
+def average_f1(results):
+    scores = [s.f1 for r in results for v in r.values()
+              for s in (v.regular_scores, v.remote_scores) if s.f1 != "NaN"]
+    return sum(scores) / len(scores) if scores else 0
 
 
 def aggregate(results):

@@ -1,5 +1,6 @@
 import shelve
 from collections import defaultdict
+import time
 
 import numpy as np
 
@@ -15,6 +16,7 @@ class AveragedPerceptron(object):
         self._last_update = defaultdict(lambda: np.zeros(self.num_actions, dtype=int))
         self._totals = defaultdict(lambda: np.zeros(self.num_actions, dtype=float))
         self._update_index = 0
+        self.is_averaged = False
 
     def score(self, features):
         """
@@ -57,19 +59,46 @@ class AveragedPerceptron(object):
         """
         Average all weights over all updates, as a form of regularization
         """
+        print("Averaging weights... ", end="", flush=True)
+        started = time.time()
         for feature in self.weights:
             n = self._update_index - self._last_update[feature]
             self._totals[feature] += n * self.weights[feature]
             self.weights[feature] = self._totals[feature] / self._update_index
         self.weights = dict(self.weights)  # "Lock" set of features; also allow pickle
+        self.is_averaged = True
+        print("Done (%.3fs)." % (time.time() - started))
 
-    def save(self, filename):
+    def save(self, filename, intermediate=False):
+        print("Saving %s model to '%s'... " % (
+            "intermediate" if intermediate else "final", filename), end="", flush=True)
+        started = time.time()
         with shelve.open(filename) as db:
-            db["weights"] = self.weights
+            if intermediate:
+                db["intermediate"] = {
+                    "weights": dict(self.weights),
+                    "_last_update": dict(self._last_update),
+                    "_totals": dict(self._totals),
+                    "_update_index": self._update_index,
+                }
+            else:
+                db.pop("intermediate", None)
+                db["weights"] = self.weights
+        print("Done (%.3fs)." % (time.time() - started))
 
-    def load(self, filename):
+    def load(self, filename, intermediate=False):
+        print("Loading %s model from '%s'... " % (
+            "intermediate" if intermediate else "final", filename), end="", flush=True)
+        started = time.time()
         try:
             with shelve.open(filename, flag="r") as db:
-                self.weights = db["weights"]
+                if intermediate:
+                    self.weights.update(db["intermediate"]["weights"])
+                    self._last_update.update(db["intermediate"]["_last_update"])
+                    self._totals.update(db["intermediate"]["_totals"])
+                    self._update_index = db["intermediate"]["_update_index"]
+                else:
+                    self.weights = db["weights"]
         except:
             raise IOError("Model file not found: " + filename)
+        print("Done (%.3fs)." % (time.time() - started))
