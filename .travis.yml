@@ -15,7 +15,7 @@ before_script:
   - python -m nltk.downloader averaged_perceptron_tagger
 # command to run tests
 script:
-  - python parser/parser.py -I 10 -t doc/toy.xml -m model_toy
+  - python parser/parser.py -I 10 -t doc/toy.xml -d doc/toy.xml -m model_toy
   - python parser/parser.py doc/toy.xml -m model_toy
 # Uncomment this to train on the full training set (takes ~30 minutes):
 #  - python parser/parser.py -t pickle/train -d pickle/dev -bm model
