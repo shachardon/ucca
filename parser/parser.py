@@ -11,10 +11,9 @@ from action import Action
 from averaged_perceptron import AveragedPerceptron
 from config import Config
 from diff import diff_passages
-from evaluate import average_f1
 from features import FeatureExtractor
 from oracle import Oracle
-from scripts.evaluate import evaluate, print_aggregate
+from scripts.evaluate import evaluate, print_aggregate, average_f1
 from scripts.util import file2passage, passage2file
 from state import State
 from ucca import core, layer0
