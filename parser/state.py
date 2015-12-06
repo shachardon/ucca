@@ -344,6 +344,7 @@ class State(object):
         for node, edge in remotes:  # Add remote edges
             try:
                 assert node.node is not None, "Remote edge from nonexistent node"
+                assert edge.child.node is not None, "Remote edge to nonexistent node"
                 node.node.add(edge.tag, edge.child.node, edge_attrib={"remote": True})
             except AssertionError:
                 if assert_proper:
