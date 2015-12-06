@@ -1,6 +1,7 @@
+import os
 import shelve
-from collections import defaultdict
 import time
+from collections import defaultdict
 
 import numpy as np
 
@@ -87,18 +88,24 @@ class AveragedPerceptron(object):
         print("Done (%.3fs)." % (time.time() - started))
 
     def load(self, filename, intermediate=False):
+        def try_open(*names):
+            for f in names:
+                # noinspection PyBroadException
+                try:
+                    return shelve.open(f, flag="r")
+                except Exception as e:
+                    exception = e
+            raise IOError("Model file not found: " + filename) from exception
+
         print("Loading %s model from '%s'... " % (
             "intermediate" if intermediate else "final", filename), end="", flush=True)
         started = time.time()
-        try:
-            with shelve.open(filename, flag="r") as db:
-                if intermediate:
-                    self.weights.update(db["intermediate"]["weights"])
-                    self._last_update.update(db["intermediate"]["_last_update"])
-                    self._totals.update(db["intermediate"]["_totals"])
-                    self._update_index = db["intermediate"]["_update_index"]
-                else:
-                    self.weights = db["weights"]
-        except:
-            raise IOError("Model file not found: " + filename)
+        with try_open(filename, os.path.splitext(filename)[0]) as db:
+            if intermediate:
+                self.weights.update(db["intermediate"]["weights"])
+                self._last_update.update(db["intermediate"]["_last_update"])
+                self._totals.update(db["intermediate"]["_totals"])
+                self._update_index = db["intermediate"]["_update_index"]
+            else:
+                self.weights = db["weights"]
         print("Done (%.3fs)." % (time.time() - started))
