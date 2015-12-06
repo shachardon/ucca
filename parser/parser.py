@@ -300,22 +300,27 @@ def write_passage(passage, outdir, prefix, binary, verbose):
     passage2file(passage, outfile, binary=binary)
 
 
-if __name__ == "__main__":
+def main():
     args = Config().args
     parser = Parser(args.model)
     parser.train(read_passages(args.train), dev=read_passages(args.dev), iterations=args.iterations)
     if args.passages:
         if args.train:
             print("Evaluating on test passages")
-        results = []
+        scores = []
         for guessed_passage, ref_passage in parser.parse(read_passages(args.passages)):
             if isinstance(ref_passage, core.Passage):
-                results.append(evaluate(guessed_passage, ref_passage,
-                                        verbose=args.verbose and guessed_passage is not None))
+                scores.append(evaluate(guessed_passage, ref_passage,
+                                       verbose=args.verbose and guessed_passage is not None))
             if guessed_passage is not None:
                 write_passage(guessed_passage, args.outdir, args.prefix, args.binary, args.verbose)
-        if results:
+        if scores:
             print()
+            print("Average F1 score on test: %.3f" % average_f1(scores))
             print("Aggregated scores:")
             print()
-            print_aggregate(results)
+            print_aggregate(scores)
+
+
+if __name__ == "__main__":
+    main()
