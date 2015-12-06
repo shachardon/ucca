@@ -128,12 +128,12 @@ class Parser(object):
             num_passages += 1
             yield predicted_passage, passage
 
-        print("Parsed %d passages" % num_passages)
-        if self.oracle and self.total_actions:
-            print("Overall %s accuracy: %.3f (%d/%d)" %
-                  (mode,
-                   self.total_correct / self.total_actions, self.total_correct, self.total_actions))
-        if num_passages:
+        if num_passages > 1:
+            print("Parsed %d passages" % num_passages)
+            if self.oracle and self.total_actions:
+                print("Overall %s accuracy: %.3f (%d/%d)" %
+                      (mode,
+                       self.total_correct / self.total_actions, self.total_correct, self.total_actions))
             print("Total time: %.3fs (average time/passage: %.3fs, average words/second: %d)" % (
                 total_duration, total_duration / num_passages, total_words / total_duration),
                   flush=True)
