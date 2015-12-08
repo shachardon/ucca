@@ -12,7 +12,7 @@ import unicodedata
 
 import layer0
 
-from util import file2passage
+from textutil import file2passage
 
 desc = """Prints the unicode general categories of characters in words/punctuation in UCCA passages
 """

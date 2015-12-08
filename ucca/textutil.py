@@ -52,3 +52,22 @@ def break2paragraphs(passage):
                       if t.position != 1 and t.para_pos == 1]
     paragraph_ends.append(terminals[-1].position)
     return paragraph_ends
+
+
+def indent_xml(xml_as_string):
+    """Indents a string of XML-like objects.
+
+    This works only for units with no text or tail members, and only for
+    strings whose leaves are written as <tag /> and not <tag></tag>.
+
+    """
+    tabs = 0
+    lines = str(xml_as_string).replace('><', '>\n<').splitlines()
+    s = ''
+    for line in lines:
+        if line.startswith('</'):
+            tabs -= 1
+        s += ("  " * tabs) + line + '\n'
+        if not (line.endswith('/>') or line.startswith('</')):
+            tabs += 1
+    return s

@@ -198,6 +198,27 @@ class State(object):
         Raise AssertionError if the action is invalid in the current state
         :param action: action to check for validity
         """
+        def assert_orig_node():
+            if self.passage:  # We're in training, so we must have an original node to refer to
+                assert action.orig_node is not None, "May only create real nodes during training"
+
+        def assert_terminal_edge(child):
+            assert (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
+                "Edge tag must be T iff child is terminal"
+
+        def assert_edge():
+            parent, child = self.get_parent_child(action)
+            assert child is not self.root, "Root may not be the child"
+            assert parent.text is None, "Terminal may not be the parent"
+            assert parent is not self.root or child.text is None, "root->terminal edge"
+            assert child not in parent.children, "Edge must not already exist"
+            assert_terminal_edge(child)
+            assert parent not in child.descendants, "Detected cycle created by edge: %s" % self
+            # Include this (instead of child not in children) to allow multiple edges between nodes:
+            # (as long as their tags are different)
+            # assert self.create_edge(action) not in parent.outgoing, "Edge must not already exist"
+            return parent, child
+
         if action.is_type(FINISH):
             assert self.root.outgoing, "Root must have at least one child at the end of the parse"
         elif action.is_type(SHIFT):
@@ -207,33 +228,21 @@ class State(object):
             s0 = self.stack[-1]
             if action.is_type(NODE):
                 assert s0 is not self.root, "The root may not have parents"
-                assert (s0.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
-                    "Edge tag must be T iff child is terminal"
-                # TODO check if it's ok to assert that s0 has no parents
-                # or possibly that it has no incoming edges with action.tag
-                if self.passage:
-                    assert action.orig_node is not None, "May only create real nodes during training"
+                assert_terminal_edge(s0)
+                assert_orig_node()
             elif action.is_type(IMPLICIT):
                 assert s0.text is None, "Terminals may not have (implicit) children"
                 assert not s0.implicit, "Implicit node loop"
-                if self.passage:
-                    assert action.orig_node is not None, "May only create real nodes during training"
+                assert_orig_node()
             elif action.is_type(REDUCE):
                 assert s0 is not self.root or s0.outgoing, "May not reduce the root without children"
             else:
                 assert len(self.stack) > 1, "Action requires at least two stack elements: %s" % action
-                if action.is_type(LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
-                    parent, child = self.get_parent_child(action)
-                    assert child is not self.root, "Root may not be the child"
-                    assert parent.text is None, "Terminal may not be the parent"
-                    assert parent is not self.root or child.text is None, "root->terminal edge"
-                    assert child not in parent.children, "Edge must not already exist"
-                    assert (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
-                        "Edge tag must be T iff child is terminal"
-                    assert parent not in child.descendants, "Detected cycle created by edge: %s" % self
-                    # Include this (instead of child not in children) to allow multiple edges between nodes:
-                    # (as long as their tags are different)
-                    # assert self.create_edge(action) not in parent.outgoing, "Edge must not already exist"
+                if action.is_type(LEFT_EDGE, RIGHT_EDGE):
+                    assert_edge()
+                elif action.is_type(LEFT_REMOTE, RIGHT_REMOTE):
+                    parent, child = assert_edge()
+                    assert parent.outgoing and child.incoming, "Remote edge may not be the first edge"
                 elif action.is_type(SWAP):
                     # A regular swap is possible since the stack has at least two elements;
                     # A compound swap is possible if the stack is longer than the distance

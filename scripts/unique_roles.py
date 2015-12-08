@@ -6,7 +6,7 @@ import sys
 from collections import Counter
 
 import layer1
-from util import file2passage
+from textutil import file2passage
 
 desc = """Finds edge tags that are empirically always unique: occur at most once in edges per node
 """

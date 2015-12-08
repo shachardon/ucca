@@ -1,5 +1,6 @@
 import sys
-from scripts.util import passage2file
+
+from ioutil import passage2file
 
 
 def diff_passages(true_passage, pred_passage):

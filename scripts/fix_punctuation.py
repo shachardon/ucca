@@ -5,8 +5,8 @@ import glob
 import sys
 
 import layer0
-from scripts.util import file2passage, passage2file
 from convert import is_punctuation
+from ioutil import file2passage, passage2file
 
 desc = """Load UCCA passages and write back with correct layer 0 node tags according to punctuation
 """

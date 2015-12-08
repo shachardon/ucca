@@ -4,7 +4,7 @@ import argparse
 import sys
 
 import ucca.convert
-from util import file2passage
+from textutil import file2passage
 
 desc = """Parses an XML in UCCA standard format, and writes as CoNLL-X format.
 """

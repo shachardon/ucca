@@ -1,5 +1,5 @@
 #! /usr/bin/python3
-from util import indent_xml
+from textutil import indent_xml
 
 
 desc = """Parses an XML in UCCA site format.

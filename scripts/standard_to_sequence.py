@@ -8,7 +8,7 @@ import argparse
 import sys
 
 import ucca.convert
-from util import file2passage
+from textutil import file2passage
 
 
 def main():

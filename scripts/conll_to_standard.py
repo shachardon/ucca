@@ -5,7 +5,7 @@ import argparse
 import sys
 
 import ucca.convert
-from util import passage2file
+from textutil import passage2file
 
 
 desc = """Parses files in CoNLL-X format, and writes as XML in UCCA standard format, or as binary.

@@ -8,7 +8,7 @@ import sys
 desc = """Parses XML files in UCCA standard format, and creates a histogram for the number of parents per unit.
 """
 
-from util import file2passage
+from textutil import file2passage
 
 
 def plot_histogram(histogram):

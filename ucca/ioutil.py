@@ -1,8 +1,8 @@
 """Utility functions for UCCA scripts."""
 import pickle
-
 from xml.etree.ElementTree import ElementTree, tostring
 
+from ucca.textutil import indent_xml
 from ucca.convert import from_standard, to_standard
 
 
@@ -34,22 +34,3 @@ def passage2file(passage, filename, indent=True, binary=False):
         output = indent_xml(xml) if indent else xml
         with open(filename, 'w') as h:
             h.write(output)
-
-
-def indent_xml(xml_as_string):
-    """Indents a string of XML-like objects.
-
-    This works only for units with no text or tail members, and only for
-    strings whose leaves are written as <tag /> and not <tag></tag>.
-
-    """
-    tabs = 0
-    lines = str(xml_as_string).replace('><', '>\n<').splitlines()
-    s = ''
-    for line in lines:
-        if line.startswith('</'):
-            tabs -= 1
-        s += ("  " * tabs) + line + '\n'
-        if not (line.endswith('/>') or line.startswith('</')):
-            tabs += 1
-    return s

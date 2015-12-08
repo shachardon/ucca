@@ -3,7 +3,7 @@ import os
 import argparse
 import sys
 
-from util import file2passage, passage2file
+from textutil import file2passage, passage2file
 
 
 desc = """Parses an XML in UCCA standard format, and writes them in binary Pickle format.

@@ -4,7 +4,7 @@ import operator
 import pickle
 import unittest
 
-from ucca import core, layer0, layer1, convert, util, scenes, collins, lex
+from ucca import core, layer0, layer1, convert, textutil, scenes, collins, lex
 import xml.etree.ElementTree as ETree
 
 
@@ -802,7 +802,7 @@ class UtilTests(unittest.TestCase):
         h3.add(layer1.EdgeTags.Terminal, terms[9])
         l1.add_punct(h3, terms[10])
 
-        self.assertSequenceEqual(util.break2sentences(p), [4, 7, 11])
+        self.assertSequenceEqual(textutil.break2sentences(p), [4, 7, 11])
 
 
 class ScenesTests(unittest.TestCase):

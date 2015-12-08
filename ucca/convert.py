@@ -19,7 +19,7 @@ import xml.sax.saxutils
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 
-from ucca import util, core, layer0, layer1
+from ucca import textutil, core, layer0, layer1
 
 
 class SiteXMLUnknownElement(core.UCCAError):
@@ -701,7 +701,7 @@ def to_text(passage, sentences=True):
     # with 0, positions with 1). So in essence, it returns the index to start
     # the next sentence from, and we should add index 0 for the first sentence
     if sentences:
-        starts = [0] + util.break2sentences(passage)
+        starts = [0] + textutil.break2sentences(passage)
     else:
         starts = [0, len(tokens)]
     return [' '.join(tokens[starts[i]:starts[i + 1]])
@@ -727,9 +727,10 @@ def to_sequence(passage):
     stacks = []
     edges = [e for u in passage.layer(layer1.LAYER_ID).all
              if not u.incoming for e in u.outgoing]
-    # TODO avoid printing the same node more than once, refer to it by ID
-    # TODO convert back to passage
-    # TODO use Node.__str__ as it already does this...
+    # TODO improve conversion to sequence
+    # avoid printing the same node more than once, refer to it by ID
+    # convert back to passage
+    # use Node.__str__ as it already does this...
     while True:
         if edges:
             stacks.append(sorted(edges, key=position, reverse=True))
@@ -902,7 +903,7 @@ def to_conll(passage, test=False, sentences=False):
         layer1.EdgeTags.Ground,
         layer1.EdgeTags.Terminal,
         layer1.EdgeTags.Punctuation,
-    ]   # TODO find optimal ordering
+    ]
 
     excluded_tags = [   # edge labels excluded from word dependencies
         layer1.EdgeTags.LinkRelation,
@@ -911,7 +912,7 @@ def to_conll(passage, test=False, sentences=False):
 
     lines = []  # list of output lines to return
     terminals = passage.layer(layer0.LAYER_ID).all  # terminal units from the passage
-    ends = util.break2sentences(passage) if sentences else util.break2paragraphs(passage)
+    ends = textutil.break2sentences(passage) if sentences else textutil.break2paragraphs(passage)
     last_end = 0    # position of last encountered sentence end
     next_end = ends[0]  # position of next sentence end to come
     last_root = None    # position of word in this sentence with ROOT relation
