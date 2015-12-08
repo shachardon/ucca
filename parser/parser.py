@@ -12,11 +12,11 @@ from averaged_perceptron import AveragedPerceptron
 from config import Config
 from diff import diff_passages
 from features import FeatureExtractor
-from ucca.ioutil import file2passage, passage2file
 from oracle import Oracle
-from evaluation import evaluate, print_aggregate, average_f1
 from state import State
 from ucca import core, layer0
+from ucca.evaluation import evaluate, print_aggregate, average_f1
+from ucca.ioutil import file2passage, passage2file
 
 
 class Parser(object):
