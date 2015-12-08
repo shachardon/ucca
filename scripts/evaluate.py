@@ -2,24 +2,32 @@
 """
 The evaluation software for UCCA layer 1.
 """
-
-from ucca import convert
-# import ucca_db
-from xml.etree.ElementTree import ElementTree
-from optparse import OptionParser
+from argparse import ArgumentParser
 from collections import Counter
 
+from ucca.ioutil import file2passage
 
-EQUIV = [["P", "S"], ["H", "C"], ["N", "L"]]  # Pairs that are considered as equivalent for the purposes of evaluation
-#RELATORS = ["that", "than", "who", "what", "to", "how", "of"]
+UNLABELED = "unlabeled"
+WEAK_LABELED = "weak_labeled"
+LABELED = "labeled"
 
-#######################################################################################
+EVAL_TYPES = (LABELED, UNLABELED, WEAK_LABELED)
+
+# Pairs that are considered as equivalent for the purposes of evaluation
+EQUIV = (("P", "S"), ("H", "C"), ("N", "L"), ("F", "R"))
+
+# RELATORS = ["that", "than", "who", "what", "to", "how", "of"]
+
+##############################################################################
 # UTILITY METHODS
-#######################################################################################
+##############################################################################
 
 
 def flatten_centers(p):
-    """If there are Cs inside Cs in layer1 of passage C, cancel the external C."""
+    """
+    If there are Cs inside Cs in layer1, cancel the external C.
+    :param p: Passage object to flatten
+    """
     def _center_children(u):
         return [x for x in u.children if x.tag == "FN" and x.ftag == "C"]
 
@@ -31,42 +39,44 @@ def flatten_centers(p):
                     (parent is None or len(_center_children(parent)) == 1):
                 to_ungroup.append(unit)
 
-    # debug
-    # pr = [(u, u.fparent) for u in to_ungroup]
-    # for x, p in pr:
-    #     print('\n'.join([str(x), str(p)]))
-
     for unit in to_ungroup:
         ungroup(unit)
 
-    # print('\n\n')
-    # print('\n'.join([str(x[1]) for x in pr]))
 
-
-def ungroup(x):
+def ungroup(unit):
     """
     If the unit has an fparent, removes the unit and adds its children to that parent.
+    :param unit: Node object to potentially remove
     """
-    if x.tag != "FN":
+    if unit.tag != "FN":
         return None
-    fparent = x.fparent
+    fparent = unit.fparent
     if fparent is not None:
-        if len(x.parents) > 1:
-            if len(x.centers) == 1:  # if there is only one child, assign that child as the 
-                for e in x.incoming:
+        if len(unit.parents) > 1:
+            if len(unit.centers) == 1:  # if there is only one child, assign that child as the parent's child
+                for e in unit.incoming:
                     if e.attrib.get("remote"):
-                        e.parent.add(e.tag, x.centers[0], edge_attrib=e.attrib)
+                        e.parent.add(e.tag, unit.centers[0], edge_attrib=e.attrib)
             else:
                 return None  # don't ungroup if there is more than one parent and no single center
-        for e in x.outgoing:
+        for e in unit.outgoing:
             fparent.add(e.tag, e.child, edge_attrib=e.attrib)
-    x.destroy()
+    unit.destroy()
     return fparent
 
 
-def to_text(p, terms):
-    """Returns a text representation of the terminals whose terminals are in terms"""
-    l = sorted(list(terms))
+def get_text(p, positions):
+    return [p.layer("0").by_position(pos).text for pos in positions
+            if 0 < pos <= len(p.layer("0").all)]
+
+
+def to_text(p, terminal_indices):
+    """
+    Returns a text representation of terminals
+    :param p: Passage object to get terminals from
+    :param terminal_indices: indices of terminals to extract the text of
+    """
+    l = sorted(list(terminal_indices))
     words = get_text(p, l)
     pre_context = get_text(p, range(min(l) - 3, min(l)))
     post_context = get_text(p, range(max(l) + 1, max(l) + 3))
@@ -76,14 +86,17 @@ def to_text(p, terms):
 def mutual_yields(passage1, passage2, eval_type, separate_remotes=True, verbose=True):
     """
     returns a set of all the yields such that both passages have a unit with that yield.
-    eval type can be:
-    1. unlabeled: it doesn't matter what labels are there.
-    2. labeled: also requires tag match (if there are multiple units with the same yield, requires one match)
-    3. weak_labeled: also requires weak tag match (if there are multiple units with the same yield, requires one match)
-
-    returns a 4-tuple:
+    :param passage1: passage to compare
+    :param passage2: passage to use as reference
+    :param eval_type:
+    1. UNLABELED: it doesn't matter what labels are there.
+    2. LABELED: also requires tag match (if there are multiple units with the same yield, requires one match)
+    3. WEAK_LABELED: also requires weak tag match (if there are multiple units with the same yield, requires one match)
+    :param separate_remotes: whether to put remotes in a separate map
+    :param verbose: whether to print mistakes that arise from common confusions
+    :returns 4-tuple:
     -- the set of mutual yields
-    -- the set of mutual remote yields (unless separate_remotes is False, then None)
+    -- the set of mutual remote yields (unless separate_remotes is False, in which case this is None)
     -- the set of yields of passage1
     -- the set of yields of passage2
     """
@@ -93,12 +106,12 @@ def mutual_yields(passage1, passage2, eval_type, separate_remotes=True, verbose=
 
         for y in m1.keys():
             if y in m2.keys():
-                if eval_type == "unlabeled":
+                if eval_type == UNLABELED:
                     mutual_ys.add(y)
                 else:
                     tags1 = set(e.tag for e in m1[y])
                     tags2 = set(e.tag for e in m2[y])
-                    if eval_type == "weak_labeled":
+                    if eval_type == WEAK_LABELED:
                         tags1 = expand_equivalents(tags1)
                     if tags1 & tags2:  # non-empty intersection
                         mutual_ys.add(y)
@@ -136,12 +149,13 @@ def mutual_yields(passage1, passage2, eval_type, separate_remotes=True, verbose=
 
 def create_passage_yields(p, remote_terminals=False):
     """
-    returns two dicts:
+    :param p: passage to find yields of
+    :param remote_terminals: if True, regular table includes remotes
+    :returns two dicts:
     1. maps a set of terminal indices (excluding punctuation) to a list of layer1 edges whose yield (excluding remotes
        and punctuation) is that set.
     2. maps a set of terminal indices (excluding punctuation) to a set of remote edges whose yield (excluding remotes
        and punctuation) is that set.
-    remoteTerminals - if true, regular table includes remotes.
     """
     l1 = p.layer("1")
     edges = []
@@ -160,56 +174,19 @@ def create_passage_yields(p, remote_terminals=False):
 
 
 def expand_equivalents(tag_set):
-    """Returns a set of all the tags in the tag set or those equivalent to them"""
-    output = tag_set.copy()
-    for t in tag_set:
-        for pair in EQUIV:
-            if t in pair:
-                output.update(pair)
-    return output
+    """
+    Returns a set of all the tags in the tag set or those equivalent to them
+    :param tag_set: collection of tags (strings) to expand
+    """
+    return tag_set | set(t1 for t in tag_set for pair in EQUIV for t1 in pair if t in pair and t != t1)
 
 
 def tag_distribution(unit_list):
-    """Given a list of units, it returns a dict which maps the tags of the units to their frequency in the text"""
-    output = Counter()
-    for u in unit_list:
-        output[u.tag] += 1
-    return output
-
-
-#######################################################################################
-# Returns the command line parser.
-#######################################################################################
-def cmd_line_parser():
-    parser = OptionParser(usage="usage: %prog [options]")
-    parser.add_option("--db", "-d", dest="db_filename", action="store", type="string",
-                      help="the db file name")
-    parser.add_option("--pid", "-p", dest="pid", action="store", type="int",
-                      help="the passage ID")
-    parser.add_option("--from_xids", "-x", dest="from_xids", action="store_true",
-                      help="interpret the ref and the guessed parameters as Xids in the db")
-    parser.add_option("--guessed", "-g", dest="guessed", action="store", type="string",
-                      help="if a db is defined - the username for the guessed annotation; else - the xml file name"
-                           " for the guessed annotation")
-    parser.add_option("--ref", "-r", dest="ref", action="store", type="string",
-                      help="if a db is defined - the username for the reference annotation; else - the xml file"
-                           " name for the reference annotation")
-    parser.add_option("--units", "-u", dest="units", action="store_true",
-                      help="the units the annotations have in common, and those each has separately")
-    parser.add_option("--fscore", "-f", dest="fscore", action="store_true",
-                      help="outputs the traditional P,R,F instead of the scene structure evaluation")
-    parser.add_option("--debug", dest="debug", action="store_true",
-                      help="run in debug mode")
-    parser.add_option("--reference_from_file", dest="ref_from_file", action="store_true",
-                      help="loads the reference from a file and not from the db")
-    parser.add_option("--errors", "-e", dest="errors", action="store_true",
-                      help="prints the error distribution according to its frequency")
-    return parser
-
-
-def get_text(p, positions):
-    return [p.layer("0").by_position(pos).text for pos in positions
-            if 0 < pos <= len(p.layer("0").all)]
+    """
+    Given a list of units, returns a dict that maps the tags of the units to their frequency in the text
+    :param unit_list: list of Node objects
+    """
+    return Counter(u.tag for u in unit_list)
 
 
 class Results(object):
@@ -265,6 +242,14 @@ class Scores(object):
 def get_scores(p1, p2, eval_type, units, fscore, errors, verbose=True):
     """
     prints the relevant statistics and f-scores. eval_type can be 'unlabeled', 'labeled' or 'weak_labeled'.
+    :param p1: passage to compare
+    :param p2: reference passage object
+    :param eval_type: evaluation type to use, out of EVAL_TYPES
+    :param units: whether to calculate and print the mutual and exclusive units in the passages
+    :param fscore: whether to find and return the scores
+    :param errors: whether to calculate and print the confusion matrix of errors
+    :param verbose: whether to print the scores
+    :returns Results object if fscore is True, otherwise None
     """
     mutual, all1, all2, mutual_rem, all1_rem, all2_rem, err_counter = \
         mutual_yields(p1, p2, eval_type, verbose=verbose)
@@ -298,8 +283,6 @@ def get_scores(p1, p2, eval_type, units, fscore, errors, verbose=True):
 
     return res
 
-EVAL_TYPES = "labeled", "unlabeled", "weak_labeled"
-
 
 def evaluate(guessed_passage, ref_passage, verbose=True, units=True, fscore=True, errors=True):
     """
@@ -309,7 +292,7 @@ def evaluate(guessed_passage, ref_passage, verbose=True, units=True, fscore=True
     :param units: whether to evaluate common units
     :param fscore: whether to compute precision, recall and f1 score
     :param errors: whether to print the mistakes
-    :return: dictionary with entries "labeled", "unlabeled", "weak_labeled",
+    :return: dictionary with entries LABELED, UNLABELED, WEAK_LABELED,
              each a Results object with regular_scores and remote_scores fields,
              each a Scores object with fields:
              num_matches, num_only_guessed, num_only_ref, num_guessed, num_ref, p, r, f1
@@ -327,19 +310,49 @@ def evaluate(guessed_passage, ref_passage, verbose=True, units=True, fscore=True
 
 
 def average_f1(results):
+    """
+    Calculate the average F1 score across instances, evaluation types and regular/remote
+    :param results: iterable of dictionaries of evaluation types to Results objects
+    :return: a single number, the average F1
+    """
     scores = [s.f1 for r in results for v in r.values()
               for s in (v.regular_scores, v.remote_scores) if s.f1 != "NaN"]
     return sum(scores) / len(scores) if scores else 0
 
 
 def aggregate(results):
+    """
+    Aggregate Results object instances for each evaluation type
+    :param results: iterable of dictionaries of evaluation type to Results objects
+    :return: dictionary with a single Results object for each evaluation type
+    """
     return {t: Results.aggregate(r[t] for r in results) for t in EVAL_TYPES}
 
 
 def print_aggregate(results):
+    """
+    Print the aggregated Results objects from several evaluation types
+    :param results: iterable of dictionaries of evaluation types to Results objects
+    """
     for t, r in aggregate(results).items():
         print("Evaluation type: (" + t + ")")
         r.print()
+
+
+#######################################################################################
+# Returns the command line parser.
+#######################################################################################
+def cmd_line_parser():
+    parser = ArgumentParser(description="Compare two UCCA passages.")
+    parser.add_argument("guessed", help="xml/pickle file name for the guessed annotation")
+    parser.add_argument("ref", help="xml/pickle file name for the reference annotation")
+    parser.add_argument("--units", "-u", dest="units", action="store_true",
+                        help="the units the annotations have in common, and those each has separately")
+    parser.add_argument("--fscore", "-f", dest="fscore", action="store_true",
+                        help="outputs the traditional P,R,F instead of the scene structure evaluation")
+    parser.add_argument("--errors", "-e", dest="errors", action="store_true",
+                        help="prints the error distribution according to its frequency")
+    return parser
 
 
 ################
@@ -347,41 +360,14 @@ def print_aggregate(results):
 ################
 
 if __name__ == "__main__":
-    opt_parser = cmd_line_parser()
-    (options, args) = opt_parser.parse_args()
-    if len(args) > 0:
-        opt_parser.error("all arguments must be flagged")
+    argparser = cmd_line_parser()
+    args = argparser.parse_args()
 
-    if options.guessed is None or options.ref is None:
-        opt_parser.error("missing arguments. type --help for help.")
-    if options.pid is not None and options.from_xids is not None:
-        opt_parser.error("inconsistent parameters. you can't have both a pid and from_xids parameters.")
+    if not (args.units or args.fscore or args.errors):
+        argparser.error("At least one of -u, -f or -e is required.")
 
-    # if options.db_filename is None:
-        # Read the xmls from files
-    xmls = []
-    files = [options.guessed, options.ref]
-    for filename in files:
-        with open(filename) as in_file:
-            xmls.append(ElementTree().parse(in_file))
-    # elif options.ref_from_file:
-    #     xmls = ucca_db.get_xml_trees(options.db_filename, options.pid, [options.guessed])
-    #     in_file = open(options.ref)
-    #     xmls.append(ElementTree().parse(in_file))
-    #     in_file.close()
-    # else:
-    #     keys = [options.guessed, options.ref]
-    #     if options.from_xids:
-    #         xmls = ucca_db.get_by_xids(options.db_filename, keys)
-    #     else:
-    #         xmls = ucca_db.get_xml_trees(options.db_filename, options.pid, keys)
+    guessed, ref = [file2passage(x) for x in (args.guessed, args.ref)]
 
-    passages = [convert.from_standard(x) for x in xmls]
-
-    if options.units or options.fscore or options.errors:
-        evaluate(passages[0], passages[1],
-                 units=options.units, fscore=options.fscore, errors=options.errors)
-    #else:
-    #    scene_structures = [layer1s.SceneStructure(x) for x in passages]
-    #    comp = comparison.PassageComparison(scene_structures[0], scene_structures[1])
-    #    comp.text_report(sys.stdout)
+    if args.units or args.fscore or args.errors:
+        evaluate(guessed, ref,
+                 units=args.units, fscore=args.fscore, errors=args.errors, verbose=True)
