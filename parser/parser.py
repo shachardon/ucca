@@ -14,7 +14,7 @@ from diff import diff_passages
 from features import FeatureExtractor
 from ioutil import file2passage, passage2file
 from oracle import Oracle
-from scripts.evaluate import evaluate, print_aggregate, average_f1
+from evaluation import evaluate, print_aggregate, average_f1
 from state import State
 from ucca import core, layer0
 
