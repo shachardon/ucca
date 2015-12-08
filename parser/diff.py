@@ -1,6 +1,6 @@
 import sys
 
-from ioutil import passage2file
+from ucca.ioutil import passage2file
 
 
 def diff_passages(true_passage, pred_passage):
