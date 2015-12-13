@@ -10,7 +10,7 @@ from nltk import pos_tag
 from action import Action
 from averaged_perceptron import AveragedPerceptron
 from config import Config
-from diff import diff_passages
+from diffutil import diff_passages
 from features import FeatureExtractor
 from oracle import Oracle
 from state import State

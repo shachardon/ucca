@@ -3,9 +3,10 @@
 import operator
 import pickle
 import unittest
-
-from ucca import core, layer0, layer1, convert, textutil, scenes, collins, lex
 import xml.etree.ElementTree as ETree
+
+import diffutil
+from ucca import core, layer0, layer1, convert, textutil, scenes, collins, lex
 
 
 class CoreTests(unittest.TestCase):
@@ -765,8 +766,9 @@ class ConversionTests(unittest.TestCase):
 class UtilTests(unittest.TestCase):
     """Tests the util module functions and classes."""
 
-    def test_break2sentences(self):
-        """Tests identifying correctly sentence ends.
+    @staticmethod
+    def _create_multi_passage():
+        """Creates a basic :class:Passage to tinker with.
 
         Passage: [1 2 [3 P] H] . [[5 6 . P] H]
                  [[8 P] . 10 . H]
@@ -801,8 +803,70 @@ class UtilTests(unittest.TestCase):
         l1.add_punct(h3, terms[8])
         h3.add(layer1.EdgeTags.Terminal, terms[9])
         l1.add_punct(h3, terms[10])
+        return p
 
+    def test_break2sentences(self):
+        """Tests identifying correctly sentence ends.
+        """
+        p = self._create_multi_passage()
         self.assertSequenceEqual(textutil.break2sentences(p), [4, 7, 11])
+
+    def test_split2sentences(self):
+        """Tests splitting a passage by sentence ends.
+        """
+        p = self._create_multi_passage()
+        split = textutil.split2sentences(p)
+        self.assertEqual(len(split), 3)
+        terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
+        self.assertSequenceEqual(terms[0], ["1", "2", "3", "."])
+        self.assertSequenceEqual(terms[1], ["5", "6", "."])
+        self.assertSequenceEqual(terms[2], ["8", ".", "10", "."])
+        self.assertTrue(all(t.paragraph == 1 for s in split[0:2]
+                            for t in s.layer(layer0.LAYER_ID).all))
+        self.assertTrue(all(t.paragraph == 2
+                            for t in split[2].layer(layer0.LAYER_ID).all))
+        top_scenes = [s.layer(layer1.LAYER_ID).top_scenes for s in split]
+        for t in top_scenes:
+            self.assertEqual(len(t), 1)
+            self.assertEqual(t[0].incoming[0].tag, layer1.EdgeTags.ParallelScene)
+
+    def test_split2paragraphs(self):
+        """Tests splitting a passage by paragraph ends.
+        """
+        p = self._create_multi_passage()
+        split = textutil.split2paragraphs(p)
+        self.assertEqual(len(split), 2)
+        terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
+        self.assertSequenceEqual(terms[0], ["1", "2", "3", ".", "5", "6", "."])
+        self.assertSequenceEqual(terms[1], ["8", ".", "10", "."])
+        self.assertTrue(all(t.paragraph == 1
+                            for t in split[0].layer(layer0.LAYER_ID).all))
+        self.assertTrue(all(t.paragraph == 2
+                            for t in split[1].layer(layer0.LAYER_ID).all))
+        top_scenes = [s.layer(layer1.LAYER_ID).top_scenes for s in split]
+        self.assertEqual(len(top_scenes[0]), 2)
+        self.assertEqual(len(top_scenes[1]), 1)
+        for t in top_scenes:
+            for n in t:
+                self.assertEqual(n.incoming[0].tag, layer1.EdgeTags.ParallelScene)
+
+    def test_split_join_sentences(self):
+        """Test that splitting and joining a passage by sentences results in the same passage.
+        """
+        p = self._create_multi_passage()
+        split = textutil.split2sentences(p, remarks=True)
+        copy = textutil.join_passages(split)
+        diffutil.diff_passages(p, copy)
+        self.assertTrue(p.equals(copy))
+
+    def test_split_join_paragraphs(self):
+        """Test that splitting and joining a passage by paragraphs results in the same passage.
+        """
+        p = self._create_multi_passage()
+        split = textutil.split2paragraphs(p, remarks=True)
+        copy = textutil.join_passages(split)
+        diffutil.diff_passages(p, copy)
+        self.assertTrue(p.equals(copy))
 
 
 class ScenesTests(unittest.TestCase):
