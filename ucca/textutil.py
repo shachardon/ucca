@@ -1,8 +1,5 @@
 """Utility functions for UCCA package."""
-from core import Passage
-from layer0 import Layer0
-from layer1 import Layer1
-from ucca import layer0, layer1
+from ucca import core, layer0, layer1
 
 
 SENTENCE_END_MARKS = ('.', '?', '!')
@@ -66,11 +63,11 @@ def split_passage(passage, ends, remarks=False):
     """
     passages = []
     for start, end in zip([0] + ends[:-1], ends):
-        other = Passage(ID=passage.ID, attrib=passage.attrib.copy())
+        other = core.Passage(ID=passage.ID, attrib=passage.attrib.copy())
         other.extra = passage.extra.copy()
         # Create terminals and find layer 1 nodes to be included
         l0 = passage.layer(layer0.LAYER_ID)
-        other_l0 = Layer0(root=other, attrib=l0.attrib.copy())
+        other_l0 = layer0.Layer0(root=other, attrib=l0.attrib.copy())
         other_l0.extra = l0.extra.copy()
         level = set()
         nodes = set()
@@ -87,7 +84,7 @@ def split_passage(passage, ends, remarks=False):
             nodes.update(level)
             level = set(p for n in level for p in n.parents if p not in nodes)
 
-        Layer1(root=other, attrib=passage.layer(layer1.LAYER_ID).attrib.copy())
+        layer1.Layer1(root=other, attrib=passage.layer(layer1.LAYER_ID).attrib.copy())
         _copy_l1_nodes(passage, other, id_to_other, nodes, remarks=remarks)
         other.frozen = passage.frozen
         passages.append(other)
@@ -101,14 +98,14 @@ def join_passages(passages, remarks=False):
     :param remarks: add original node ID as remarks to the new nodes
     :return: joined passage
     """
-    other = Passage(ID=passages[0].ID, attrib=passages[0].attrib.copy())
+    other = core.Passage(ID=passages[0].ID, attrib=passages[0].attrib.copy())
     other.extra = passages[0].extra.copy()
     l0 = passages[0].layer(layer0.LAYER_ID)
     l1 = passages[0].layer(layer1.LAYER_ID)
-    other_l0 = Layer0(root=other, attrib=l0.attrib.copy())
-    Layer1(root=other, attrib=l1.attrib.copy())
+    other_l0 = layer0.Layer0(root=other, attrib=l0.attrib.copy())
+    layer1.Layer1(root=other, attrib=l1.attrib.copy())
+    id_to_other = {}
     for passage in passages:
-        id_to_other = {}
         l0 = passage.layer(layer0.LAYER_ID)
         for terminal in l0.all:
             other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, terminal.paragraph)
@@ -120,13 +117,13 @@ def join_passages(passages, remarks=False):
     return other
 
 
-def _copy_l1_nodes(passage, other, id_to_other, nodes=None, remarks=False):
+def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
     """
     Copy all layer 1 nodes from one passage to another
     :param passage: source passage
     :param other: target passage
     :param id_to_other: dictionary mapping IDs from passage to existing nodes from other
-    :param nodes: if given, only the nodes from this set will be copied
+    :param include: if given, only the nodes from this set will be copied
     :param remarks: add original node ID as remarks to the new nodes
     """
     l1 = passage.layer(layer1.LAYER_ID)
@@ -137,12 +134,12 @@ def _copy_l1_nodes(passage, other, id_to_other, nodes=None, remarks=False):
     while queue:
         node, other_node = queue.pop()
         if node.tag == layer1.NodeTags.Linkage and (
-                        nodes is None or nodes.issuperset(node.children)):
+                        include is None or include.issuperset(node.children)):
             linkages.append(node)
             continue
         for edge in node.outgoing:
             child = edge.child
-            if nodes is None or child in nodes or child.attrib.get("implicit"):
+            if include is None or child in include or child.attrib.get("implicit"):
                 if edge.attrib.get("remote"):
                     remotes.append((edge, other_node))
                     continue

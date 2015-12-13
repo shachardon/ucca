@@ -5,8 +5,7 @@ import pickle
 import unittest
 import xml.etree.ElementTree as ETree
 
-import diffutil
-from ucca import core, layer0, layer1, convert, textutil, scenes, collins, lex
+from ucca import core, layer0, layer1, convert, textutil, scenes, collins, lex, diffutil
 
 
 class CoreTests(unittest.TestCase):
@@ -768,7 +767,7 @@ class UtilTests(unittest.TestCase):
 
     @staticmethod
     def _create_multi_passage():
-        """Creates a basic :class:Passage to tinker with.
+        """Creates a :class:Passage with multiple sentences and paragraphs.
 
         Passage: [1 2 [3 P] H] . [[5 6 . P] H]
                  [[8 P] . 10 . H]
@@ -803,6 +802,39 @@ class UtilTests(unittest.TestCase):
         l1.add_punct(h3, terms[8])
         h3.add(layer1.EdgeTags.Terminal, terms[9])
         l1.add_punct(h3, terms[10])
+        return p
+
+    @staticmethod
+    def _create_crossing_passage():
+        """Creates a :class:Passage with multiple sentences and paragraphs, with crossing edges.
+
+        Passage: [1 2 [3 P(remote)] H] .
+                 [[3 P] . 4 . H]
+
+        """
+        p = core.Passage('1')
+        l0 = layer0.Layer0(p)
+        l1 = layer1.Layer1(p)
+        terms = [
+            l0.add_terminal('1', False),
+            l0.add_terminal('2', False),
+            l0.add_terminal('.', True),
+            l0.add_terminal('3', False, paragraph=2),
+            l0.add_terminal('.', True, paragraph=2),
+            l0.add_terminal('4', False, paragraph=2),
+            l0.add_terminal('.', True, paragraph=2),
+        ]
+        h1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+        h2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+        p1 = l1.add_fnode(h2, layer1.EdgeTags.Process)
+        l1.add_remote(h1, layer1.EdgeTags.Process, p1)
+        h1.add(layer1.EdgeTags.Terminal, terms[0])
+        h1.add(layer1.EdgeTags.Terminal, terms[1])
+        l1.add_punct(None, terms[2])
+        p1.add(layer1.EdgeTags.Terminal, terms[3])
+        l1.add_punct(h2, terms[4])
+        h2.add(layer1.EdgeTags.Terminal, terms[5])
+        l1.add_punct(h2, terms[6])
         return p
 
     def test_break2sentences(self):
@@ -867,6 +899,26 @@ class UtilTests(unittest.TestCase):
         copy = textutil.join_passages(split)
         diffutil.diff_passages(p, copy)
         self.assertTrue(p.equals(copy))
+
+    # def test_split_join_sentences_crossing(self):
+    #     """Test that splitting and joining a passage by sentences results in the same passage,
+    #     when the passage has edges crossing sentences.
+    #     """
+    #     p = self._create_crossing_passage()
+    #     split = textutil.split2sentences(p, remarks=True)
+    #     copy = textutil.join_passages(split)
+    #     diffutil.diff_passages(p, copy)
+    #     self.assertTrue(p.equals(copy))
+    #
+    # def test_split_join_paragraphs_crossing(self):
+    #     """Test that splitting and joining a passage by paragraphs results in the same passage
+    #     when the passage has edges crossing paragraphs.
+    #     """
+    #     p = self._create_crossing_passage()
+    #     split = textutil.split2paragraphs(p, remarks=True)
+    #     copy = textutil.join_passages(split)
+    #     diffutil.diff_passages(p, copy)
+    #     self.assertTrue(p.equals(copy))
 
 
 class ScenesTests(unittest.TestCase):
