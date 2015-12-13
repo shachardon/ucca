@@ -26,6 +26,8 @@ class Config(object, metaclass=Singleton):
                                help="read and write passages in Pickle binary format, not XML")
         argparser.add_argument('-v', '--verbose', action='store_true', default=False,
                                help="display detailed information while parsing")
+        argparser.add_argument('-s', '--sentences', action='store_true', default=False,
+                               help="separate passages to sentences and parse each one separately")
         argparser.add_argument('-r', '--learningrate', type=float, default=1,
                                help="learning rate for the model weight updates")
         argparser.add_argument('-l', '--checkloops', action='store_true', default=False,
@@ -40,7 +42,6 @@ class Config(object, metaclass=Singleton):
                                help="maximum ratio between non-terminal to terminal nodes")
         argparser.add_argument('-P', '--overrideprob', type=float, default=1.0,
                                help="probability to override predicted action by true action during training")
-        argparser.add_argument('-s', '--seed', type=int, default=None, help="seed for np.random")
         self.args = argparser.parse_args()
 
         self.iterations = self.args.iterations
@@ -58,4 +59,3 @@ class Config(object, metaclass=Singleton):
         self.max_nodes_ratio = self.args.maxnodes
 
         self.override_action_probability = self.args.overrideprob
-        self.seed = self.args.seed
