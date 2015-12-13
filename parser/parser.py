@@ -14,9 +14,10 @@ from features import FeatureExtractor
 from oracle import Oracle
 from state import State
 from ucca import core, layer0
+from ucca.diffutil import diff_passages
 from ucca.evaluation import evaluate, print_aggregate, average_f1
 from ucca.ioutil import file2passage, passage2file
-from ucca.diffutil import diff_passages
+from ucca.textutil import split2sentences, split2paragraphs
 
 
 class Parser(object):
@@ -287,9 +288,23 @@ def all_files(dirs):
     return [f for f in dirs if not os.path.isdir(f)]
 
 
+def read_passages_and_split(passage):
+    p, i = Parser.read_passage(passage)
+    if Config().sentences:
+        sentences = split2sentences(p) if isinstance(p, core.Passage) else p
+        # TODO split each list in p into sentences
+        return [(s, i) for s in sentences]
+    elif Config().paragraphs:
+        paragraphs = split2paragraphs(p) if isinstance(p, core.Passage) else p
+        # If it is not a passage, assume it is a list of lists of strings, each list
+        # in the top level being a paragraph
+        return [(s, i) for s in paragraphs]
+    return [(p, i)]
+
+
 def read_passages(passages):
     files = all_files(passages)
-    return (Parser.read_passage(passage) for passage in files) if files else []
+    return (p for passage in files for p in read_passages_and_split(passage)) if files else []
 
 
 def write_passage(passage, outdir, prefix, binary, verbose):

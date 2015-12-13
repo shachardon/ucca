@@ -28,6 +28,8 @@ class Config(object, metaclass=Singleton):
                                help="display detailed information while parsing")
         argparser.add_argument('-s', '--sentences', action='store_true', default=False,
                                help="separate passages to sentences and parse each one separately")
+        argparser.add_argument('-a', '--paragraphs', action='store_true', default=False,
+                               help="separate passages to paragraphs and parse each one separately")
         argparser.add_argument('-r', '--learningrate', type=float, default=1,
                                help="learning rate for the model weight updates")
         argparser.add_argument('-l', '--checkloops', action='store_true', default=False,
@@ -49,6 +51,10 @@ class Config(object, metaclass=Singleton):
         self.verbose = self.args.verbose
         self.line_end = "\n" if self.verbose else " "  # show all in one line unless verbose
 
+        self.sentences = self.args.sentences
+        self.paragraphs = self.args.paragraphs
+        assert not (self.sentences and self.paragraphs),\
+            "At most one of --sentences and --paragraphs may be specified"
         self.learning_rate = self.args.learningrate
         self.check_loops = self.args.checkloops
         self.verify = self.args.verify
