@@ -10,13 +10,13 @@ from nltk import pos_tag
 from action import Action
 from averaged_perceptron import AveragedPerceptron
 from config import Config
-from diffutil import diff_passages
 from features import FeatureExtractor
 from oracle import Oracle
 from state import State
 from ucca import core, layer0
 from ucca.evaluation import evaluate, print_aggregate, average_f1
 from ucca.ioutil import file2passage, passage2file
+from ucca.diffutil import diff_passages
 
 
 class Parser(object):
