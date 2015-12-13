@@ -1,9 +1,7 @@
 from collections import deque
 from operator import attrgetter
 
-import core
-import layer0
-import layer1
+from ucca import core, layer0, layer1
 from config import Config
 
 
