@@ -102,7 +102,7 @@ class Parser(object):
             self.oracle = Oracle(passage) if isinstance(passage, core.Passage) else None
             try:
                 self.parse_passage(history, train)  # This is where the actual parsing takes place
-            except AssertionError as e:
+            except Exception as e:
                 if train:
                     raise
                 if Config().verbose:
