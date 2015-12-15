@@ -41,7 +41,7 @@ class Node(object):
         """
         if Config().verify:
             assert self.node is None or self.text is not None,\
-                "Trying to create the same node twice: %s, parent: %s" % (self.node_id, parent)
+                "Trying to create the same node twice: %s, parent: %s" % (self.node.ID, parent)
         edge = self.outgoing[0] if len(self.outgoing) == 1 else None
         if self.text:  # For Word terminals (Punctuation already created by add_punct for parent)
             if self.node is None and parent.node is not None:

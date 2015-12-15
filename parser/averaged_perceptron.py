@@ -6,18 +6,46 @@ from collections import defaultdict
 import numpy as np
 
 
+class Weights(object):
+    def __init__(self, num_actions, weights=None):
+        self.num_actions = num_actions
+        if weights is None:
+            self.weights = 0.01 * np.random.randn(num_actions)
+            self._last_update = np.zeros(num_actions, dtype=int)
+            self._totals = np.zeros(num_actions, dtype=float)
+        else:
+            self.weights = weights
+
+    def update(self, action, value, update_index):
+        n = update_index - self._last_update[action]
+        self._totals[action] += n * self.weights[action]
+        self.weights[action] += value
+        self._last_update[action] = update_index
+
+    def average(self, update_index):
+        """
+        Average weights over all updates
+        :param update_index: number of updated to average over
+        :return new Weights object with the weights averaged
+        """
+        n = update_index - self._last_update
+        totals = self._totals + n * self.weights
+        averaged_weights = totals / update_index
+        return Weights(self.num_actions, averaged_weights)
+
+
 class AveragedPerceptron(object):
     """
     Averaged perceptron to predict parser actions
     """
 
-    def __init__(self, num_actions):
+    def __init__(self, num_actions, weights=None):
         self.num_actions = num_actions
-        self.weights = defaultdict(lambda: 0.01 * np.random.randn(self.num_actions))
-        self._last_update = defaultdict(lambda: np.zeros(self.num_actions, dtype=int))
-        self._totals = defaultdict(lambda: np.zeros(self.num_actions, dtype=float))
+        self.weights = defaultdict(lambda: Weights(num_actions))
         self._update_index = 0
         self.is_averaged = False
+        if weights is not None:
+            self.weights.update(weights)
 
     def score(self, features):
         """
@@ -32,7 +60,7 @@ class AveragedPerceptron(object):
             weights = self.weights.get(feature)
             if weights is None:
                 continue
-            scores += value * weights
+            scores += value * weights.weights
         return scores
 
     def update(self, features, pred_action, true_action, learning_rate=1):
@@ -43,51 +71,40 @@ class AveragedPerceptron(object):
         :param true_action: action returned by oracle
         :param learning_rate: how much to scale the feature vector for the weight update
         """
-        def update_feature(f, a, v):
-            n = self._update_index - self._last_update[f][a]
-            self._totals[f][a] += n * self.weights[f][a]
-            self.weights[f][a] += v
-            self._last_update[f][a] = self._update_index
-
         self._update_index += 1
         for feature, value in features.items():
             if not value:
                 continue
-            update_feature(feature, true_action.id, learning_rate * value)
-            update_feature(feature, pred_action.id, -learning_rate * value)
+            weights = self.weights[feature]
+            weights.update(true_action.id, learning_rate * value, self._update_index)
+            weights.update(pred_action.id, -learning_rate * value, self._update_index)
 
     def average_weights(self):
         """
         Average all weights over all updates, as a form of regularization
+        :return new AveragedPerceptron object with the weights averaged
         """
         print("Averaging weights... ", end="", flush=True)
         started = time.time()
-        for feature in self.weights:
-            n = self._update_index - self._last_update[feature]
-            self._totals[feature] += n * self.weights[feature]
-            self.weights[feature] = self._totals[feature] / self._update_index
-        self.weights = dict(self.weights)  # "Lock" set of features; also allow pickle
-        self.is_averaged = True
+        # "Lock" set of features; also allow pickle
+        averaged_weights = {feature: weights.average(self._update_index)
+                            for feature, weights in self.weights.items()}
+        averaged = AveragedPerceptron(self.num_actions, averaged_weights)
+        averaged.is_averaged = True
         print("Done (%.3fs)." % (time.time() - started))
+        return averaged
 
-    def save(self, filename, intermediate=False):
-        print("Saving %s model to '%s'... " % (
-            "intermediate" if intermediate else "final", filename), end="", flush=True)
+    def save(self, filename):
+        print("Saving model to '%s'... " % filename, end="", flush=True)
         started = time.time()
         with shelve.open(filename) as db:
-            if intermediate:
-                db["intermediate"] = {
-                    "weights": dict(self.weights),
-                    "_last_update": dict(self._last_update),
-                    "_totals": dict(self._totals),
-                    "_update_index": self._update_index,
-                }
-            else:
-                db.pop("intermediate", None)
-                db["weights"] = self.weights
+            db["num_actions"] = self.num_actions
+            db["weights"] = dict(self.weights)
+            db["_update_index"] = self._update_index
+            db["is_averaged"] = self.is_averaged
         print("Done (%.3fs)." % (time.time() - started))
 
-    def load(self, filename, intermediate=False):
+    def load(self, filename):
         def try_open(*names):
             for f in names:
                 # noinspection PyBroadException
@@ -97,15 +114,12 @@ class AveragedPerceptron(object):
                     exception = e
             raise IOError("Model file not found: " + filename) from exception
 
-        print("Loading %s model from '%s'... " % (
-            "intermediate" if intermediate else "final", filename), end="", flush=True)
+        print("Loading model from '%s'... " % filename, end="", flush=True)
         started = time.time()
         with try_open(filename, os.path.splitext(filename)[0]) as db:
-            if intermediate:
-                self.weights.update(db["intermediate"]["weights"])
-                self._last_update.update(db["intermediate"]["_last_update"])
-                self._totals.update(db["intermediate"]["_totals"])
-                self._update_index = db["intermediate"]["_update_index"]
-            else:
-                self.weights = db["weights"]
+            self.num_actions = db["num_actions"]
+            self.weights.clear()
+            self.weights.update(db["weights"])
+            self._update_index = db["_update_index"]
+            self.is_averaged = db["is_averaged"]
         print("Done (%.3fs)." % (time.time() - started))
