@@ -71,7 +71,7 @@ def split2segments(passage, is_sentences, remarks=False):
         ends = break2sentences(passage) if is_sentences else break2paragraphs(passage)
         return split_passage(passage, ends, remarks=remarks)
     elif isinstance(passage, str):  # split to segments and tokens
-        return split_sublists([nltk.tokenize(passage)],
+        return split_sublists([nltk.word_tokenize(passage)],
                               (("\n",) + SENTENCE_END_MARKS) if is_sentences else "\n")
     elif is_sentences:  # not Passage nor str, assume list of list of strings (paragraphs)
         return split_sublists(passage, SENTENCE_END_MARKS)
