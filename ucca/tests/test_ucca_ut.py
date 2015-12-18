@@ -882,6 +882,14 @@ class UtilTests(unittest.TestCase):
             for n in t:
                 self.assertEqual(n.incoming[0].tag, layer1.EdgeTags.ParallelScene)
 
+    def test_split_paragraphs2sentences(self):
+        paragraphs = [["This", "is", "one", "sentence", ".", "This", "is", "another"],
+                      ["And", "this", "is", "the", "second", "paragraph", "."]]
+        sentences = [["This", "is", "one", "sentence", "."],
+                     ["This", "is", "another"],
+                     ["And", "this", "is", "the", "second", "paragraph", "."]]
+        self.assertSequenceEqual(textutil.split2sentences(paragraphs), sentences)
+
     def test_split_join_sentences(self):
         """Test that splitting and joining a passage by sentences results in the same passage.
         """

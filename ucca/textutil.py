@@ -1,4 +1,8 @@
 """Utility functions for UCCA package."""
+from itertools import groupby
+
+import nltk
+
 from ucca import core, layer0, layer1
 
 
@@ -6,7 +10,8 @@ SENTENCE_END_MARKS = ('.', '?', '!')
 
 
 def break2sentences(passage):
-    """Breaks paragraphs into sentences according to the annotation.
+    """
+    Breaks paragraphs into sentences according to the annotation.
 
     A sentence is a list of terminals which ends with a mark from
     SENTENCE_END_MARKS, and is also the end of a paragraph or parallel scene.
@@ -29,7 +34,8 @@ def break2sentences(passage):
 
 
 def break2paragraphs(passage):
-    """Breaks into paragraphs according to the annotation.
+    """
+    Breaks into paragraphs according to the annotation.
 
     Uses the `paragraph' attribute of layer 0 to find paragraphs.
     :param passage: the Passage object to operate on
@@ -44,13 +50,44 @@ def break2paragraphs(passage):
 
 
 def split2sentences(passage, remarks=False):
-    ends = break2sentences(passage)
-    return split_passage(passage, ends, remarks=remarks)
+    return split2segments(passage, is_sentences=True, remarks=remarks)
 
 
 def split2paragraphs(passage, remarks=False):
-    ends = break2paragraphs(passage)
-    return split_passage(passage, ends, remarks=remarks)
+    return split2segments(passage, is_sentences=False, remarks=remarks)
+
+
+def split2segments(passage, is_sentences, remarks=False):
+    """
+    If passage is a core.Passage, split it to Passage objects for each paragraph.
+    Otherwise, if it is a string, split it to list of lists of strings,
+    each list in the top level being a paragraph
+    :param passage: Passage, str or list
+    :param is_sentences: if True, split to sentences; otherwise, paragraphs
+    :param remarks: Whether to add remarks with original node IDs (if Passage given)
+    :return: sequence of passages, or list of list of strings
+    """
+    if isinstance(passage, core.Passage):
+        ends = break2sentences(passage) if is_sentences else break2paragraphs(passage)
+        return split_passage(passage, ends, remarks=remarks)
+    elif isinstance(passage, str):  # split to segments and tokens
+        return split_sublists([nltk.tokenize(passage)],
+                              (("\n",) + SENTENCE_END_MARKS) if is_sentences else "\n")
+    elif is_sentences:  # not Passage nor str, assume list of list of strings (paragraphs)
+        return split_sublists(passage, SENTENCE_END_MARKS)
+    else:  # already split to paragraphs
+        return passage
+
+
+def split_sublists(sublists, sep):
+    ret = []
+    for sublist in sublists:
+        for is_end, subsublist in groupby(sublist, key=lambda token: token in sep):
+            if is_end:
+                ret[-1] += subsublist
+            else:
+                ret.append(list(subsublist))
+    return ret
 
 
 def split_passage(passage, ends, remarks=False):
@@ -178,7 +215,8 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
 
 
 def indent_xml(xml_as_string):
-    """Indents a string of XML-like objects.
+    """
+    Indents a string of XML-like objects.
 
     This works only for units with no text or tail members, and only for
     strings whose leaves are written as <tag /> and not <tag></tag>.

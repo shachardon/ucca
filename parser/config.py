@@ -55,6 +55,7 @@ class Config(object, metaclass=Singleton):
         self.paragraphs = self.args.paragraphs
         assert not (self.sentences and self.paragraphs),\
             "At most one of --sentences and --paragraphs may be specified"
+        self.split = self.sentences or self.paragraphs
         self.learning_rate = self.args.learningrate
         self.check_loops = self.args.checkloops
         self.verify = self.args.verify

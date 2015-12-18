@@ -13,11 +13,8 @@ from config import Config
 from features import FeatureExtractor
 from oracle import Oracle
 from state import State
-from ucca import core, layer0
-from ucca.diffutil import diff_passages
+from ucca import core, layer0, textutil, ioutil, diffutil
 from ucca.evaluation import evaluate, print_aggregate, average_f1
-from ucca.ioutil import file2passage, passage2file
-from ucca.textutil import split2sentences, split2paragraphs
 
 
 class Parser(object):
@@ -161,7 +158,7 @@ class Parser(object):
             passage_id = passage.ID
         elif os.path.exists(passage):  # a file
             try:
-                passage = file2passage(passage)  # XML or binary format
+                passage = ioutil.file2passage(passage)  # XML or binary format
                 passage_id = passage.ID
             except (IOError, ParseError):
                 passage_id = os.path.splitext(os.path.basename(passage))[0]
@@ -271,8 +268,8 @@ class Parser(object):
                           in the "remarks" field for each node.
         """
         assert passage.equals(predicted_passage), "Failed to produce true passage" + \
-                                                  (diff_passages(
-                                                      passage, predicted_passage) if show_diff else "")
+                                                  (diffutil.diff_passages(
+                                                          passage, predicted_passage) if show_diff else "")
 
     @staticmethod
     def pos_tag(state):
@@ -301,15 +298,9 @@ def all_files(dirs):
 
 def read_passages_and_split(passage):
     p, i = Parser.read_passage(passage)
-    if Config().sentences:
-        sentences = split2sentences(p) if isinstance(p, core.Passage) else p
-        # TODO split each list in p into sentences
-        return [(s, i) for s in sentences]
-    elif Config().paragraphs:
-        paragraphs = split2paragraphs(p) if isinstance(p, core.Passage) else p
-        # If it is not a passage, assume it is a list of lists of strings, each list
-        # in the top level being a paragraph
-        return [(s, i) for s in paragraphs]
+    if Config().split:
+        return [(s, i) for s in textutil.split2segments(
+                passage, is_sentences=Config().sentences, remarks=True)]
     return [(p, i)]
 
 
@@ -323,7 +314,7 @@ def write_passage(passage, outdir, prefix, binary, verbose):
     outfile = outdir + os.path.sep + prefix + passage.ID + suffix
     if verbose:
         print("Writing passage '%s'..." % outfile)
-    passage2file(passage, outfile, binary=binary)
+    ioutil.passage2file(passage, outfile, binary=binary)
 
 
 def main():
