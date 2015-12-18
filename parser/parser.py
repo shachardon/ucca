@@ -300,7 +300,7 @@ def read_passages_and_split(passage):
     p, i = Parser.read_passage(passage)
     if Config().split:
         return [(s, i) for s in textutil.split2segments(
-                passage, is_sentences=Config().sentences, remarks=True)]
+                p, is_sentences=Config().sentences, remarks=True)]
     return [(p, i)]
 
 
