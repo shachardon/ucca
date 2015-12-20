@@ -40,7 +40,7 @@ class Config(object, metaclass=Singleton):
                                help="enable compound swap")
         argparser.add_argument('-S', '--maxswap', type=int, default=11,
                                help="maximum distance for compound swap")
-        argparser.add_argument('-N', '--maxnodes', type=float, default=2.0,
+        argparser.add_argument('-N', '--maxnodes', type=float, default=3.0,
                                help="maximum ratio between non-terminal to terminal nodes")
         argparser.add_argument('-P', '--overrideprob', type=float, default=1.0,
                                help="probability to override predicted action by true action during training")
