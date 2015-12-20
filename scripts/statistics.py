@@ -48,7 +48,8 @@ def main():
             paragraph_counts.append(len(paragraphs))
             sentence_counts.append(len(break2sentences(passage)))
         data = np.array((ids, terminal_counts, non_terminal_counts, edge_counts,
-                         paragraph_counts, sentence_counts), dtype=int).T.sort(axis=0)
+                         paragraph_counts, sentence_counts), dtype=int).T
+        data.sort(axis=0)
         if args.outfile:
             np.savetxt(args.outfile, data, fmt="%i")
     elif args.infile:
