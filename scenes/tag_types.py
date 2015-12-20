@@ -2,8 +2,8 @@
 import pickle
 import sys
 
-from ucca import collins
-from ucca.postags import POSTags
+from scenes import collins
+from scenes.postags import POSTags
 
 
 def main():

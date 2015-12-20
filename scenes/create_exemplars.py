@@ -1,10 +1,9 @@
 """Creates new examplers from Collins entries."""
 import pickle
-import random
 import sys
 
-from ucca import collins
-from ucca.postags import POSTags
+from scenes import collins
+from scenes.postags import POSTags
 
 
 def main():

@@ -3,9 +3,11 @@
 import pickle
 import xml.etree.ElementTree as ETree
 
-from ucca import collins, wikt, core
-from ucca.postags import POSTags
 import nltk
+
+from scenes import collins, wikt
+from scenes.postags import POSTags
+from ucca import core
 
 
 class DixonVerbs:

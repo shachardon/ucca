@@ -15,7 +15,7 @@ before_script:
   - python -m nltk.downloader averaged_perceptron_tagger punkt
 # command to run tests
 script:
-  - cd ucca/tests && python -m unittest discover && cd -
+  - python -m unittest discover -v
   - python parser/parser.py -I 10 -t doc/toy.xml -d doc/toy.xml -m model_toy
   - python parser/parser.py doc/toy.xml -m model_toy
   - python parser/parser.py -I 10 -t doc/toy.xml -d doc/toy.xml -sm model_toy_sentences

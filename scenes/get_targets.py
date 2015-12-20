@@ -3,7 +3,7 @@
 import pickle
 import sys
 
-from ucca import scenes
+from scenes import scenes
 
 
 def main():

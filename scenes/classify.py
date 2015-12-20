@@ -1,14 +1,13 @@
 import random
 
-import numpy as np
-
-from sklearn.ensemble import GradientBoostingClassifier
 import mlpy
+import numpy as np
+from sklearn.ensemble import GradientBoostingClassifier
 
 
 
 # number which means the label is undecisive
-from ucca import lex
+from scenes import lex
 
 UNDECISIVE_LABEL = 2
 

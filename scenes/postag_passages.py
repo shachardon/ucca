@@ -2,8 +2,6 @@ import os
 import pickle
 import sys
 
-from ucca import convert
-
 
 def main():
     dbpath = sys.argv[1]

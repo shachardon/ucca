@@ -1,18 +1,16 @@
 #!/usr/bin/python3
 
 import argparse
-from collections import defaultdict
 import glob
 import os
 import re
 import string
 import sys
-
 import unicodedata
+from collections import defaultdict
 
-import layer0
-
-from textutil import file2passage
+from ucca import layer0
+from ucca.ioutil import file2passage
 
 desc = """Prints the unicode general categories of characters in words/punctuation in UCCA passages
 """

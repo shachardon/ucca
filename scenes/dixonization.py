@@ -1,9 +1,10 @@
 """Identifies and categorizes words according to Dixon's verb list."""
 
 import argparse
-
-from ucca import lex, convert, scenes
 import xml.etree.ElementTree as ETree
+
+from scenes import scenes, lex
+from ucca import convert
 
 
 class Result:

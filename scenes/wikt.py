@@ -2,8 +2,8 @@
 
 import re
 
+from scenes.postags import POSTags
 from ucca.core import UCCAError
-from ucca.postags import POSTags
 
 
 class MultipleLemmasError(UCCAError):

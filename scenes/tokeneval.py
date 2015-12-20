@@ -1,7 +1,9 @@
 import re
 
 import nltk
-from ucca import classify, layer0, layer1
+
+from scenes import classify
+from ucca import layer0, layer1
 
 
 def get_terminals_labels(passages):

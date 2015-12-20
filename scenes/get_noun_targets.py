@@ -14,8 +14,8 @@ import pickle
 import sys
 
 import numpy as np
-from ucca import scenes
 
+from scenes import scenes
 
 dbfile = sys.argv[1]
 appear_thresh = int(sys.argv[2])

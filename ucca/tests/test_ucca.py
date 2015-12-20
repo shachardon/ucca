@@ -1,58 +1,17 @@
 """Testing code for the ucca package, unit-testing only."""
 
 import operator
-import pickle
 import unittest
 import xml.etree.ElementTree as ETree
 
-from ucca import core, layer0, layer1, convert, textutil, scenes, collins, lex, diffutil
+from ucca import core, layer0, layer1, convert, textutil, diffutil
 
 
 class CoreTests(unittest.TestCase):
 
-    @staticmethod
-    def _create_basic_passage():
-        """Creates a basic :class:Passage to tinker with.
-
-        Passage structure is as follows:
-            Layer1: order by ID, heads = [1.2], all = [1.1, 1.2, 1.3]
-            Layer2: order by node unique ID descending,
-                    heads = all = [2.2, 2.1], attrib={'test': True}
-            Nodes (tag):
-                1.1 (1)
-                1.3 (3), attrib={'node': True}
-                1.2 (x), order by edge tag
-                    children: 1.3 Edge: tag=test1, attrib={'Edge': True}
-                              1.1 Edge: tag=test2
-                2.1 (2), children [1.1, 1.2] with edge tags [test, test2]
-                2.2 (2), children [1.1, 1.2, 1.3] with tags [test, test1, test]
-
-        """
-        p = core.Passage(ID='1')
-        l1 = core.Layer(ID='1', root=p)
-        l1 = core.Layer(ID='2', root=p, attrib={'test': True},
-                        orderkey=lambda x: -1 * int(x.ID.split('.')[1]))
-
-        # Order is explicitly different in order to break the alignment between
-        # the ID/Edge ordering and the order of creation/addition
-        node11 = core.Node(ID='1.1', root=p, tag='1')
-        node13 = core.Node(ID='1.3', root=p, tag='3', attrib={'node': True})
-        node12 = core.Node(ID='1.2', root=p, tag='x',
-                           orderkey=operator.attrgetter('tag'))
-        node21 = core.Node(ID='2.1', root=p, tag='2')
-        node22 = core.Node(ID='2.2', root=p, tag='2')
-        node12.add('test2', node11)
-        node12.add('test1', node13, edge_attrib={'edge': True})
-        node21.add('test2', node12)
-        node21.add('test', node11)
-        node22.add('test1', node12)
-        node22.add('test', node13)
-        node22.add('test', node11)
-        return p
-
     def test_creation(self):
 
-        p = self._create_basic_passage()
+        p = TestUtil.create_basic_passage()
 
         self.assertEqual(p.ID, '1')
         self.assertEqual(p.root, p)
@@ -92,7 +51,7 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(node22[2].ID, '2.2->1.3')
 
     def test_modifying(self):
-        p = self._create_basic_passage()
+        p = TestUtil.create_basic_passage()
         l1, l2 = p.layer('1'), p.layer('2')
         node11, node12, node13 = l1.all
         node22, node21 = l2.all
@@ -192,7 +151,7 @@ class CoreTests(unittest.TestCase):
 
     def test_copying(self):
         # we don't need such a complex passage, but it will work anyway
-        p1 = Layer1Tests._create_passage()
+        p1 = TestUtil.create_passage()
 
         p2 = p1.copy([])
         self.assertEqual(p1.ID, p2.ID)
@@ -205,7 +164,7 @@ class CoreTests(unittest.TestCase):
         self.assertTrue(p1.layer(l0id).equals(p2.layer(l0id)))
 
     def test_iteration(self):
-        p = self._create_basic_passage()
+        p = TestUtil.create_basic_passage()
         l1, l2 = p.layer('1'), p.layer('2')
         node11, node12, node13 = l1.all
         node22, node21 = l2.all
@@ -291,8 +250,465 @@ class Layer0Tests(unittest.TestCase):
 class Layer1Tests(unittest.TestCase):
     """Tests layer1 module functionality and correctness."""
 
+    def test_creation(self):
+        p = TestUtil.create_passage()
+        head = p.layer('1').heads[0]
+        self.assertSequenceEqual([x.tag for x in head], ['L', 'H', 'H', 'U'])
+        self.assertSequenceEqual([x.child.position for x in head.children[0]],
+                                 [1])
+        self.assertSequenceEqual([x.tag for x in head.children[1]],
+                                 ['P', 'A', 'U', 'A'])
+        self.assertSequenceEqual([x.child.position
+                                  for x in head.children[1].children[0]],
+                                 [2, 3, 4, 5])
+        self.assertSequenceEqual([x.child.position
+                                  for x in head.children[1].children[1]],
+                                 [6, 7, 8, 9])
+        self.assertSequenceEqual([x.child.position
+                                  for x in head.children[1].children[2]],
+                                 [10])
+        self.assertTrue(head.children[1][3].attrib.get('remote'))
+
+    def test_fnodes(self):
+        p = TestUtil.create_passage()
+        l0 = p.layer('0')
+        l1 = p.layer('1')
+
+        terms = l0.all
+        head, lkg1, lkg2 = l1.heads
+        link1, ps1, ps23, punct2 = head.children
+        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get('remote')]
+        ps2, link2, ps3 = ps23.children
+        a2, d2 = [x.child for x in ps2 if not x.attrib.get('remote')]
+        p3, a3, a4 = ps3.children
+
+        self.assertEqual(lkg1.relation, link1)
+        self.assertSequenceEqual(lkg1.arguments, [ps1])
+        self.assertIsNone(ps23.process)
+        self.assertEqual(ps2.process, p1)
+        self.assertSequenceEqual(ps1.participants, [a1, d2])
+        self.assertSequenceEqual(ps3.participants, [a3, a4])
+
+        self.assertSequenceEqual(ps1.get_terminals(), terms[1:10])
+        self.assertSequenceEqual(ps1.get_terminals(punct=False, remotes=True),
+                                 terms[1:9] + terms[14:15])
+        self.assertEqual(ps1.end_position, 10)
+        self.assertEqual(ps2.start_position, 11)
+        self.assertEqual(ps3.start_position, 17)
+        self.assertEqual(a4.start_position, -1)
+        self.assertEqual(ps23.to_text(), '11 12 13 14 15 16 17 18 19')
+
+        self.assertEqual(ps1.fparent, head)
+        self.assertEqual(link2.fparent, ps23)
+        self.assertEqual(ps2.fparent, ps23)
+        self.assertEqual(d2.fparent, ps2)
+
+    def test_layer1(self):
+        p = TestUtil.create_passage()
+        l1 = p.layer('1')
+
+        head, lkg1, lkg2 = l1.heads
+        link1, ps1, ps23, punct2 = head.children
+        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get('remote')]
+        ps2, link2, ps3 = ps23.children
+        a2, d2 = [x.child for x in ps2 if not x.attrib.get('remote')]
+        p3, a3, a4 = ps3.children
+
+        self.assertSequenceEqual(l1.top_scenes, [ps1, ps2, ps3])
+        self.assertSequenceEqual(l1.top_linkages, [lkg1, lkg2])
+
+        # adding scene #23 to linkage #1, which makes it non top-level as
+        # scene #23 isn't top level
+        lkg1.add(layer1.EdgeTags.LinkArgument, ps23)
+        self.assertSequenceEqual(l1.top_linkages, [lkg2])
+
+        # adding process to scene #23, which makes it top level and discards
+        # "top-levelness" from scenes #2 + #3
+        l1.add_remote(ps23, layer1.EdgeTags.Process, p1)
+        self.assertSequenceEqual(l1.top_scenes, [ps1, ps23])
+        self.assertSequenceEqual(l1.top_linkages, [lkg1, lkg2])
+
+        # Changing the process tag of scene #1 to A and back, validate that
+        # top scenes are updates accordingly
+        p_edge = [e for e in ps1 if e.tag == layer1.EdgeTags.Process][0]
+        p_edge.tag = layer1.EdgeTags.Participant
+        self.assertSequenceEqual(l1.top_scenes, [ps23])
+        self.assertSequenceEqual(l1.top_linkages, [lkg2])
+        p_edge.tag = layer1.EdgeTags.Process
+        self.assertSequenceEqual(l1.top_scenes, [ps1, ps23])
+        self.assertSequenceEqual(l1.top_linkages, [lkg1, lkg2])
+
+    def test_str(self):
+        p = TestUtil.create_passage()
+        self.assertSequenceEqual([str(x) for x in p.layer('1').heads],
+                                 ['[L 1] [H [P 2 3 4 5] [A 6 7 8 9] [U 10] '
+                                  '... [A* 15] ] [H [H [P* 2 3 4 5] [A 11 12 '
+                                  '13 14] [D 15] ] [L 16] [H [A IMPLICIT] [S '
+                                  '17 18] [A 19] ] ] [U 20] ',
+                                  '1.2-->1.3', '1.11-->1.8,1.12'])
+
+    def test_destroy(self):
+        p = TestUtil.create_passage()
+        l0 = p.layer('0')
+        l1 = p.layer('1')
+
+        terms = l0.all
+        head, lkg1, lkg2 = l1.heads
+        link1, ps1, ps23, punct2 = head.children
+        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get('remote')]
+        ps2, link2, ps3 = ps23.children
+        a2, d2 = [x.child for x in ps2 if not x.attrib.get('remote')]
+        p3, a3, a4 = ps3.children
+
+        ps1.destroy()
+        self.assertSequenceEqual(head.children, [link1, ps23, punct2])
+        self.assertSequenceEqual(p1.parents, [ps2])
+        self.assertFalse(a1.parents)
+        self.assertFalse(punct1.parents)
+
+
+    def test_discontiguous(self):
+        """Tests FNode.discontiguous and FNode.get_sequences"""
+        p = TestUtil.create_discontiguous()
+        l1 = p.layer('1')
+        head = l1.heads[0]
+        ps1, ps2, ps3 = head.children
+        d1, a1, p1, f1 = ps1.children
+        e1, c1, e2, g1 = d1.children
+        d2, g2, p2, a2 = ps2.children
+        t14, p3, a3 = ps3.children
+
+        # Checking discontiguous property
+        self.assertFalse(ps1.discontiguous)
+        self.assertFalse(d1.discontiguous)
+        self.assertFalse(e1.discontiguous)
+        self.assertFalse(e2.discontiguous)
+        self.assertTrue(c1.discontiguous)
+        self.assertTrue(g1.discontiguous)
+        self.assertTrue(a1.discontiguous)
+        self.assertTrue(p1.discontiguous)
+        self.assertFalse(f1.discontiguous)
+        self.assertTrue(ps2.discontiguous)
+        self.assertFalse(p2.discontiguous)
+        self.assertFalse(a2.discontiguous)
+        self.assertFalse(ps3.discontiguous)
+        self.assertFalse(a3.discontiguous)
+
+        # Checking get_sequences -- should return only non-remote, non-implicit
+        # stretches of terminals
+        self.assertSequenceEqual(ps1.get_sequences(), [(1, 10)])
+        self.assertSequenceEqual(d1.get_sequences(), [(1, 4)])
+        self.assertSequenceEqual(e1.get_sequences(), [(1, 1)])
+        self.assertSequenceEqual(e2.get_sequences(), [(3, 3)])
+        self.assertSequenceEqual(c1.get_sequences(), [(2, 2), (4, 4)])
+        self.assertSequenceEqual(a1.get_sequences(), [(5, 5), (8, 8)])
+        self.assertSequenceEqual(p1.get_sequences(), [(6, 7), (10, 10)])
+        self.assertSequenceEqual(f1.get_sequences(), [(9, 9)])
+        self.assertSequenceEqual(ps2.get_sequences(), [(11, 14), (18, 20)])
+        self.assertSequenceEqual(p2.get_sequences(), [(11, 14)])
+        self.assertSequenceEqual(a2.get_sequences(), [(18, 20)])
+        self.assertSequenceEqual(d2.get_sequences(), [])
+        self.assertSequenceEqual(g2.get_sequences(), [])
+        self.assertSequenceEqual(ps3.get_sequences(), [(15, 17)])
+        self.assertSequenceEqual(a3.get_sequences(), [(16, 17)])
+        self.assertSequenceEqual(p3.get_sequences(), [])
+
+
+class ConversionTests(unittest.TestCase):
+    """Tests convert module correctness and API."""
+
+    def _test_edges(self, node, tags):
+        """Tests that the node edge tags and number match tags argument."""
+        self.assertEqual(len(node), len(tags))
+        for edge, tag in zip(node, tags):
+            self.assertEqual(edge.tag, tag)
+
+    def _test_terms(self, node, terms):
+        """Tests that node contain the terms given, and only them."""
+        for edge, term in zip(node, terms):
+            self.assertEqual(edge.tag, layer1.EdgeTags.Terminal)
+            self.assertEqual(edge.child, term)
+
+    def test_site_terminals(self):
+        elem = TestUtil.load_xml('test_files/site1.xml')
+        passage = convert.from_site(elem)
+        terms = passage.layer(layer0.LAYER_ID).all
+
+        self.assertEqual(passage.ID, '118')
+        self.assertEqual(len(terms), 15)
+
+        # There are two punctuation signs (dots, positions 5 and 11), which
+        # also serve as paragraph end points. All others are words whose text
+        # is their positions, so test that both text, punctuation (yes/no)
+        # and paragraphs are converted correctly
+        for i, t in enumerate(terms):
+            # i starts in 0, positions at 1, hence 5,11 ==> 4,10
+            if i in (4, 10):
+                self.assertTrue(t.text == '.' and t.punct is True)
+            else:
+                self.assertTrue(t.text == str(i + 1) and t.punct is False)
+            if i < 5:
+                par = 1
+            elif i < 11:
+                par = 2
+            else:
+                par = 3
+            self.assertEqual(t.paragraph, par)
+
+    def test_site_simple(self):
+        elem = TestUtil.load_xml('test_files/site2.xml')
+        passage = convert.from_site(elem)
+        terms = passage.layer(layer0.LAYER_ID).all
+        l1 = passage.layer('1')
+
+        # The Terminals in the passage are just like in test_site_terminals,
+        # with this layer1 hierarchy: [[1 C] [2 E] L] [3 4 . H]
+        # with the linker having a remark and the parallel scene is uncertain
+        head = l1.heads[0]
+        self.assertEqual(len(head), 12)  # including all 'unused' terminals
+        self.assertEqual(head[9].tag, layer1.EdgeTags.Linker)
+        self.assertEqual(head[10].tag, layer1.EdgeTags.ParallelScene)
+        linker = head.children[9]
+        self._test_edges(linker, [layer1.EdgeTags.Center,
+                                  layer1.EdgeTags.Elaborator])
+        self.assertTrue(linker.extra['remarks'], '"remark"')
+        center = linker.children[0]
+        elab = linker.children[1]
+        self._test_terms(center, terms[0:1])
+        self._test_terms(elab, terms[1:2])
+        ps = head.children[10]
+        self._test_edges(ps, [layer1.EdgeTags.Terminal,
+                              layer1.EdgeTags.Terminal,
+                              layer1.EdgeTags.Punctuation])
+        self.assertTrue(ps.attrib.get('uncertain'))
+        self.assertEqual(ps.children[0], terms[2])
+        self.assertEqual(ps.children[1], terms[3])
+        self.assertEqual(ps.children[2].children[0], terms[4])
+
+    def test_site_advanced(self):
+        elem = TestUtil.load_xml('test_files/site3.xml')
+        passage = convert.from_site(elem)
+        terms = passage.layer(layer0.LAYER_ID).all
+        l1 = passage.layer('1')
+
+        # This passage has the same terminals as the simple and terminals test,
+        # and have the same layer1 units for the first paragraph as the simple
+        # test. In addition, it has the following annotation:
+        # [6 7 8 9 H] [10 F] .
+        # the 6-9 H has remote D which is [10 F]. Inside of 6-9, we have [8 S]
+        # and [6 7 ... 9 A], where [6 E] and [7 ... 9 C].
+        # [12 H] [13 H] [14 H] [15 L], where 15 linkage links 12, 13 and 14 and
+        # [15 L] has an implicit Center unit
+        head, lkg = l1.heads
+        self._test_edges(head, [layer1.EdgeTags.Linker,
+                                layer1.EdgeTags.ParallelScene,
+                                layer1.EdgeTags.ParallelScene,
+                                layer1.EdgeTags.Function,
+                                layer1.EdgeTags.Punctuation,
+                                layer1.EdgeTags.ParallelScene,
+                                layer1.EdgeTags.ParallelScene,
+                                layer1.EdgeTags.ParallelScene,
+                                layer1.EdgeTags.Linker])
+
+        # we only take what we haven't checked already
+        ps1, func, punct, ps2, ps3, ps4, link = head.children[2:]
+        self._test_edges(ps1, [layer1.EdgeTags.Participant,
+                               layer1.EdgeTags.Process,
+                               layer1.EdgeTags.Adverbial])
+        self.assertTrue(ps1[2].attrib.get('remote'))
+        ps1_a, ps1_p, ps1_d = ps1.children
+        self._test_edges(ps1_a, [layer1.EdgeTags.Elaborator,
+                                 layer1.EdgeTags.Center])
+        self._test_terms(ps1_a.children[0], terms[5:6])
+        self._test_terms(ps1_a.children[1], terms[6:9:2])
+        self._test_terms(ps1_p, terms[7:8])
+        self.assertEqual(ps1_d, func)
+        self._test_terms(func, terms[9:10])
+        self._test_terms(punct, terms[10:11])
+        self._test_terms(ps2, terms[11:12])
+        self._test_terms(ps3, terms[12:13])
+        self._test_terms(ps4, terms[13:14])
+        self.assertEqual(len(link), 2)
+        self.assertEqual(link[0].tag, layer1.EdgeTags.Center)
+        self.assertTrue(link.children[0].attrib.get('implicit'))
+        self.assertEqual(link[1].tag, layer1.EdgeTags.Elaborator)
+        self.assertEqual(link.children[1][0].tag, layer1.EdgeTags.Terminal)
+        self.assertEqual(link.children[1][0].child, terms[14])
+        self.assertEqual(lkg.relation, link)
+        self.assertSequenceEqual(lkg.arguments, [ps2, ps3, ps4])
+
+    def test_to_standard(self):
+        passage = convert.from_site(TestUtil.load_xml('test_files/site3.xml'))
+        ref = TestUtil.load_xml('test_files/standard3.xml')
+        root = convert.to_standard(passage)
+        self.assertEqual(ETree.tostring(ref), ETree.tostring(root))
+
+    def test_from_standard(self):
+        passage = convert.from_standard(TestUtil.load_xml('test_files/standard3.xml'))
+        ref = convert.from_site(TestUtil.load_xml('test_files/site3.xml'))
+        self.assertTrue(passage.equals(ref, ordered=True))
+
+    def test_from_text(self):
+        sample = ['Hello . again', 'nice', ' ?! end', '']
+        passage = convert.from_text(sample)
+        terms = passage.layer(layer0.LAYER_ID).all
+        pos = 0
+        for i, par in enumerate(sample):
+            for text in par.split():
+                self.assertTrue(terms[pos].text == text and
+                                terms[pos].paragraph == i + 1)
+                pos += 1
+
+    def test_to_text(self):
+        passage = convert.from_standard(TestUtil.load_xml('test_files/standard3.xml'))
+        self.assertEqual(convert.to_text(passage, False)[0],
+                         '1 2 3 4 . 6 7 8 9 10 . 12 13 14 15')
+        self.assertSequenceEqual(convert.to_text(passage, True),
+                                 ['1 2 3 4 .', '6 7 8 9 10 .', '12 13 14 15'])
+
+    def test_to_site(self):
+        passage = convert.from_standard(TestUtil.load_xml('test_files/standard3.xml'))
+        root = convert.to_site(passage)
+        copy = convert.from_site(root)
+        self.assertTrue(passage.equals(copy))
+
+
+class UtilTests(unittest.TestCase):
+    """Tests the util module functions and classes."""
+
+    def test_break2sentences(self):
+        """Tests identifying correctly sentence ends.
+        """
+        p = TestUtil.create_multi_passage()
+        self.assertSequenceEqual(textutil.break2sentences(p), [4, 7, 11])
+
+    def test_split2sentences(self):
+        """Tests splitting a passage by sentence ends.
+        """
+        p = TestUtil.create_multi_passage()
+        split = textutil.split2sentences(p)
+        self.assertEqual(len(split), 3)
+        terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
+        self.assertSequenceEqual(terms[0], ["1", "2", "3", "."])
+        self.assertSequenceEqual(terms[1], ["5", "6", "."])
+        self.assertSequenceEqual(terms[2], ["8", ".", "10", "."])
+        self.assertTrue(all(t.paragraph == 1 for s in split[0:2]
+                            for t in s.layer(layer0.LAYER_ID).all))
+        self.assertTrue(all(t.paragraph == 2
+                            for t in split[2].layer(layer0.LAYER_ID).all))
+        top_scenes = [s.layer(layer1.LAYER_ID).top_scenes for s in split]
+        for t in top_scenes:
+            self.assertEqual(len(t), 1)
+            self.assertEqual(t[0].incoming[0].tag, layer1.EdgeTags.ParallelScene)
+
+    def test_split2paragraphs(self):
+        """Tests splitting a passage by paragraph ends.
+        """
+        p = TestUtil.create_multi_passage()
+        split = textutil.split2paragraphs(p)
+        self.assertEqual(len(split), 2)
+        terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
+        self.assertSequenceEqual(terms[0], ["1", "2", "3", ".", "5", "6", "."])
+        self.assertSequenceEqual(terms[1], ["8", ".", "10", "."])
+        self.assertTrue(all(t.paragraph == 1
+                            for t in split[0].layer(layer0.LAYER_ID).all))
+        self.assertTrue(all(t.paragraph == 2
+                            for t in split[1].layer(layer0.LAYER_ID).all))
+        top_scenes = [s.layer(layer1.LAYER_ID).top_scenes for s in split]
+        self.assertEqual(len(top_scenes[0]), 2)
+        self.assertEqual(len(top_scenes[1]), 1)
+        for t in top_scenes:
+            for n in t:
+                self.assertEqual(n.incoming[0].tag, layer1.EdgeTags.ParallelScene)
+
+    def test_split_paragraphs2sentences(self):
+        paragraphs = [["This", "is", "one", "sentence", ".", "This", "is", "another"],
+                      ["And", "this", "is", "the", "second", "paragraph", "."]]
+        sentences = [["This", "is", "one", "sentence", "."],
+                     ["This", "is", "another"],
+                     ["And", "this", "is", "the", "second", "paragraph", "."]]
+        self.assertSequenceEqual(textutil.split2sentences(paragraphs), sentences)
+
+    def test_split_join_sentences(self):
+        p = TestUtil.create_multi_passage()
+        split = textutil.split2sentences(p, remarks=True)
+        copy = textutil.join_passages(split)
+        diffutil.diff_passages(p, copy)
+        self.assertTrue(p.equals(copy))
+
+    def test_split_join_paragraphs(self):
+        p = TestUtil.create_multi_passage()
+        split = textutil.split2paragraphs(p, remarks=True)
+        copy = textutil.join_passages(split)
+        diffutil.diff_passages(p, copy)
+        self.assertTrue(p.equals(copy))
+
+    # def test_split_join_sentences_crossing(self):
+    #     """Test that splitting and joining a passage by sentences results in the same passage,
+    #     when the passage has edges crossing sentences.
+    #     """
+    #     p = TestUtil.create_crossing_passage()
+    #     split = textutil.split2sentences(p, remarks=True)
+    #     copy = textutil.join_passages(split)
+    #     diffutil.diff_passages(p, copy)
+    #     self.assertTrue(p.equals(copy))
+    #
+    # def test_split_join_paragraphs_crossing(self):
+    #     """Test that splitting and joining a passage by paragraphs results in the same passage
+    #     when the passage has edges crossing paragraphs.
+    #     """
+    #     p = TestUtil.create_crossing_passage()
+    #     split = textutil.split2paragraphs(p, remarks=True)
+    #     copy = textutil.join_passages(split)
+    #     diffutil.diff_passages(p, copy)
+    #     self.assertTrue(p.equals(copy))
+
+
+class TestUtil():
+    """Utilities for tests."""
+    
     @staticmethod
-    def _create_passage():
+    def create_basic_passage():
+        """Creates a basic :class:Passage to tinker with.
+
+        Passage structure is as follows:
+            Layer1: order by ID, heads = [1.2], all = [1.1, 1.2, 1.3]
+            Layer2: order by node unique ID descending,
+                    heads = all = [2.2, 2.1], attrib={'test': True}
+            Nodes (tag):
+                1.1 (1)
+                1.3 (3), attrib={'node': True}
+                1.2 (x), order by edge tag
+                    children: 1.3 Edge: tag=test1, attrib={'Edge': True}
+                              1.1 Edge: tag=test2
+                2.1 (2), children [1.1, 1.2] with edge tags [test, test2]
+                2.2 (2), children [1.1, 1.2, 1.3] with tags [test, test1, test]
+
+        """
+        p = core.Passage(ID='1')
+        l1 = core.Layer(ID='1', root=p)
+        l1 = core.Layer(ID='2', root=p, attrib={'test': True},
+                        orderkey=lambda x: -1 * int(x.ID.split('.')[1]))
+
+        # Order is explicitly different in order to break the alignment between
+        # the ID/Edge ordering and the order of creation/addition
+        node11 = core.Node(ID='1.1', root=p, tag='1')
+        node13 = core.Node(ID='1.3', root=p, tag='3', attrib={'node': True})
+        node12 = core.Node(ID='1.2', root=p, tag='x',
+                           orderkey=operator.attrgetter('tag'))
+        node21 = core.Node(ID='2.1', root=p, tag='2')
+        node22 = core.Node(ID='2.2', root=p, tag='2')
+        node12.add('test2', node11)
+        node12.add('test1', node13, edge_attrib={'edge': True})
+        node21.add('test2', node12)
+        node21.add('test', node11)
+        node22.add('test1', node12)
+        node22.add('test', node13)
+        node22.add('test', node11)
+        return p
+
+    @staticmethod
+    def create_passage():
         """Creates a Passage to work with using layer1 objects.
 
         Annotation layout (what annotation each terminal has):
@@ -373,123 +789,80 @@ class Layer1Tests(unittest.TestCase):
 
         return p
 
-    def test_creation(self):
-        p = self._create_passage()
-        head = p.layer('1').heads[0]
-        self.assertSequenceEqual([x.tag for x in head], ['L', 'H', 'H', 'U'])
-        self.assertSequenceEqual([x.child.position for x in head.children[0]],
-                                 [1])
-        self.assertSequenceEqual([x.tag for x in head.children[1]],
-                                 ['P', 'A', 'U', 'A'])
-        self.assertSequenceEqual([x.child.position
-                                  for x in head.children[1].children[0]],
-                                 [2, 3, 4, 5])
-        self.assertSequenceEqual([x.child.position
-                                  for x in head.children[1].children[1]],
-                                 [6, 7, 8, 9])
-        self.assertSequenceEqual([x.child.position
-                                  for x in head.children[1].children[2]],
-                                 [10])
-        self.assertTrue(head.children[1][3].attrib.get('remote'))
+    @staticmethod
+    def create_multi_passage():
+        """Creates a :class:Passage with multiple sentences and paragraphs.
 
-    def test_fnodes(self):
-        p = self._create_passage()
-        l0 = p.layer('0')
-        l1 = p.layer('1')
+        Passage: [1 2 [3 P] H] . [[5 6 . P] H]
+                 [[8 P] . 10 . H]
 
-        terms = l0.all
-        head, lkg1, lkg2 = l1.heads
-        link1, ps1, ps23, punct2 = head.children
-        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get('remote')]
-        ps2, link2, ps3 = ps23.children
-        a2, d2 = [x.child for x in ps2 if not x.attrib.get('remote')]
-        p3, a3, a4 = ps3.children
+        """
+        p = core.Passage('1')
+        l0 = layer0.Layer0(p)
+        l1 = layer1.Layer1(p)
+        terms = [l0.add_terminal(str(i), False) for i in range(1, 4)]
+        terms.append(l0.add_terminal('.', True))
+        terms.append(l0.add_terminal('5', False))
+        terms.append(l0.add_terminal('6', False))
+        terms.append(l0.add_terminal('.', True))
+        terms.append(l0.add_terminal('8', False, paragraph=2))
+        terms.append(l0.add_terminal('.', True, paragraph=2))
+        terms.append(l0.add_terminal('10', False, paragraph=2))
+        terms.append(l0.add_terminal('.', True, paragraph=2))
+        h1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+        h2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+        h3 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+        p1 = l1.add_fnode(h1, layer1.EdgeTags.Process)
+        p2 = l1.add_fnode(h2, layer1.EdgeTags.Process)
+        p3 = l1.add_fnode(h3, layer1.EdgeTags.Process)
+        h1.add(layer1.EdgeTags.Terminal, terms[0])
+        h1.add(layer1.EdgeTags.Terminal, terms[1])
+        p1.add(layer1.EdgeTags.Terminal, terms[2])
+        l1.add_punct(None, terms[3])
+        p2.add(layer1.EdgeTags.Terminal, terms[4])
+        p2.add(layer1.EdgeTags.Terminal, terms[5])
+        l1.add_punct(p2, terms[6])
+        p3.add(layer1.EdgeTags.Terminal, terms[7])
+        l1.add_punct(h3, terms[8])
+        h3.add(layer1.EdgeTags.Terminal, terms[9])
+        l1.add_punct(h3, terms[10])
+        return p
 
-        self.assertEqual(lkg1.relation, link1)
-        self.assertSequenceEqual(lkg1.arguments, [ps1])
-        self.assertIsNone(ps23.process)
-        self.assertEqual(ps2.process, p1)
-        self.assertSequenceEqual(ps1.participants, [a1, d2])
-        self.assertSequenceEqual(ps3.participants, [a3, a4])
+    @staticmethod
+    def create_crossing_passage():
+        """Creates a :class:Passage with multiple sentences and paragraphs, with crossing edges.
 
-        self.assertSequenceEqual(ps1.get_terminals(), terms[1:10])
-        self.assertSequenceEqual(ps1.get_terminals(punct=False, remotes=True),
-                                 terms[1:9] + terms[14:15])
-        self.assertEqual(ps1.end_position, 10)
-        self.assertEqual(ps2.start_position, 11)
-        self.assertEqual(ps3.start_position, 17)
-        self.assertEqual(a4.start_position, -1)
-        self.assertEqual(ps23.to_text(), '11 12 13 14 15 16 17 18 19')
+        Passage: [1 2 [3 P(remote)] H] .
+                 [[3 P] . 4 . H]
 
-        self.assertEqual(ps1.fparent, head)
-        self.assertEqual(link2.fparent, ps23)
-        self.assertEqual(ps2.fparent, ps23)
-        self.assertEqual(d2.fparent, ps2)
+        """
+        p = core.Passage('1')
+        l0 = layer0.Layer0(p)
+        l1 = layer1.Layer1(p)
+        terms = [
+            l0.add_terminal('1', False),
+            l0.add_terminal('2', False),
+            l0.add_terminal('.', True),
+            l0.add_terminal('3', False, paragraph=2),
+            l0.add_terminal('.', True, paragraph=2),
+            l0.add_terminal('4', False, paragraph=2),
+            l0.add_terminal('.', True, paragraph=2),
+        ]
+        h1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+        h2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+        p1 = l1.add_fnode(h2, layer1.EdgeTags.Process)
+        l1.add_remote(h1, layer1.EdgeTags.Process, p1)
+        h1.add(layer1.EdgeTags.Terminal, terms[0])
+        h1.add(layer1.EdgeTags.Terminal, terms[1])
+        l1.add_punct(None, terms[2])
+        p1.add(layer1.EdgeTags.Terminal, terms[3])
+        l1.add_punct(h2, terms[4])
+        h2.add(layer1.EdgeTags.Terminal, terms[5])
+        l1.add_punct(h2, terms[6])
+        return p
 
-    def test_layer1(self):
-        p = self._create_passage()
-        l1 = p.layer('1')
-
-        head, lkg1, lkg2 = l1.heads
-        link1, ps1, ps23, punct2 = head.children
-        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get('remote')]
-        ps2, link2, ps3 = ps23.children
-        a2, d2 = [x.child for x in ps2 if not x.attrib.get('remote')]
-        p3, a3, a4 = ps3.children
-
-        self.assertSequenceEqual(l1.top_scenes, [ps1, ps2, ps3])
-        self.assertSequenceEqual(l1.top_linkages, [lkg1, lkg2])
-
-        # adding scene #23 to linkage #1, which makes it non top-level as
-        # scene #23 isn't top level
-        lkg1.add(layer1.EdgeTags.LinkArgument, ps23)
-        self.assertSequenceEqual(l1.top_linkages, [lkg2])
-
-        # adding process to scene #23, which makes it top level and discards
-        # "top-levelness" from scenes #2 + #3
-        l1.add_remote(ps23, layer1.EdgeTags.Process, p1)
-        self.assertSequenceEqual(l1.top_scenes, [ps1, ps23])
-        self.assertSequenceEqual(l1.top_linkages, [lkg1, lkg2])
-
-        # Changing the process tag of scene #1 to A and back, validate that
-        # top scenes are updates accordingly
-        p_edge = [e for e in ps1 if e.tag == layer1.EdgeTags.Process][0]
-        p_edge.tag = layer1.EdgeTags.Participant
-        self.assertSequenceEqual(l1.top_scenes, [ps23])
-        self.assertSequenceEqual(l1.top_linkages, [lkg2])
-        p_edge.tag = layer1.EdgeTags.Process
-        self.assertSequenceEqual(l1.top_scenes, [ps1, ps23])
-        self.assertSequenceEqual(l1.top_linkages, [lkg1, lkg2])
-
-    def test_str(self):
-        p = self._create_passage()
-        self.assertSequenceEqual([str(x) for x in p.layer('1').heads],
-                                 ['[L 1] [H [P 2 3 4 5] [A 6 7 8 9] [U 10] '
-                                  '... [A* 15] ] [H [H [P* 2 3 4 5] [A 11 12 '
-                                  '13 14] [D 15] ] [L 16] [H [A IMPLICIT] [S '
-                                  '17 18] [A 19] ] ] [U 20] ',
-                                  '1.2-->1.3', '1.11-->1.8,1.12'])
-
-    def test_destroy(self):
-        p = self._create_passage()
-        l0 = p.layer('0')
-        l1 = p.layer('1')
-
-        terms = l0.all
-        head, lkg1, lkg2 = l1.heads
-        link1, ps1, ps23, punct2 = head.children
-        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get('remote')]
-        ps2, link2, ps3 = ps23.children
-        a2, d2 = [x.child for x in ps2 if not x.attrib.get('remote')]
-        p3, a3, a4 = ps3.children
-
-        ps1.destroy()
-        self.assertSequenceEqual(head.children, [link1, ps23, punct2])
-        self.assertSequenceEqual(p1.parents, [ps2])
-        self.assertFalse(a1.parents)
-        self.assertFalse(punct1.parents)
-
-    def _create_discontiguous(self):
+    @staticmethod
+    def create_discontiguous():
         """Creates a highly-dicontiguous Passage object."""
         p = core.Passage('1')
         l0 = layer0.Layer0(p)
@@ -550,426 +923,8 @@ class Layer1Tests(unittest.TestCase):
 
         return p
 
-    def test_discontiguous(self):
-        """Tests FNode.discontiguous and FNode.get_sequences"""
-        p = self._create_discontiguous()
-        l1 = p.layer('1')
-        head = l1.heads[0]
-        ps1, ps2, ps3 = head.children
-        d1, a1, p1, f1 = ps1.children
-        e1, c1, e2, g1 = d1.children
-        d2, g2, p2, a2 = ps2.children
-        t14, p3, a3 = ps3.children
-
-        # Checking discontiguous property
-        self.assertFalse(ps1.discontiguous)
-        self.assertFalse(d1.discontiguous)
-        self.assertFalse(e1.discontiguous)
-        self.assertFalse(e2.discontiguous)
-        self.assertTrue(c1.discontiguous)
-        self.assertTrue(g1.discontiguous)
-        self.assertTrue(a1.discontiguous)
-        self.assertTrue(p1.discontiguous)
-        self.assertFalse(f1.discontiguous)
-        self.assertTrue(ps2.discontiguous)
-        self.assertFalse(p2.discontiguous)
-        self.assertFalse(a2.discontiguous)
-        self.assertFalse(ps3.discontiguous)
-        self.assertFalse(a3.discontiguous)
-
-        # Checking get_sequences -- should return only non-remote, non-implicit
-        # stretches of terminals
-        self.assertSequenceEqual(ps1.get_sequences(), [(1, 10)])
-        self.assertSequenceEqual(d1.get_sequences(), [(1, 4)])
-        self.assertSequenceEqual(e1.get_sequences(), [(1, 1)])
-        self.assertSequenceEqual(e2.get_sequences(), [(3, 3)])
-        self.assertSequenceEqual(c1.get_sequences(), [(2, 2), (4, 4)])
-        self.assertSequenceEqual(a1.get_sequences(), [(5, 5), (8, 8)])
-        self.assertSequenceEqual(p1.get_sequences(), [(6, 7), (10, 10)])
-        self.assertSequenceEqual(f1.get_sequences(), [(9, 9)])
-        self.assertSequenceEqual(ps2.get_sequences(), [(11, 14), (18, 20)])
-        self.assertSequenceEqual(p2.get_sequences(), [(11, 14)])
-        self.assertSequenceEqual(a2.get_sequences(), [(18, 20)])
-        self.assertSequenceEqual(d2.get_sequences(), [])
-        self.assertSequenceEqual(g2.get_sequences(), [])
-        self.assertSequenceEqual(ps3.get_sequences(), [(15, 17)])
-        self.assertSequenceEqual(a3.get_sequences(), [(16, 17)])
-        self.assertSequenceEqual(p3.get_sequences(), [])
-
-
-class ConversionTests(unittest.TestCase):
-    """Tests convert module correctness and API."""
-
     @staticmethod
-    def _load_xml(path):
+    def load_xml(path):
         """XML file path ==> root element"""
         with open(path) as f:
             return ETree.ElementTree().parse(f)
-
-    def _test_edges(self, node, tags):
-        """Tests that the node edge tags and number match tags argument."""
-        self.assertEqual(len(node), len(tags))
-        for edge, tag in zip(node, tags):
-            self.assertEqual(edge.tag, tag)
-
-    def _test_terms(self, node, terms):
-        """Tests that node contain the terms given, and only them."""
-        for edge, term in zip(node, terms):
-            self.assertEqual(edge.tag, layer1.EdgeTags.Terminal)
-            self.assertEqual(edge.child, term)
-
-    def test_site_terminals(self):
-        elem = self._load_xml('./site1.xml')
-        passage = convert.from_site(elem)
-        terms = passage.layer(layer0.LAYER_ID).all
-
-        self.assertEqual(passage.ID, '118')
-        self.assertEqual(len(terms), 15)
-
-        # There are two punctuation signs (dots, positions 5 and 11), which
-        # also serve as paragraph end points. All others are words whose text
-        # is their positions, so test that both text, punctuation (yes/no)
-        # and paragraphs are converted correctly
-        for i, t in enumerate(terms):
-            # i starts in 0, positions at 1, hence 5,11 ==> 4,10
-            if i in (4, 10):
-                self.assertTrue(t.text == '.' and t.punct is True)
-            else:
-                self.assertTrue(t.text == str(i + 1) and t.punct is False)
-            if i < 5:
-                par = 1
-            elif i < 11:
-                par = 2
-            else:
-                par = 3
-            self.assertEqual(t.paragraph, par)
-
-    def test_site_simple(self):
-        elem = self._load_xml('./site2.xml')
-        passage = convert.from_site(elem)
-        terms = passage.layer(layer0.LAYER_ID).all
-        l1 = passage.layer('1')
-
-        # The Terminals in the passage are just like in test_site_terminals,
-        # with this layer1 hierarchy: [[1 C] [2 E] L] [3 4 . H]
-        # with the linker having a remark and the parallel scene is uncertain
-        head = l1.heads[0]
-        self.assertEqual(len(head), 12)  # including all 'unused' terminals
-        self.assertEqual(head[9].tag, layer1.EdgeTags.Linker)
-        self.assertEqual(head[10].tag, layer1.EdgeTags.ParallelScene)
-        linker = head.children[9]
-        self._test_edges(linker, [layer1.EdgeTags.Center,
-                                  layer1.EdgeTags.Elaborator])
-        self.assertTrue(linker.extra['remarks'], '"remark"')
-        center = linker.children[0]
-        elab = linker.children[1]
-        self._test_terms(center, terms[0:1])
-        self._test_terms(elab, terms[1:2])
-        ps = head.children[10]
-        self._test_edges(ps, [layer1.EdgeTags.Terminal,
-                              layer1.EdgeTags.Terminal,
-                              layer1.EdgeTags.Punctuation])
-        self.assertTrue(ps.attrib.get('uncertain'))
-        self.assertEqual(ps.children[0], terms[2])
-        self.assertEqual(ps.children[1], terms[3])
-        self.assertEqual(ps.children[2].children[0], terms[4])
-
-    def test_site_advanced(self):
-        elem = self._load_xml('./site3.xml')
-        passage = convert.from_site(elem)
-        terms = passage.layer(layer0.LAYER_ID).all
-        l1 = passage.layer('1')
-
-        # This passage has the same terminals as the simple and terminals test,
-        # and have the same layer1 units for the first paragraph as the simple
-        # test. In addition, it has the following annotation:
-        # [6 7 8 9 H] [10 F] .
-        # the 6-9 H has remote D which is [10 F]. Inside of 6-9, we have [8 S]
-        # and [6 7 ... 9 A], where [6 E] and [7 ... 9 C].
-        # [12 H] [13 H] [14 H] [15 L], where 15 linkage links 12, 13 and 14 and
-        # [15 L] has an implicit Center unit
-        head, lkg = l1.heads
-        self._test_edges(head, [layer1.EdgeTags.Linker,
-                                layer1.EdgeTags.ParallelScene,
-                                layer1.EdgeTags.ParallelScene,
-                                layer1.EdgeTags.Function,
-                                layer1.EdgeTags.Punctuation,
-                                layer1.EdgeTags.ParallelScene,
-                                layer1.EdgeTags.ParallelScene,
-                                layer1.EdgeTags.ParallelScene,
-                                layer1.EdgeTags.Linker])
-
-        # we only take what we haven't checked already
-        ps1, func, punct, ps2, ps3, ps4, link = head.children[2:]
-        self._test_edges(ps1, [layer1.EdgeTags.Participant,
-                               layer1.EdgeTags.Process,
-                               layer1.EdgeTags.Adverbial])
-        self.assertTrue(ps1[2].attrib.get('remote'))
-        ps1_a, ps1_p, ps1_d = ps1.children
-        self._test_edges(ps1_a, [layer1.EdgeTags.Elaborator,
-                                 layer1.EdgeTags.Center])
-        self._test_terms(ps1_a.children[0], terms[5:6])
-        self._test_terms(ps1_a.children[1], terms[6:9:2])
-        self._test_terms(ps1_p, terms[7:8])
-        self.assertEqual(ps1_d, func)
-        self._test_terms(func, terms[9:10])
-        self._test_terms(punct, terms[10:11])
-        self._test_terms(ps2, terms[11:12])
-        self._test_terms(ps3, terms[12:13])
-        self._test_terms(ps4, terms[13:14])
-        self.assertEqual(len(link), 2)
-        self.assertEqual(link[0].tag, layer1.EdgeTags.Center)
-        self.assertTrue(link.children[0].attrib.get('implicit'))
-        self.assertEqual(link[1].tag, layer1.EdgeTags.Elaborator)
-        self.assertEqual(link.children[1][0].tag, layer1.EdgeTags.Terminal)
-        self.assertEqual(link.children[1][0].child, terms[14])
-        self.assertEqual(lkg.relation, link)
-        self.assertSequenceEqual(lkg.arguments, [ps2, ps3, ps4])
-
-    def test_to_standard(self):
-        passage = convert.from_site(self._load_xml('./site3.xml'))
-        ref = self._load_xml('./standard3.xml')
-        root = convert.to_standard(passage)
-        self.assertEqual(ETree.tostring(ref), ETree.tostring(root))
-
-    def test_from_standard(self):
-        passage = convert.from_standard(self._load_xml('./standard3.xml'))
-        ref = convert.from_site(self._load_xml('./site3.xml'))
-        self.assertTrue(passage.equals(ref, ordered=True))
-
-    def test_from_text(self):
-        sample = ['Hello . again', 'nice', ' ?! end', '']
-        passage = convert.from_text(sample)
-        terms = passage.layer(layer0.LAYER_ID).all
-        pos = 0
-        for i, par in enumerate(sample):
-            for text in par.split():
-                self.assertTrue(terms[pos].text == text and
-                                terms[pos].paragraph == i + 1)
-                pos += 1
-
-    def test_to_text(self):
-        passage = convert.from_standard(self._load_xml('./standard3.xml'))
-        self.assertEqual(convert.to_text(passage, False)[0],
-                         '1 2 3 4 . 6 7 8 9 10 . 12 13 14 15')
-        self.assertSequenceEqual(convert.to_text(passage, True),
-                                 ['1 2 3 4 .', '6 7 8 9 10 .', '12 13 14 15'])
-
-    def test_to_site(self):
-        passage = convert.from_standard(self._load_xml('./standard3.xml'))
-        root = convert.to_site(passage)
-        copy = convert.from_site(root)
-        self.assertTrue(passage.equals(copy))
-
-
-class UtilTests(unittest.TestCase):
-    """Tests the util module functions and classes."""
-
-    @staticmethod
-    def _create_multi_passage():
-        """Creates a :class:Passage with multiple sentences and paragraphs.
-
-        Passage: [1 2 [3 P] H] . [[5 6 . P] H]
-                 [[8 P] . 10 . H]
-
-        """
-        p = core.Passage('1')
-        l0 = layer0.Layer0(p)
-        l1 = layer1.Layer1(p)
-        terms = [l0.add_terminal(str(i), False) for i in range(1, 4)]
-        terms.append(l0.add_terminal('.', True))
-        terms.append(l0.add_terminal('5', False))
-        terms.append(l0.add_terminal('6', False))
-        terms.append(l0.add_terminal('.', True))
-        terms.append(l0.add_terminal('8', False, paragraph=2))
-        terms.append(l0.add_terminal('.', True, paragraph=2))
-        terms.append(l0.add_terminal('10', False, paragraph=2))
-        terms.append(l0.add_terminal('.', True, paragraph=2))
-        h1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        h2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        h3 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        p1 = l1.add_fnode(h1, layer1.EdgeTags.Process)
-        p2 = l1.add_fnode(h2, layer1.EdgeTags.Process)
-        p3 = l1.add_fnode(h3, layer1.EdgeTags.Process)
-        h1.add(layer1.EdgeTags.Terminal, terms[0])
-        h1.add(layer1.EdgeTags.Terminal, terms[1])
-        p1.add(layer1.EdgeTags.Terminal, terms[2])
-        l1.add_punct(None, terms[3])
-        p2.add(layer1.EdgeTags.Terminal, terms[4])
-        p2.add(layer1.EdgeTags.Terminal, terms[5])
-        l1.add_punct(p2, terms[6])
-        p3.add(layer1.EdgeTags.Terminal, terms[7])
-        l1.add_punct(h3, terms[8])
-        h3.add(layer1.EdgeTags.Terminal, terms[9])
-        l1.add_punct(h3, terms[10])
-        return p
-
-    @staticmethod
-    def _create_crossing_passage():
-        """Creates a :class:Passage with multiple sentences and paragraphs, with crossing edges.
-
-        Passage: [1 2 [3 P(remote)] H] .
-                 [[3 P] . 4 . H]
-
-        """
-        p = core.Passage('1')
-        l0 = layer0.Layer0(p)
-        l1 = layer1.Layer1(p)
-        terms = [
-            l0.add_terminal('1', False),
-            l0.add_terminal('2', False),
-            l0.add_terminal('.', True),
-            l0.add_terminal('3', False, paragraph=2),
-            l0.add_terminal('.', True, paragraph=2),
-            l0.add_terminal('4', False, paragraph=2),
-            l0.add_terminal('.', True, paragraph=2),
-        ]
-        h1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        h2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        p1 = l1.add_fnode(h2, layer1.EdgeTags.Process)
-        l1.add_remote(h1, layer1.EdgeTags.Process, p1)
-        h1.add(layer1.EdgeTags.Terminal, terms[0])
-        h1.add(layer1.EdgeTags.Terminal, terms[1])
-        l1.add_punct(None, terms[2])
-        p1.add(layer1.EdgeTags.Terminal, terms[3])
-        l1.add_punct(h2, terms[4])
-        h2.add(layer1.EdgeTags.Terminal, terms[5])
-        l1.add_punct(h2, terms[6])
-        return p
-
-    def test_break2sentences(self):
-        """Tests identifying correctly sentence ends.
-        """
-        p = self._create_multi_passage()
-        self.assertSequenceEqual(textutil.break2sentences(p), [4, 7, 11])
-
-    def test_split2sentences(self):
-        """Tests splitting a passage by sentence ends.
-        """
-        p = self._create_multi_passage()
-        split = textutil.split2sentences(p)
-        self.assertEqual(len(split), 3)
-        terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
-        self.assertSequenceEqual(terms[0], ["1", "2", "3", "."])
-        self.assertSequenceEqual(terms[1], ["5", "6", "."])
-        self.assertSequenceEqual(terms[2], ["8", ".", "10", "."])
-        self.assertTrue(all(t.paragraph == 1 for s in split[0:2]
-                            for t in s.layer(layer0.LAYER_ID).all))
-        self.assertTrue(all(t.paragraph == 2
-                            for t in split[2].layer(layer0.LAYER_ID).all))
-        top_scenes = [s.layer(layer1.LAYER_ID).top_scenes for s in split]
-        for t in top_scenes:
-            self.assertEqual(len(t), 1)
-            self.assertEqual(t[0].incoming[0].tag, layer1.EdgeTags.ParallelScene)
-
-    def test_split2paragraphs(self):
-        """Tests splitting a passage by paragraph ends.
-        """
-        p = self._create_multi_passage()
-        split = textutil.split2paragraphs(p)
-        self.assertEqual(len(split), 2)
-        terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
-        self.assertSequenceEqual(terms[0], ["1", "2", "3", ".", "5", "6", "."])
-        self.assertSequenceEqual(terms[1], ["8", ".", "10", "."])
-        self.assertTrue(all(t.paragraph == 1
-                            for t in split[0].layer(layer0.LAYER_ID).all))
-        self.assertTrue(all(t.paragraph == 2
-                            for t in split[1].layer(layer0.LAYER_ID).all))
-        top_scenes = [s.layer(layer1.LAYER_ID).top_scenes for s in split]
-        self.assertEqual(len(top_scenes[0]), 2)
-        self.assertEqual(len(top_scenes[1]), 1)
-        for t in top_scenes:
-            for n in t:
-                self.assertEqual(n.incoming[0].tag, layer1.EdgeTags.ParallelScene)
-
-    def test_split_paragraphs2sentences(self):
-        paragraphs = [["This", "is", "one", "sentence", ".", "This", "is", "another"],
-                      ["And", "this", "is", "the", "second", "paragraph", "."]]
-        sentences = [["This", "is", "one", "sentence", "."],
-                     ["This", "is", "another"],
-                     ["And", "this", "is", "the", "second", "paragraph", "."]]
-        self.assertSequenceEqual(textutil.split2sentences(paragraphs), sentences)
-
-    def test_split_join_sentences(self):
-        """Test that splitting and joining a passage by sentences results in the same passage.
-        """
-        p = self._create_multi_passage()
-        split = textutil.split2sentences(p, remarks=True)
-        copy = textutil.join_passages(split)
-        diffutil.diff_passages(p, copy)
-        self.assertTrue(p.equals(copy))
-
-    def test_split_join_paragraphs(self):
-        """Test that splitting and joining a passage by paragraphs results in the same passage.
-        """
-        p = self._create_multi_passage()
-        split = textutil.split2paragraphs(p, remarks=True)
-        copy = textutil.join_passages(split)
-        diffutil.diff_passages(p, copy)
-        self.assertTrue(p.equals(copy))
-
-    # def test_split_join_sentences_crossing(self):
-    #     """Test that splitting and joining a passage by sentences results in the same passage,
-    #     when the passage has edges crossing sentences.
-    #     """
-    #     p = self._create_crossing_passage()
-    #     split = textutil.split2sentences(p, remarks=True)
-    #     copy = textutil.join_passages(split)
-    #     diffutil.diff_passages(p, copy)
-    #     self.assertTrue(p.equals(copy))
-    #
-    # def test_split_join_paragraphs_crossing(self):
-    #     """Test that splitting and joining a passage by paragraphs results in the same passage
-    #     when the passage has edges crossing paragraphs.
-    #     """
-    #     p = self._create_crossing_passage()
-    #     split = textutil.split2paragraphs(p, remarks=True)
-    #     copy = textutil.join_passages(split)
-    #     diffutil.diff_passages(p, copy)
-    #     self.assertTrue(p.equals(copy))
-
-
-class ScenesTests(unittest.TestCase):
-
-    def test_possible_scenes(self):
-        """Tests that the API isn't broken, not validity of the result."""
-        elem = ConversionTests._load_xml('./site3.xml')
-        passage = convert.from_site(elem)
-        scenes.extract_possible_scenes(passage)
-
-    def test_extract_head(self):
-        """Tests that the API isn't broken, not validity of the result."""
-        passage = Layer1Tests._create_passage()
-        for x in scenes.extract_possible_scenes(passage):
-            scenes.extract_head(x)
-
-
-class CollinsTests(unittest.TestCase):
-
-    def test_basic_usage(self):
-        with open("./collins-sample.pickle", "rb") as f:
-            raw_dict = pickle.load(f)
-        coldict = collins.CollinsDictionary(raw_dict)
-        self.assertSequenceEqual(coldict.by_key('aaaaaa'), [])
-        self.assertEqual(len(coldict.by_key('apart')), 2)
-        self.assertEqual(len(coldict.by_form('droughts')), 1)
-        self.assertEqual(len(coldict.by_form('drove')), 2)
-        self.assertEqual(len(coldict.by_stem('abort')), 3)
-
-
-class LexTests(unittest.TestCase):
-
-    @unittest.skip
-    def test_dixon(self):
-        with open("./dixon-verbs.xml") as f:
-            root = ETree.ElementTree().parse(f)
-        dixon = lex.DixonVerbs(root)
-        self.assertSequenceEqual(dixon.by_phrase('get'),
-                                 ['Primary-A:GIVING:OWN',
-                                  'Secondary-C:MAKING:MAIN'])
-        self.assertDictEqual(dixon.by_verb('get'),
-                             {'get to': ['Secondary-A:SEMI-MODAL:MAIN'],
-                              'get': ['Primary-A:GIVING:OWN',
-                                      'Secondary-C:MAKING:MAIN']})
-        self.assertDictEqual(dixon.by_stem('hurri'),
-                             {'hurry': ['Secondary-A:HURRYING:MAIN']})

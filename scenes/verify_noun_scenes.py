@@ -1,8 +1,8 @@
-import argparse
 import pickle
 import sys
 
-from ucca import scenes, convert, layer1
+from scenes import scenes
+from ucca import convert, layer1
 
 
 def get_noun_scene_heads(passage):

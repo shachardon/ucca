@@ -3,7 +3,8 @@ import pickle
 import random
 
 import numpy as np
-from ucca import classify
+
+from scenes import classify
 
 
 def get_data_objects(labels_fd, fmat_fd):

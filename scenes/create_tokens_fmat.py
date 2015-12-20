@@ -1,8 +1,8 @@
 import pickle
 
 import numpy as np
-from ucca import lex, tokeneval, features
 
+from scenes import features, lex, tokeneval
 
 DB_PATH = "/home/beka/thesis/db/"
 PREFIXES = [x.strip() for x in open(DB_PATH + 'prefixes')]

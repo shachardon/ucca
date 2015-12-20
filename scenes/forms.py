@@ -1,8 +1,8 @@
 import argparse
-
-from ucca import lex, convert
-from ucca.postags import POSTags
 import xml.etree.ElementTree as ETree
+
+from scenes import lex
+from ucca import convert
 
 
 def main():
