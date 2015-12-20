@@ -1,10 +1,9 @@
 #!/usr/bin/python3
-import os
 import argparse
+import os
 import sys
 
-from textutil import file2passage, passage2file
-
+from ucca.ioutil import file2passage, passage2file
 
 desc = """Parses an XML in UCCA standard format, and writes them in binary Pickle format.
 """

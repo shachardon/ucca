@@ -7,6 +7,7 @@ from xml.etree.ElementTree import ParseError
 
 from nltk import pos_tag
 
+import convert
 from action import Action
 from averaged_perceptron import AveragedPerceptron
 from config import Config
@@ -299,7 +300,7 @@ def all_files(dirs):
 def read_passages_and_split(passage):
     p, i = Parser.read_passage(passage)
     if Config().split:
-        return [(s, i) for s in textutil.split2segments(
+        return [(s, i) for s in convert.split2segments(
                 p, is_sentences=Config().sentences, remarks=True)]
     return [(p, i)]
 

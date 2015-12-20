@@ -11,7 +11,7 @@ from scipy.interpolate.fitpack2 import UnivariateSpline
 
 import layer0
 import layer1
-from textutil import file2passage
+from ucca.ioutil import file2passage
 from ucca.textutil import break2sentences
 
 desc = """Prints statistics on UCCA passages

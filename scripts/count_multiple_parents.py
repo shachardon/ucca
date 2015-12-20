@@ -1,14 +1,15 @@
 #!/usr/bin/python3
-from collections import Counter
-import matplotlib.pyplot as plt
 
 import argparse
 import sys
+from collections import Counter
+
+import matplotlib.pyplot as plt
+
+from ucca.ioutil import file2passage
 
 desc = """Parses XML files in UCCA standard format, and creates a histogram for the number of parents per unit.
 """
-
-from textutil import file2passage
 
 
 def plot_histogram(histogram):

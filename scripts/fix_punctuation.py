@@ -4,9 +4,9 @@ import argparse
 import glob
 import sys
 
-import layer0
-from convert import is_punctuation
-from ioutil import file2passage, passage2file
+from ucca import layer0
+from ucca.convert import is_punctuation
+from ucca.ioutil import file2passage, passage2file
 
 desc = """Load UCCA passages and write back with correct layer 0 node tags according to punctuation
 """

@@ -1,6 +1,13 @@
 #! /usr/bin/python3
-from textutil import indent_xml
 
+import argparse
+import pickle
+import sqlite3
+import sys
+from xml.etree.ElementTree import ElementTree, tostring, fromstring
+
+import ucca.convert
+from ucca.textutil import indent_xml
 
 desc = """Parses an XML in UCCA site format.
 
@@ -12,14 +19,6 @@ annotation of the specified user for the specified passage from teh DB file,
 or using filename of a site-formatted XML file.
 
 """
-
-import argparse
-import pickle
-import sqlite3
-import sys
-from xml.etree.ElementTree import ElementTree, tostring, fromstring
-
-import ucca.convert
 
 
 def site2passage(filename):

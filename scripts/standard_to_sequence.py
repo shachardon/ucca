@@ -1,14 +1,14 @@
 #!/usr/bin/python3
 
-
-desc = """Parses an XML in UCCA standard format, and writes it as a linearized sequence.
-"""
-
 import argparse
 import sys
 
 import ucca.convert
-from textutil import file2passage
+from ucca.ioutil import file2passage
+
+
+desc = """Parses an XML in UCCA standard format, and writes it as a linearized sequence.
+"""
 
 
 def main():

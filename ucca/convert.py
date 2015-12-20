@@ -15,9 +15,12 @@ import operator
 import re
 import string
 import sys
-import xml.sax.saxutils
 import xml.etree.ElementTree as ET
+import xml.sax.saxutils
 from collections import defaultdict
+from itertools import groupby
+
+import nltk
 
 from ucca import textutil, core, layer0, layer1
 
@@ -975,3 +978,168 @@ def to_conll(passage, test=False, sentences=False):
             next_end = ends[index + 1] if index < len(ends) - 1 else None
             last_root = None
     return "\n".join(lines)
+
+
+def split2sentences(passage, remarks=False):
+    return split2segments(passage, is_sentences=True, remarks=remarks)
+
+
+def split2paragraphs(passage, remarks=False):
+    return split2segments(passage, is_sentences=False, remarks=remarks)
+
+
+def split2segments(passage, is_sentences, remarks=False):
+    """
+    If passage is a core.Passage, split it to Passage objects for each paragraph.
+    Otherwise, if it is a string, split it to list of lists of strings,
+    each list in the top level being a paragraph
+    :param passage: Passage, str or list
+    :param is_sentences: if True, split to sentences; otherwise, paragraphs
+    :param remarks: Whether to add remarks with original node IDs (if Passage given)
+    :return: sequence of passages, or list of list of strings
+    """
+    if isinstance(passage, core.Passage):
+        ends = textutil.break2sentences(passage) if is_sentences else textutil.break2paragraphs(passage)
+        return split_passage(passage, ends, remarks=remarks)
+    elif isinstance(passage, str):  # split to segments and tokens
+        return split_sublists([nltk.word_tokenize(passage)],
+                              (("\n",) + textutil.SENTENCE_END_MARKS) if is_sentences else "\n")
+    elif is_sentences:  # not Passage nor str, assume list of list of strings (paragraphs)
+        return split_sublists(passage, textutil.SENTENCE_END_MARKS)
+    else:  # already split to paragraphs
+        return passage
+
+
+def split_sublists(sublists, sep):
+    ret = []
+    for sublist in sublists:
+        for is_end, subsublist in groupby(sublist, key=lambda token: token in sep):
+            if is_end:
+                ret[-1] += subsublist
+            else:
+                ret.append(list(subsublist))
+    return ret
+
+
+def split_passage(passage, ends, remarks=False):
+    """
+    Split the passage on the given terminal positions
+    :param passage: passage to split
+    :param ends: sequence of positions at which the split passages will end
+    :return: sequence of passages
+    :param remarks: add original node ID as remarks to the new nodes
+    """
+    passages = []
+    for start, end in zip([0] + ends[:-1], ends):
+        other = core.Passage(ID=passage.ID, attrib=passage.attrib.copy())
+        other.extra = passage.extra.copy()
+        # Create terminals and find layer 1 nodes to be included
+        l0 = passage.layer(layer0.LAYER_ID)
+        other_l0 = layer0.Layer0(root=other, attrib=l0.attrib.copy())
+        other_l0.extra = l0.extra.copy()
+        level = set()
+        nodes = set()
+        id_to_other = {}
+        for terminal in l0.all[start:end]:
+            other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, terminal.paragraph)
+            other_terminal.extra = terminal.extra.copy()
+            if remarks:
+                other_terminal.extra["remarks"] = terminal.ID
+            id_to_other[terminal.ID] = other_terminal
+            level.update(terminal.parents)
+            nodes.add(terminal)
+        while level:
+            nodes.update(level)
+            level = set(p for n in level for p in n.parents if p not in nodes)
+
+        layer1.Layer1(root=other, attrib=passage.layer(layer1.LAYER_ID).attrib.copy())
+        _copy_l1_nodes(passage, other, id_to_other, nodes, remarks=remarks)
+        other.frozen = passage.frozen
+        passages.append(other)
+    return passages
+
+
+def join_passages(passages, remarks=False):
+    """
+    Join passages to one passage with all the nodes in order
+    :param passages: sequence of passages to join
+    :param remarks: add original node ID as remarks to the new nodes
+    :return: joined passage
+    """
+    other = core.Passage(ID=passages[0].ID, attrib=passages[0].attrib.copy())
+    other.extra = passages[0].extra.copy()
+    l0 = passages[0].layer(layer0.LAYER_ID)
+    l1 = passages[0].layer(layer1.LAYER_ID)
+    other_l0 = layer0.Layer0(root=other, attrib=l0.attrib.copy())
+    layer1.Layer1(root=other, attrib=l1.attrib.copy())
+    id_to_other = {}
+    for passage in passages:
+        l0 = passage.layer(layer0.LAYER_ID)
+        for terminal in l0.all:
+            other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, terminal.paragraph)
+            other_terminal.extra = terminal.extra.copy()
+            if remarks:
+                other_terminal.extra["remarks"] = terminal.ID
+            id_to_other[terminal.ID] = other_terminal
+        _copy_l1_nodes(passage, other, id_to_other, remarks=remarks)
+    return other
+
+
+def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
+    """
+    Copy all layer 1 nodes from one passage to another
+    :param passage: source passage
+    :param other: target passage
+    :param id_to_other: dictionary mapping IDs from passage to existing nodes from other
+    :param include: if given, only the nodes from this set will be copied
+    :param remarks: add original node ID as remarks to the new nodes
+    """
+    l1 = passage.layer(layer1.LAYER_ID)
+    other_l1 = other.layer(layer1.LAYER_ID)
+    queue = [(node, None) for node in l1.heads]
+    linkages = []
+    remotes = []
+    while queue:
+        node, other_node = queue.pop()
+        if node.tag == layer1.NodeTags.Linkage and (
+                        include is None or include.issuperset(node.children)):
+            linkages.append(node)
+            continue
+        for edge in node.outgoing:
+            child = edge.child
+            if include is None or child in include or child.attrib.get("implicit"):
+                if edge.attrib.get("remote"):
+                    remotes.append((edge, other_node))
+                    continue
+                if child.layer.ID == layer0.LAYER_ID:
+                    other_node.add(edge.tag, id_to_other[child.ID])
+                    continue
+                if child.tag == layer1.NodeTags.Punctuation:
+                    grandchild = child.children[0]
+                    other_child = other_l1.add_punct(other_node, id_to_other[grandchild.ID])
+                    other_grandchild = other_child.children[0]
+                    other_grandchild.extra = grandchild.extra.copy()
+                    if remarks:
+                        other_grandchild.extra["remarks"] = grandchild.ID
+                else:
+                    other_child = other_l1.add_fnode(other_node, edge.tag,
+                                                     implicit=child.attrib.get("implicit"))
+                    queue.append((child, other_child))
+
+                id_to_other[child.ID] = other_child
+                other_child.extra = child.extra.copy()
+                if remarks:
+                    other_child.extra["remarks"] = child.ID
+    # Add remotes
+    for edge, parent in remotes:
+        other_l1.add_remote(parent, edge.tag, id_to_other[edge.child.ID])
+    # Add linkages
+    for linkage in linkages:
+        other_linkage = other_l1.add_linkage(linkage.relation, *linkage.arguments)
+        other_linkage.extra = linkage.extra.copy()
+        if remarks:
+            other_linkage.extra["remarks"] = linkage.ID
+    for head, other_head in zip(l1.heads, other_l1.heads):
+        other_head.extra = head.extra.copy()
+        if remarks:
+            other_head.extra["remarks"] = head.ID

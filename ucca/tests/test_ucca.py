@@ -4,6 +4,7 @@ import operator
 import unittest
 import xml.etree.ElementTree as ETree
 
+import convert
 from ucca import core, layer0, layer1, convert, textutil, diffutil
 
 
@@ -586,7 +587,7 @@ class UtilTests(unittest.TestCase):
         """Tests splitting a passage by sentence ends.
         """
         p = TestUtil.create_multi_passage()
-        split = textutil.split2sentences(p)
+        split = convert.split2sentences(p)
         self.assertEqual(len(split), 3)
         terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
         self.assertSequenceEqual(terms[0], ["1", "2", "3", "."])
@@ -605,7 +606,7 @@ class UtilTests(unittest.TestCase):
         """Tests splitting a passage by paragraph ends.
         """
         p = TestUtil.create_multi_passage()
-        split = textutil.split2paragraphs(p)
+        split = convert.split2paragraphs(p)
         self.assertEqual(len(split), 2)
         terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
         self.assertSequenceEqual(terms[0], ["1", "2", "3", ".", "5", "6", "."])
@@ -627,19 +628,19 @@ class UtilTests(unittest.TestCase):
         sentences = [["This", "is", "one", "sentence", "."],
                      ["This", "is", "another"],
                      ["And", "this", "is", "the", "second", "paragraph", "."]]
-        self.assertSequenceEqual(textutil.split2sentences(paragraphs), sentences)
+        self.assertSequenceEqual(convert.split2sentences(paragraphs), sentences)
 
     def test_split_join_sentences(self):
         p = TestUtil.create_multi_passage()
-        split = textutil.split2sentences(p, remarks=True)
-        copy = textutil.join_passages(split)
+        split = convert.split2sentences(p, remarks=True)
+        copy = convert.join_passages(split)
         diffutil.diff_passages(p, copy)
         self.assertTrue(p.equals(copy))
 
     def test_split_join_paragraphs(self):
         p = TestUtil.create_multi_passage()
-        split = textutil.split2paragraphs(p, remarks=True)
-        copy = textutil.join_passages(split)
+        split = convert.split2paragraphs(p, remarks=True)
+        copy = convert.join_passages(split)
         diffutil.diff_passages(p, copy)
         self.assertTrue(p.equals(copy))
 

@@ -1,4 +1,4 @@
-from tree import *
+from ucca.tree import *
 
 os.chdir("..")
 try:

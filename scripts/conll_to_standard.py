@@ -1,12 +1,11 @@
 #!/usr/bin/python3
+import argparse
 import os
 import re
-import argparse
 import sys
 
 import ucca.convert
-from textutil import passage2file
-
+from ucca.ioutil import passage2file
 
 desc = """Parses files in CoNLL-X format, and writes as XML in UCCA standard format, or as binary.
 Each passage is written to the file:
