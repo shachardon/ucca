@@ -1101,9 +1101,9 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
     remotes = []
     while queue:
         node, other_node = queue.pop()
-        if node.tag == layer1.NodeTags.Linkage and (
-                        include is None or include.issuperset(node.children)):
-            linkages.append(node)
+        if node.tag == layer1.NodeTags.Linkage:
+            if include is None or include.issuperset(node.children):
+                linkages.append(node)
             continue
         for edge in node.outgoing:
             child = edge.child
