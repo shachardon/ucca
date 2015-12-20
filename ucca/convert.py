@@ -1138,7 +1138,8 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
         other_l1.add_remote(parent, edge.tag, id_to_other[edge.child.ID])
     # Add linkages
     for linkage in linkages:
-        other_linkage = other_l1.add_linkage(linkage.relation, *linkage.arguments)
+        arguments = [id_to_other[argument.ID] for argument in linkage.arguments]
+        other_linkage = other_l1.add_linkage(id_to_other[linkage.relation.ID], *arguments)
         other_linkage.extra = linkage.extra.copy()
         if remarks:
             other_linkage.extra["remarks"] = linkage.ID
