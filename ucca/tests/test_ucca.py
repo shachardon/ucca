@@ -4,7 +4,6 @@ import operator
 import unittest
 import xml.etree.ElementTree as ETree
 
-import convert
 from ucca import core, layer0, layer1, convert, textutil, diffutil
 
 
