@@ -1099,12 +1099,15 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
     queue = [(node, None) for node in l1.heads]
     linkages = []
     remotes = []
+    heads = []
     while queue:
         node, other_node = queue.pop()
         if node.tag == layer1.NodeTags.Linkage:
             if include is None or include.issuperset(node.children):
                 linkages.append(node)
             continue
+        if other_node is None:
+            heads.append(node)
         for edge in node.outgoing:
             child = edge.child
             if include is None or child in include or child.attrib.get("implicit"):
@@ -1139,7 +1142,7 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
         other_linkage.extra = linkage.extra.copy()
         if remarks:
             other_linkage.extra["remarks"] = linkage.ID
-    for head, other_head in zip(l1.heads, other_l1.heads):
+    for head, other_head in zip(heads, other_l1.heads):
         other_head.extra = head.extra.copy()
         if remarks:
             other_head.extra["remarks"] = head.ID
