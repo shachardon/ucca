@@ -77,7 +77,7 @@ class Parser(object):
 
         if best_model is not None:
             self.model = best_model
-        if not self.model.is_averaged:
+        if not self.model.is_frozen:
             self.model = self.model.average_weights()
 
         return self.model
@@ -206,7 +206,8 @@ class Parser(object):
             elif predicted_action == true_action:
                 self.correct_count += 1
             elif train:
-                self.model.update(features, predicted_action, true_action, Config().learning_rate)
+                self.model.update(features, predicted_action.id, true_action.id,
+                                  Config().learning_rate)
                 if random.random() < Config().override_action_probability:
                     action = true_action
                     prefix = "*"

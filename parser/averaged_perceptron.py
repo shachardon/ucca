@@ -7,20 +7,20 @@ import numpy as np
 
 
 class Weights(object):
-    def __init__(self, num_actions, weights=None):
-        self.num_actions = num_actions
+    def __init__(self, num_labels, weights=None):
+        self.num_labels = num_labels
         if weights is None:
-            self.weights = 0.01 * np.random.randn(num_actions)
-            self._last_update = np.zeros(num_actions, dtype=int)
-            self._totals = np.zeros(num_actions, dtype=float)
+            self.weights = 0.01 * np.random.randn(num_labels)
+            self._last_update = np.zeros(num_labels, dtype=int)
+            self._totals = np.zeros(num_labels, dtype=float)
         else:
             self.weights = weights
 
-    def update(self, action, value, update_index):
-        n = update_index - self._last_update[action]
-        self._totals[action] += n * self.weights[action]
-        self.weights[action] += value
-        self._last_update[action] = update_index
+    def update(self, label, value, update_index):
+        n = update_index - self._last_update[label]
+        self._totals[label] += n * self.weights[label]
+        self.weights[label] += value
+        self._last_update[label] = update_index
 
     def average(self, update_index):
         """
@@ -31,29 +31,25 @@ class Weights(object):
         n = update_index - self._last_update
         totals = self._totals + n * self.weights
         averaged_weights = totals / update_index
-        return Weights(self.num_actions, averaged_weights)
+        return Weights(self.num_labels, averaged_weights)
 
 
 class AveragedPerceptron(object):
-    """
-    Averaged perceptron to predict parser actions
-    """
-
-    def __init__(self, num_actions, weights=None):
-        self.num_actions = num_actions
-        self.weights = defaultdict(lambda: Weights(num_actions))
+    def __init__(self, num_labels, weights=None):
+        self.num_labels = num_labels
+        self.weights = defaultdict(lambda: Weights(num_labels))
         self._update_index = 0
-        self.is_averaged = False
+        self.is_frozen = False
         if weights is not None:
             self.weights.update(weights)
 
     def score(self, features):
         """
-        Calculate score for each action
-        :param features: extracted feature values
-        :return: array of score for each action
+        Calculate score for each label
+        :param features: extracted feature values, in the form of a dict (name: value)
+        :return: np.array with a score for each label from 0 to (num_labels - 1)
         """
-        scores = np.zeros(self.num_actions)
+        scores = np.zeros(self.num_labels)
         for feature, value in features.items():
             if not value:
                 continue
@@ -63,12 +59,12 @@ class AveragedPerceptron(object):
             scores += value * weights.weights
         return scores
 
-    def update(self, features, pred_action, true_action, learning_rate=1):
+    def update(self, features, pred, true, learning_rate=1):
         """
-        Update classifier weights according to predicted and true action
-        :param features: extracted feature values
-        :param pred_action: action predicted by the classifier
-        :param true_action: action returned by oracle
+        Update classifier weights according to predicted and true labels
+        :param features: extracted feature values, in the form of a dict (name: value)
+        :param pred: label predicted by the classifier (non-negative integer less than num_labels)
+        :param true: true label (non-negative integer less than num_labels)
         :param learning_rate: how much to scale the feature vector for the weight update
         """
         self._update_index += 1
@@ -76,8 +72,8 @@ class AveragedPerceptron(object):
             if not value:
                 continue
             weights = self.weights[feature]
-            weights.update(true_action.id, learning_rate * value, self._update_index)
-            weights.update(pred_action.id, -learning_rate * value, self._update_index)
+            weights.update(true, learning_rate * value, self._update_index)
+            weights.update(pred, -learning_rate * value, self._update_index)
 
     def average_weights(self):
         """
@@ -89,22 +85,30 @@ class AveragedPerceptron(object):
         # "Lock" set of features; also allow pickle
         averaged_weights = {feature: weights.average(self._update_index)
                             for feature, weights in self.weights.items()}
-        averaged = AveragedPerceptron(self.num_actions, averaged_weights)
-        averaged.is_averaged = True
+        averaged = AveragedPerceptron(self.num_labels, averaged_weights)
+        averaged.is_frozen = True
         print("Done (%.3fs)." % (time.time() - started))
         return averaged
 
     def save(self, filename):
+        """
+        Save all parameters to file
+        :param filename: file to write to; the actual written file may have an additional suffix
+        """
         print("Saving model to '%s'... " % filename, end="", flush=True)
         started = time.time()
         with shelve.open(filename) as db:
-            db["num_actions"] = self.num_actions
+            db["num_labels"] = self.num_labels
             db["weights"] = dict(self.weights)
             db["_update_index"] = self._update_index
-            db["is_averaged"] = self.is_averaged
+            db["is_frozen"] = self.is_frozen
         print("Done (%.3fs)." % (time.time() - started))
 
     def load(self, filename):
+        """
+        Load all parameters from file
+        :param filename: file to read from; the actual read file may have an additional suffix
+        """
         def try_open(*names):
             for f in names:
                 # noinspection PyBroadException
@@ -117,9 +121,9 @@ class AveragedPerceptron(object):
         print("Loading model from '%s'... " % filename, end="", flush=True)
         started = time.time()
         with try_open(filename, os.path.splitext(filename)[0]) as db:
-            self.num_actions = db["num_actions"]
+            self.num_labels = db["num_labels"]
             self.weights.clear()
             self.weights.update(db["weights"])
             self._update_index = db["_update_index"]
-            self.is_averaged = db["is_averaged"]
+            self.is_frozen = db["is_frozen"]
         print("Done (%.3fs)." % (time.time() - started))
