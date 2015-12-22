@@ -283,28 +283,26 @@ class Parser(object):
             node.pos_tag = tag
 
 
-def all_files(dirs):
+def read_passages(files):
+    for file in files:
+        passage, i = Parser.read_passage(file)
+        if Config().split:
+            segments = convert.split2segments(passage, is_sentences=Config().sentences,
+                                              remarks=True)
+            for j, segment in enumerate(segments):
+                yield (segment, "%s_%d" % (i, j))
+        else:
+            yield (passage, i)
+
+
+def read_files_and_dirs(files):
     """
-    :param dirs: a list of files and/or directories to look in
-    :return: all files given, plus any files directly under any directory given
+    :param files: a list of files and/or directories to look in
+    :return: passages from all files given, plus any files directly under any directory given
     """
-    if not dirs:
-        return ()
-    dirs += [os.path.join(d, f) for d in dirs if os.path.isdir(d) for f in os.listdir(d)]
-    return [f for f in dirs if not os.path.isdir(f)]
-
-
-def read_passages_and_split(passage):
-    p, i = Parser.read_passage(passage)
-    if Config().split:
-        return [(s, i) for s in convert.split2segments(
-                p, is_sentences=Config().sentences, remarks=True)]
-    return [(p, i)]
-
-
-def read_passages(passages):
-    files = all_files(passages)
-    return (p for passage in files for p in read_passages_and_split(passage)) if files else []
+    files += [os.path.join(d, f) for d in files if os.path.isdir(d) for f in os.listdir(d)]
+    files = [f for f in files if not os.path.isdir(f)]
+    return read_passages(files) if files else ()
 
 
 def write_passage(passage, outdir, prefix, binary, verbose):
@@ -318,12 +316,15 @@ def write_passage(passage, outdir, prefix, binary, verbose):
 def main():
     args = Config().args
     parser = Parser(args.model)
-    parser.train(read_passages(args.train), dev=read_passages(args.dev), iterations=args.iterations)
+    train_passages = read_files_and_dirs(args.train)
+    dev_passages = read_files_and_dirs(args.dev)
+    parser.train(train_passages, dev=dev_passages, iterations=args.iterations)
     if args.passages:
         if args.train:
             print("Evaluating on test passages")
         scores = []
-        for guessed_passage, ref_passage in parser.parse(read_passages(args.passages)):
+        test_passages = read_files_and_dirs(args.passages)
+        for guessed_passage, ref_passage in parser.parse(test_passages):
             if isinstance(ref_passage, core.Passage):
                 scores.append(evaluate(guessed_passage, ref_passage,
                                        verbose=args.verbose and guessed_passage is not None))

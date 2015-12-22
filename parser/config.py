@@ -13,10 +13,13 @@ class Singleton(type):
 class Config(object, metaclass=Singleton):
     def __init__(self):
         argparser = argparse.ArgumentParser(description="""Transition-based parser for UCCA.""")
-        argparser.add_argument('passages', nargs='*', help="passage files/directories to test on/parse")
+        argparser.add_argument('passages', nargs='*', default=[],
+                               help="passage files/directories to test on/parse")
+        argparser.add_argument('-t', '--train', nargs='+', default=[],
+                               help="passage files/directories to train on")
+        argparser.add_argument('-d', '--dev', nargs='+', default=[],
+                               help="passage files/directories to tune on")
         argparser.add_argument('-m', '--model', default=None, help="model file to load/save")
-        argparser.add_argument('-t', '--train', nargs='+', help="passage files/directories to train on")
-        argparser.add_argument('-d', '--dev', nargs='+', help="passage files/directories to tune on")
         argparser.add_argument('-o', '--outdir', default='.', help="output directory")
         argparser.add_argument('-p', '--prefix', default='ucca_passage',
                                help="output filename prefix")
