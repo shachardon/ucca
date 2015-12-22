@@ -203,11 +203,16 @@ def get_head_terminal(node):
 
 
 def has_gaps(node):
-    return any(t1.index - t2.index > 1 for (t1, t2) in zip(node.terminals[1:], node.terminals[:-1]))
+    """Possibly the same as FoundationalNode.discontiguous"""
+    return any(length > 0 for length in gap_lengths(node))
 
 
 def gap_length_sum(node):
-    return sum(t1.index - t2.index - 1 for (t1, t2) in zip(node.terminals[1:], node.terminals[:-1]))
+    return sum(gap_lengths(node))
+
+
+def gap_lengths(node):
+    return (t1.index - t2.index - 1 for (t1, t2) in zip(node.terminals[1:], node.terminals[:-1]))
 
 
 def gap_type(node):
