@@ -75,11 +75,7 @@ class Parser(object):
             print()
         print("Trained %d iterations" % iterations)
 
-        if best_model is not None:
-            self.model = best_model
-        if not self.model.is_frozen:
-            self.model = self.model.average_weights()
-
+        self.model = best_model
         return self.model
 
     def parse(self, passages, mode="test"):
