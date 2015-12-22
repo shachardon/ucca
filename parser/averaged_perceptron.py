@@ -7,16 +7,27 @@ import numpy as np
 
 
 class Weights(object):
+    """
+    The weights for one feature, for all labels
+    """
     def __init__(self, num_labels, weights=None):
         self.num_labels = num_labels
         if weights is None:
             self.weights = 0.01 * np.random.randn(num_labels)
+            self.update_count = 0
             self._last_update = np.zeros(num_labels, dtype=int)
             self._totals = np.zeros(num_labels, dtype=float)
         else:
             self.weights = weights
 
     def update(self, label, value, update_index):
+        """
+        Add a value to the entry of the given label
+        :param label: label to index by
+        :param value: value to add
+        :param update_index: which update this is (for averaging)
+        """
+        self.update_count += 1
         n = update_index - self._last_update[label]
         self._totals[label] += n * self.weights[label]
         self.weights[label] += value
@@ -35,8 +46,9 @@ class Weights(object):
 
 
 class AveragedPerceptron(object):
-    def __init__(self, num_labels, weights=None):
+    def __init__(self, num_labels, min_update=1, weights=None):
         self.num_labels = num_labels
+        self.min_update = min_update
         self.weights = defaultdict(lambda: Weights(num_labels))
         self._update_index = 0
         self.is_frozen = False
@@ -54,7 +66,7 @@ class AveragedPerceptron(object):
             if not value:
                 continue
             weights = self.weights.get(feature)
-            if weights is None:
+            if weights is None or weights.update_count < self.min_update:
                 continue
             scores += value * weights.weights
         return scores
@@ -82,10 +94,11 @@ class AveragedPerceptron(object):
         """
         print("Averaging weights... ", end="", flush=True)
         started = time.time()
-        # "Lock" set of features; also allow pickle
+        # Freeze set of features; also allow pickle
         averaged_weights = {feature: weights.average(self._update_index)
-                            for feature, weights in self.weights.items()}
-        averaged = AveragedPerceptron(self.num_labels, averaged_weights)
+                            for feature, weights in self.weights.items()
+                            if weights.update_count >= self.min_update}
+        averaged = AveragedPerceptron(self.num_labels, weights=averaged_weights)
         averaged.is_frozen = True
         print("Done (%.3fs)." % (time.time() - started))
         return averaged
@@ -99,6 +112,7 @@ class AveragedPerceptron(object):
         started = time.time()
         with shelve.open(filename) as db:
             db["num_labels"] = self.num_labels
+            db["min_update"] = self.min_update
             db["weights"] = dict(self.weights)
             db["_update_index"] = self._update_index
             db["is_frozen"] = self.is_frozen
@@ -122,6 +136,7 @@ class AveragedPerceptron(object):
         started = time.time()
         with try_open(filename, os.path.splitext(filename)[0]) as db:
             self.num_labels = db["num_labels"]
+            self.min_update = db["min_update"]
             self.weights.clear()
             self.weights.update(db["weights"])
             self._update_index = db["_update_index"]

@@ -32,6 +32,8 @@ class Config(object, metaclass=Singleton):
                                help="separate passages to paragraphs and parse each one separately")
         argparser.add_argument('-r', '--learningrate', type=float, default=1,
                                help="learning rate for the model weight updates")
+        argparser.add_argument('-u', '--minupdate', type=int, default=5,
+                               help="minimum updates a feature must have before being used")
         argparser.add_argument('-l', '--checkloops', action='store_true', default=False,
                                help="check for infinite loops")
         argparser.add_argument('-V', '--verify', action='store_true', default=False,
@@ -57,6 +59,7 @@ class Config(object, metaclass=Singleton):
             "At most one of --sentences and --paragraphs may be specified"
         self.split = self.sentences or self.paragraphs
         self.learning_rate = self.args.learningrate
+        self.min_update = self.args.minupdate
         self.check_loops = self.args.checkloops
         self.verify = self.args.verify
 

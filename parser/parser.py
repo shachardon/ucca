@@ -29,7 +29,8 @@ class Parser(object):
         self.total_actions = 0
         self.total_correct = 0
 
-        self.model = AveragedPerceptron(len(Action.get_all_actions()))
+        self.model = AveragedPerceptron(len(Action.get_all_actions()),
+                                        min_update=Config().min_update)
         self.model_file = model_file
         self.feature_extractor = FeatureExtractor()
 
