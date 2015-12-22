@@ -2,7 +2,7 @@ import re
 
 from ucca import layer0, layer1
 
-FEATURE_ELEMENT_PATTERN = re.compile("([sb])(\d)([lru]*)([wtepqxyPC]+)")
+FEATURE_ELEMENT_PATTERN = re.compile("([sb])(\d)([lru]*)([wtepqxyPC]*)")
 FEATURE_TEMPLATE_PATTERN = re.compile("^(%s)+$" % FEATURE_ELEMENT_PATTERN.pattern)
 
 FEATURE_TEMPLATES = (
@@ -32,8 +32,12 @@ FEATURE_TEMPLATES = (
     "s0xs1e", "s0xs1w", "s0xs1x", "s0ws1x", "s0es1x",
     "s0xs2e", "s0xs2w", "s0xs2x", "s0es2x",
     "s0ys1y", "s0ys2y", "s0xb0t", "s0xb0w",
-    # counts:
-    "s0P", "s0C", "s1P", "s0C",
+    # counts (Tokgöz and Eryiğit 2015):
+    "s0P", "s0C", "s0wP", "s0wC",
+    "b0P", "b0C", "b0wP", "b0wC",
+    # existing edges (Tokgöz and Eryiğit 2015):
+    "s0s1", "s1s0", "s0b0", "b0s0",
+    "s0b0e", "b0s0e",
 )
 
 
@@ -69,6 +73,9 @@ class FeatureTemplateElement(object):
                            y: sum of gap lengths
                            P: number of parents
                            C: number of children
+                           If empty, the value will be 1 if there is an edge from this node to the
+                           next one in the template, or 0 otherwise. Also, if the next node comes
+                           with the "e" property, then the edge with this node will be considered.
         """
         self.source = source
         self.index = int(index)
@@ -108,6 +115,7 @@ class FeatureExtractor(object):
 
 def calc_feature(feature_template, state):
     values = []
+    prev_node = None
     for element in feature_template.elements:
         if element.source == "s":
             if len(state.stack) <= element.index:
@@ -129,11 +137,17 @@ def calc_feature(feature_template, state):
                 node = node.outgoing[-1].child
             else:  # child == "u" and len(node.outgoing) > 1
                 return None
+        if not element.properties:
+            if prev_node is not None:
+                values.append("1" if prev_node in node.parents else "0")
+            prev_node = node
         for p in element.properties:
             try:
-                v = get_separator_prop(state.stack[-1:-3:-1], state.terminals, p) if p in "pq" \
-                    else get_prop(node, p)
-            except (AttributeError, IndexError):
+                if p in "pq":
+                    v = get_separator_prop(state.stack[-1:-3:-1], state.terminals, p)
+                else:
+                    v = get_prop(node, p, prev_node)
+            except (AttributeError, StopIteration):
                 v = None
             if v is None:
                 return None
@@ -141,13 +155,13 @@ def calc_feature(feature_template, state):
     return values
 
 
-def get_prop(node, p):
+def get_prop(node, p, prev_node=None):
     if p == "w":
         return get_head_terminal(node).text
     if p == "t":
         return get_head_terminal(node).pos_tag
     if p == "e":
-        return node.incoming[0].tag
+        return next(e.tag for e in node.incoming if prev_node is None or e.parent == prev_node)
     if p == "x":
         return gap_type(node)
     if p == "y":
