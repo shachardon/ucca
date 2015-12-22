@@ -43,6 +43,7 @@ class State(object):
         self.root = self.add_node(root_node)  # The root is not part of the stack/buffer
         self.stack = [self.root]
         self.passage_id = passage_id
+        self.actions = []
 
     def is_valid(self, action):
         """
@@ -156,6 +157,7 @@ class State(object):
             intersection = set(self.stack).intersection(self.buffer)
             assert not intersection, "Stack and buffer overlap: %s" % intersection
         self.assert_node_ratio()
+        self.actions.append(action)
 
     def add_node(self, *args, **kwargs):
         """

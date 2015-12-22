@@ -2,7 +2,7 @@ import re
 
 from ucca import layer0, layer1
 
-FEATURE_ELEMENT_PATTERN = re.compile("([sb])(\d)([lru]*)([wtepqxyPC]*)")
+FEATURE_ELEMENT_PATTERN = re.compile("([sba])(\d)([lrup]*)([wtepqxyPC]*)")
 FEATURE_TEMPLATE_PATTERN = re.compile("^(%s)+$" % FEATURE_ELEMENT_PATTERN.pattern)
 
 FEATURE_TEMPLATES = (
@@ -21,6 +21,8 @@ FEATURE_TEMPLATES = (
     "s0llwe", "s0lrwe", "s0luwe", "s0rlwe", "s0rrwe",
     "s0ruwe", "s0ulwe", "s0urwe", "s0uuwe", "s1llwe",
     "s1lrwe", "s1luwe", "s1rlwe", "s1rrwe", "s1ruwe",
+    # parents:
+    "s0pwe", "s1pwe", "b0pwe",
     # separator (Zhu et al. 2013):
     "s0wp", "s0wep", "s0wq", "s0weq", "s0es1ep", "s0es1eq",
     "s1wp", "s1wep", "s1wq", "s1weq",
@@ -38,6 +40,8 @@ FEATURE_TEMPLATES = (
     # existing edges (Tokgöz and Eryiğit 2015):
     "s0s1", "s1s0", "s0b0", "b0s0",
     "s0b0e", "b0s0e",
+    # past actions (Tokgöz and Eryiğit 2015):
+    "a0we", "a1we",
 )
 
 
@@ -60,13 +64,21 @@ class FeatureTemplateElement(object):
     """
     def __init__(self, source, index, children, properties):
         """
-        :param source: "s" or "b", whether the node comes from the stack or buffer respectively
-        :param index: non-negative integer, the index of the element in the stack (reversed) or buffer
-        :param children: possibly empty string in [lru]*, to select a (grand) child instead of the node
+        :param source: where to take the data from:
+                           s: stack nodes
+                           b: buffer nodes
+                           a: past actions
+        :param index: non-negative integer, the index of the element in the stack, buffer or list
+                           of past actions (in the case of stack and actions, indexing from the end)
+        :param children: string in [lrup]*, to select a descendant of the node instead:
+                           l: leftmost child
+                           r: rightmost child
+                           u: only child, if there is just one
+                           p: parent
         :param properties: the actual values to choose, if available (else omit feature), out of:
-                           w: node text
+                           w: node text / action type
                            t: node POS tag
-                           e: tag of first incoming edge
+                           e: tag of first incoming edge / action tag
                            p: unique separator punctuation between nodes
                            q: count of any separator punctuation between nodes
                            x: gap type
@@ -121,21 +133,30 @@ def calc_feature(feature_template, state):
             if len(state.stack) <= element.index:
                 return None
             node = state.stack[-1 - element.index]
-        else:  # source == "b"
+        elif element.source == "b":
             if len(state.buffer) <= element.index:
                 return None
             node = state.buffer[element.index]
-        for child in element.children:
-            if not node.outgoing:
+        else:  # source == "a"
+            if len(state.actions) <= element.index:
                 return None
-            if len(node.outgoing) == 1:
+            node = state.actions[-1 - element.index]
+        for child in element.children:
+            if child == "p":
+                if node.parents:
+                    node = node.parents[0]
+                else:
+                    return None
+            elif not node.children:
+                return None
+            elif len(node.children) == 1:
                 if child == "u":
-                    node = node.outgoing[0].child
+                    node = node.children[0]
             elif child == "l":
-                node = node.outgoing[0].child
+                node = node.children[0]
             elif child == "r":
-                node = node.outgoing[-1].child
-            else:  # child == "u" and len(node.outgoing) > 1
+                node = node.children[-1]
+            else:  # child == "u" and len(node.children) > 1
                 return None
         if not element.properties:
             if prev_node is not None:
@@ -143,7 +164,9 @@ def calc_feature(feature_template, state):
             prev_node = node
         for p in element.properties:
             try:
-                if p in "pq":
+                if element.source == "a":
+                    v = get_action_prop(node, p)
+                elif p in "pq":
                     v = get_separator_prop(state.stack[-1:-3:-1], state.terminals, p)
                 else:
                     v = get_prop(node, p, prev_node)
@@ -170,7 +193,15 @@ def get_prop(node, p, prev_node=None):
         return len(node.incoming)
     if p == "C":
         return len(node.outgoing)
-    raise Exception("Unknown property: " + p)
+    raise Exception("Unknown node property: " + p)
+
+
+def get_action_prop(action, p):
+    if p == "w":
+        return action.type
+    if p == "e":
+        return action.tag
+    raise Exception("Unknown action property: " + p)
 
 
 def get_separator_prop(nodes, terminals, p):
@@ -183,6 +214,7 @@ def get_separator_prop(nodes, terminals, p):
         return punctuation[0].text
     if p == "q":
         return len(punctuation)
+    return None
 
 
 EDGE_PRIORITY = {tag: i for i, tag in enumerate((
