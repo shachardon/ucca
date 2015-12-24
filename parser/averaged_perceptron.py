@@ -66,7 +66,7 @@ class AveragedPerceptron(object):
             if not value:
                 continue
             weights = self.weights.get(feature)
-            if weights is None or weights.update_count < self.min_update:
+            if weights is None or not self.is_frozen and weights.update_count < self.min_update:
                 continue
             scores += value * weights.weights
         return scores
