@@ -6,7 +6,7 @@ from xml.etree.ElementTree import ElementTree, tostring, fromstring
 from collections import Counter
 from ucca import convert
 from ucca.layer1 import EdgeTags as ET
-from ucca.layer1 import EdgeTags as NT
+from ucca.layer1 import NodeTags as NT
 
 UNK_LINKAGE_TYPE = 'UNK'
 PLACE_HOLDER = "%s"

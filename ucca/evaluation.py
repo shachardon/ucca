@@ -4,7 +4,7 @@ The evaluation software for UCCA layer 1.
 """
 from collections import Counter
 from ucca.layer1 import EdgeTags as ET
-from ucca.layer1 import EdgeTags as NT
+from ucca.layer1 import NodeTags as NT
 
 UNLABELED = "unlabeled"
 WEAK_LABELED = "weak_labeled"
@@ -160,7 +160,7 @@ def create_passage_yields(p, remote_terminals=False):
     l1 = p.layer("1")
     edges = []
     for node in l1.all:
-        edges.extend([e for e in node if e.tag not in (ET.punctuation, ET.LinkArgument, ET.LinkRelation, ET.Terminal)])
+        edges.extend([e for e in node if e.tag not in (ET.Punctuation, ET.LinkArgument, ET.LinkRelation, ET.Terminal)])
    
     table_reg, table_remote = dict(), dict()
     for e in edges:
