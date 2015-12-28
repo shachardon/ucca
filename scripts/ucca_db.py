@@ -5,6 +5,8 @@ import sys
 from xml.etree.ElementTree import ElementTree, tostring, fromstring
 from collections import Counter
 from ucca import convert
+from ucca.layer1 import EdgeTags as ET
+from ucca.layer1 import EdgeTags as NT
 
 UNK_LINKAGE_TYPE = 'UNK'
 PLACE_HOLDER = "%s"
@@ -167,9 +169,9 @@ def linkage_type(u):
     """
     cur_u = u
     while cur_u:
-        if cur_u.ftag in ['A', 'E', 'H']:
+        if cur_u.ftag in [ET.Participant, ET.Elaborator, ET.ParallelScene]:
             return cur_u.ftag
-        elif cur_u.ftag != 'C':
+        elif cur_u.ftag != ET.Center:
             return UNK_LINKAGE_TYPE
         else:
             cur_u = cur_u.fparent
@@ -234,15 +236,15 @@ def get_tasks(db, host, username):
                     sys.stderr.write("Skipped.\n")
                     continue
                 num_units = len([x for x in ucca_dag.layer("1").all
-                                 if x.tag == 'FN']) - 1
+                                 if x.tag == NT.Foundational]) - 1
                 for node in ucca_dag.layer("1").all:
                     category_distribution.update([e.tag for e in node
                                                   if e.tag
                                                   not in
-                                                  ['U', 'LA', 'LR', 'T']])
+                                                  [ET.Punctuation, ET.LinkArgument, ET.LinkRelation, ET.Terminal]])
                 # getting the scene categories
                 scenes = [x for x in ucca_dag.layer("1").all
-                          if x.tag == "FN" and x.is_scene()]
+                          if x.tag == NT.Foundational and x.is_scene()]
                 scene_distribution.update([linkage_type(sc) for sc in scenes])
                 sum_scene_length += sum([unit_length(x) for x in scenes])
 

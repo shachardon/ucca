@@ -43,11 +43,11 @@ class EdgeTags:
     Connector = 'N'
     Relator = 'R'
     Linker = 'L'
-    Punctuation = 'U'
-    Terminal = 'T'
+    Punctuation = 'U'   
+    Terminal = 'Terminal'
     LinkRelation = 'LR'
     LinkArgument = 'LA'
-    Time = 'Ti'
+    Time = 'T'
     __init__ = None
 
 
