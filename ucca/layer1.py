@@ -10,13 +10,7 @@ the type of relation between the Nodes.
 
 import operator
 
-from ucca import layer0
-
-
-
-
-# Layer ID
-from ucca import core
+from ucca import core, layer0
 
 LAYER_ID = '1'
 
@@ -42,12 +36,12 @@ class EdgeTags:
     Function = 'F'
     Connector = 'N'
     Relator = 'R'
+    Time = 'T'
     Linker = 'L'
-    Punctuation = 'U'   
-    Terminal = 'Terminal'
+    Punctuation = 'U'
     LinkRelation = 'LR'
     LinkArgument = 'LA'
-    Time = 'T'
+    Terminal = 'Terminal'
     __init__ = None
 
 
