@@ -325,7 +325,7 @@ def main():
             print("Evaluating on test passages")
         scores = []
         test_passages = read_files_and_dirs(args.passages)
-        for guessed_passage, ref_passage in parser.parse(test_passages):
+        for guessed_passage, ref_passage, _ in parser.parse(test_passages):
             if isinstance(ref_passage, core.Passage):
                 scores.append(evaluate(guessed_passage, ref_passage,
                                        verbose=args.verbose and guessed_passage is not None))
