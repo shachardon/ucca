@@ -21,6 +21,12 @@ UNIQUE_INCOMING = [
     layer1.EdgeTags.Terminal,
 ]
 
+# A unit may not have more than one outgoing edge with any of these:
+MUTUALLY_EXCLUSIVE_OUTGOING = [
+    layer1.EdgeTags.Process,
+    layer1.EdgeTags.State,
+]
+
 # A unit may not have any children if it has any of these incoming edge tags:
 CHILDLESS_INCOMING = [
     layer1.EdgeTags.Function,
