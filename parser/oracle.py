@@ -1,8 +1,7 @@
 from action import Action, SHIFT, NODE, IMPLICIT, REDUCE, SWAP, FINISH
 from config import Config
+from constants import ROOT_ID
 from ucca import layer1
-
-ROOT_ID = "1.1"  # ID of root node in UCCA passages
 
 
 class Oracle(object):

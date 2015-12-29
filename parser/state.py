@@ -5,9 +5,9 @@ from operator import attrgetter
 
 from action import SHIFT, NODE, IMPLICIT, REDUCE, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, SWAP, FINISH
 from config import Config
+from constants import ROOT_ID, UNIQUE_INCOMING, UNIQUE_OUTGOING
 from edge import Edge
 from node import Node
-from oracle import ROOT_ID
 from ucca import core, layer0, layer1, convert
 
 
@@ -67,7 +67,17 @@ class State(object):
 
         def assert_terminal_edge(child):
             assert (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
-                "Edge tag must be T iff child is terminal"
+                "Edge tag must be %s iff child is terminal" % layer1.EdgeTags.Terminal
+
+        def assert_unique_incoming(node):
+            assert action.tag not in UNIQUE_INCOMING or not any(
+                    edge.tag == action.tag for edge in node.incoming),\
+                "Incoming edge tag %s must be unique" % action.tag
+
+        def assert_unique_outgoing(node):
+            assert action.tag not in UNIQUE_OUTGOING or not any(
+                    edge.tag == action.tag for edge in node.outgoing),\
+                "Outgoing edge tag %s must be unique" % action.tag
 
         def assert_edge():
             parent, child = self.get_parent_child(action)
@@ -76,6 +86,8 @@ class State(object):
             assert parent is not self.root or child.text is None, "root->terminal edge"
             assert child not in parent.children, "Edge must not already exist"
             assert_terminal_edge(child)
+            assert_unique_incoming(child)
+            assert_unique_outgoing(parent)
             assert parent not in child.descendants, "Detected cycle created by edge: %s" % self
             # Include this (instead of child not in children) to allow multiple edges between nodes:
             # (as long as their tags are different)
@@ -86,20 +98,22 @@ class State(object):
             assert self.root.outgoing, "Root must have at least one child at the end of the parse"
         elif action.is_type(SHIFT):
             assert self.buffer, "Buffer must not be empty in order to shift from it"
-        else:
+        else:  # Unary actions
             assert self.stack, "Action requires non-empty stack: %s" % action
             s0 = self.stack[-1]
             if action.is_type(NODE):
                 assert s0 is not self.root, "The root may not have parents"
                 assert_terminal_edge(s0)
+                assert_unique_incoming(s0)
                 assert_orig_node()
             elif action.is_type(IMPLICIT):
                 assert s0.text is None, "Terminals may not have (implicit) children"
                 assert not s0.implicit, "Implicit node loop"
+                assert_unique_outgoing(s0)
                 assert_orig_node()
             elif action.is_type(REDUCE):
                 assert s0 is not self.root or s0.outgoing, "May not reduce the root without children"
-            else:
+            else:  # Binary actions
                 assert len(self.stack) > 1, "Action requires at least two stack elements: %s" % action
                 if action.is_type(LEFT_EDGE, RIGHT_EDGE):
                     assert_edge()
@@ -112,7 +126,6 @@ class State(object):
                     distance = action.tag or 1
                     assert 1 <= distance < len(self.stack), "Invalid swap distance: %d" % distance
                     swapped = self.stack[-distance - 1]
-                    # assert s0.text is None and swapped.text is None, "Swapping terminals is not allowed"
                     # To prevent swap loops: only swap if the nodes are currently in their original order
                     assert swapped.swap_index < s0.swap_index,\
                         "Swapping already-swapped nodes: %s (swap index %d) <--> %s (swap index %d)" % (
