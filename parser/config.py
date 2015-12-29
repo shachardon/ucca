@@ -33,7 +33,7 @@ class Config(object, metaclass=Singleton):
                                help="separate passages to sentences and parse each one separately")
         argparser.add_argument('-a', '--paragraphs', action='store_true', default=False,
                                help="separate passages to paragraphs and parse each one separately")
-        argparser.add_argument('-r', '--learningrate', type=float, default=1,
+        argparser.add_argument('-r', '--learningrate', type=float, default=1.0,
                                help="learning rate for the model weight updates")
         argparser.add_argument('-u', '--minupdate', type=int, default=5,
                                help="minimum updates a feature must have before being used")
@@ -72,3 +72,6 @@ class Config(object, metaclass=Singleton):
         self.max_nodes_ratio = self.args.maxnodes
 
         self.override_action_probability = self.args.overrideprob
+        
+    def __str__(self):
+        return " ".join("--%s=%s" % item for item in vars(self.args).items())

@@ -107,7 +107,7 @@ class Parser(object):
             self.oracle = Oracle(passage) if isinstance(passage, core.Passage) else None
             try:
                 self.parse_passage(history, train)  # This is where the actual parsing takes place
-            except Exception as e:
+            except AssertionError as e:
                 if train:
                     raise
                 if Config().verbose:
@@ -248,7 +248,7 @@ class Parser(object):
         try:
             return next(action for action in actions if self.state.is_valid(action))
         except StopIteration as e:
-            raise Exception("No valid actions available") from e
+            raise AssertionError("No valid actions available") from e
 
     @staticmethod
     def select_action(i, true_action):
@@ -315,6 +315,7 @@ def write_passage(passage, outdir, prefix, binary, verbose):
 
 def main():
     args = Config().args
+    print("Running parser with %s" % Config())
     parser = Parser(args.model)
     train_passages = read_files_and_dirs(args.train)
     dev_passages = read_files_and_dirs(args.dev)
@@ -331,11 +332,13 @@ def main():
             if guessed_passage is not None:
                 write_passage(guessed_passage, args.outdir, args.prefix, args.binary, args.verbose)
         if scores:
+            f1 = average_f1(scores)
             print()
-            print("Average F1 score on test: %.3f" % average_f1(scores))
+            print("Average F1 score on test: %.3f" % f1)
             print("Aggregated scores:")
             print()
             print_aggregate(scores)
+            return f1
 
 
 if __name__ == "__main__":
