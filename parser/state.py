@@ -5,7 +5,7 @@ from operator import attrgetter
 
 from action import SHIFT, NODE, IMPLICIT, REDUCE, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, SWAP, FINISH
 from config import Config
-from constants import ROOT_ID, UNIQUE_INCOMING, UNIQUE_OUTGOING
+from constants import ROOT_ID, UNIQUE_INCOMING, UNIQUE_OUTGOING, CHILDLESS_INCOMING
 from edge import Edge
 from node import Node
 from ucca import core, layer0, layer1, convert
@@ -69,15 +69,25 @@ class State(object):
             assert (child.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
                 "Edge tag must be %s iff child is terminal" % layer1.EdgeTags.Terminal
 
-        def assert_unique_incoming(node):
+        def assert_unique_outgoing(parent):
+            assert action.tag not in UNIQUE_OUTGOING or not any(
+                    edge.tag == action.tag for edge in parent.outgoing),\
+                "Outgoing edge tag %s must be unique" % action.tag
+
+        def assert_unique_incoming(child):
             assert action.tag not in UNIQUE_INCOMING or not any(
-                    edge.tag == action.tag for edge in node.incoming),\
+                    edge.tag == action.tag for edge in child.incoming),\
                 "Incoming edge tag %s must be unique" % action.tag
 
-        def assert_unique_outgoing(node):
-            assert action.tag not in UNIQUE_OUTGOING or not any(
-                    edge.tag == action.tag for edge in node.outgoing),\
-                "Outgoing edge tag %s must be unique" % action.tag
+        def assert_no_children_parent(parent):
+            assert action.tag == layer1.EdgeTags.Terminal or not any(
+                    edge.tag in CHILDLESS_INCOMING for edge in parent.incoming), \
+                "Units with incoming %s edges may not have children" % CHILDLESS_INCOMING
+
+        def assert_no_children_child(child):
+            assert action.tag not in CHILDLESS_INCOMING or all(
+                    edge.tag == layer1.EdgeTags.Terminal for edge in child.outgoing), \
+                "Units with incoming %s edges may not have children" % CHILDLESS_INCOMING
 
         def assert_edge():
             parent, child = self.get_parent_child(action)
@@ -86,8 +96,10 @@ class State(object):
             assert parent is not self.root or child.text is None, "root->terminal edge"
             assert child not in parent.children, "Edge must not already exist"
             assert_terminal_edge(child)
-            assert_unique_incoming(child)
             assert_unique_outgoing(parent)
+            assert_unique_incoming(child)
+            assert_no_children_parent(parent)
+            assert_no_children_child(child)
             assert parent not in child.descendants, "Detected cycle created by edge: %s" % self
             # Include this (instead of child not in children) to allow multiple edges between nodes:
             # (as long as their tags are different)
@@ -105,11 +117,13 @@ class State(object):
                 assert s0 is not self.root, "The root may not have parents"
                 assert_terminal_edge(s0)
                 assert_unique_incoming(s0)
+                assert_no_children_child(s0)
                 assert_orig_node()
             elif action.is_type(IMPLICIT):
                 assert s0.text is None, "Terminals may not have (implicit) children"
                 assert not s0.implicit, "Implicit node loop"
                 assert_unique_outgoing(s0)
+                assert_no_children_parent(s0)
                 assert_orig_node()
             elif action.is_type(REDUCE):
                 assert s0 is not self.root or s0.outgoing, "May not reduce the root without children"
