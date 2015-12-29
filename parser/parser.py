@@ -52,15 +52,15 @@ class Parser(object):
         print("Training %d iterations" % iterations)
         for iteration in range(1, iterations + 1):
             print("Iteration %d: " % iteration)
-            passages = [(passage, passage.ID) for _, passage in
+            passages = [(passage, passage_id) for _, passage, passage_id in
                         self.parse(passages, mode="train")]
             shuffle(passages)
             if dev:
                 print("Evaluating on dev passages")
-                dev, scores = zip(*[((passage, passage.ID),
+                dev, scores = zip(*[((passage, passage_id),
                                      evaluate(predicted_passage, passage,
                                               verbose=False, units=False, errors=False))
-                                    for predicted_passage, passage in
+                                    for predicted_passage, passage, passage_id in
                                     self.parse(dev, mode="dev")])
                 score = average_f1(scores)
                 print("Average F1 score on dev: %.3f" % score)
@@ -82,12 +82,12 @@ class Parser(object):
     def parse(self, passages, mode="test"):
         """
         Parse given passages
-        :param passages: iterable of pairs of (either Passage objects, or of lists of lists of tokens),
-                                               and passage IDs
+        :param passages: iterable of pairs of (passage, passage ID), where passage may be:
+                         either Passage object, or list of lists of tokens
         :param mode: "train", "test" or "dev".
                      If "train", use oracle to train on given passages.
                      Otherwise, just parse with classifier.
-        :return: generator of pairs of (parsed passage, original passage)
+        :return: generator of triplets of (parsed passage, original passage, passage ID)
         """
         train = (mode == "train")
         assert train or mode in ("test", "dev"), "Invalid parse mode: %s" % mode
@@ -132,7 +132,7 @@ class Parser(object):
             total_duration += duration
             total_words += words
             num_passages += 1
-            yield predicted_passage, passage
+            yield predicted_passage, passage, passage_id
 
         if num_passages > 1:
             print("Parsed %d passages" % num_passages)
