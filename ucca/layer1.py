@@ -43,10 +43,11 @@ class EdgeTags:
     Connector = 'N'
     Relator = 'R'
     Linker = 'L'
-    Punctuation = 'U'
-    Terminal = 'T'
+    Punctuation = 'U'   
+    Terminal = 'Terminal'
     LinkRelation = 'LR'
     LinkArgument = 'LA'
+    Time = 'T'
     __init__ = None
 
 
@@ -194,6 +195,7 @@ class FoundationalNode(core.Node):
     Attributes:
         participants:
         adverbials:
+        connector:
         grounds:
         elaborators:
         centers:
@@ -206,7 +208,7 @@ class FoundationalNode(core.Node):
             these types.
         process:
         state:
-        connector:
+        time:
         relator:
             Returns the FNode under self whose edge tag is one of these types,
             or None in case it isn't found.
@@ -231,6 +233,10 @@ class FoundationalNode(core.Node):
     @property
     def adverbials(self):
         return _multiple_children_by_tag(self, EdgeTags.Adverbial)
+
+    @property
+    def times(self):
+        return _multiple_children_by_tag(self, EdgeTags.Time)
 
     @property
     def grounds(self):
