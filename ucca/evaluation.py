@@ -312,6 +312,7 @@ def evaluate(guessed_passage, ref_passage, verbose=True, units=True, fscore=True
 def average_f1(results):
     """
     Calculate the average F1 score across instances, evaluation types and regular/remote
+    Note: currently gives the same weight to regular and remote edges, and to labeled/unlabeled
     :param results: iterable of dictionaries of evaluation types to Results objects
     :return: a single number, the average F1
     """

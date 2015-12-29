@@ -225,6 +225,7 @@ EDGE_PRIORITY = {tag: i for i, tag in enumerate((
     layer1.EdgeTags.State,
     layer1.EdgeTags.Participant,
     layer1.EdgeTags.Adverbial,
+    layer1.EdgeTags.Time,
     layer1.EdgeTags.Elaborator,
     layer1.EdgeTags.Relator,
     layer1.EdgeTags.Function,

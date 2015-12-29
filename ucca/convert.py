@@ -117,8 +117,7 @@ class SiteCfg:
                      'Ground': layer1.EdgeTags.Ground,
                      'Connector': layer1.EdgeTags.Connector,
                      'Role Marker': layer1.EdgeTags.Relator,
-                     'Relator': layer1.EdgeTags.Relator,
-                     'Time': layer1.EdgeTags.Time}
+                     'Relator': layer1.EdgeTags.Relator}
 
     EdgeConversion = {layer1.EdgeTags.ParallelScene: 'Parallel Scene',
                       layer1.EdgeTags.Function: 'Function',
@@ -131,8 +130,7 @@ class SiteCfg:
                       layer1.EdgeTags.Linker: 'Linker',
                       layer1.EdgeTags.Ground: 'Ground',
                       layer1.EdgeTags.Connector: 'Connector',
-                      layer1.EdgeTags.Relator: 'Relator',
-                      layer1.EdgeTags.Time: 'Time'}
+                      layer1.EdgeTags.Relator: 'Relator'}
 
 
 class SiteUtil:
