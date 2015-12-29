@@ -1,6 +1,6 @@
 The UCCA Corpus
-Version 1.0
-20/12/2014
+Version 1.1
+29/12/2015
 ===============
 
 This bundle contains 369 passages annotated according to the foundational layer of UCCA. 
@@ -59,10 +59,10 @@ derived from the identity of its edges. It is therefore only used for easier rea
 
 Each node specifies its outbound edges through its "edge" elements. The ID of the node to which the edge is
 directed is specified by the attribute "toID". The type of the edge may be either of the following:
-(1) any of the 12 categories of the foundational layer (abbreviated as A,P,S,D,C,E,N,R,H,L,F,G; see paper).
+(1) any of the 13 categories of the foundational layer (abbreviated as A,P,S,D,C,E,N,R,T,H,L,F,G; see paper).
 (2) LR (Link Relation) or LA (Link Argument) for edges between a linkage node and its Linker or Parallel 
 Scenes, respectively.
-(3) T for an edge to a word terminal.
+(3) Terminal for an edge to a word terminal.
 (4) U for an edge to a punctuation terminal.
 
 A node in layer 1 may also be a leaf that represents an implicit unit. In this case, the node would have 
@@ -85,7 +85,7 @@ Consider the node whose ID is "1.1". It has 5 children, one is a Linker (and the
 to it bears the type L), two are Parallel Scenes (the edge leading to them bear the type H), 
 2 are punctuation marks (the edges leading to them bear the type U). 
 
-Note that edges leading to terminals (i.e., to nodes in layer0) bear the type 'T'. 
+Note that edges leading to terminals (i.e., to nodes in layer0) bear the type 'Terminal'. 
 
 Consider node "1.13". This node is of type LKG, which means it represents a linkage relation. 
 It has three children, a Linker (i.e., the linkage relation; the edge has the tag 'LR'), and 
