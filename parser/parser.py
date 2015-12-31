@@ -189,10 +189,7 @@ class Parser(object):
                     if train:
                         raise Exception("Error in oracle during training") from e
                 except AssertionError as e:
-                    if Config().verbose:
-                        print("Oracle returned invalid action: %s" % true_action)
-                        print(e)
-                        true_action = None
+                    raise AssertionError("Oracle returned invalid action: %s" % true_action) from e
 
             features = self.feature_extractor.extract_features(self.state)
             predicted_action = self.predict_action(features, true_action)
@@ -253,7 +250,7 @@ class Parser(object):
     @staticmethod
     def select_action(i, true_action):
         action = Action.by_id(i)
-        return true_action if true_action is not None and action == true_action else action
+        return true_action if action == true_action else action
 
     @staticmethod
     def verify_passage(passage, predicted_passage, show_diff):

@@ -71,31 +71,36 @@ class State(object):
             assert action.tag not in Constraints.UniqueOutgoing or action.tag not in node.outgoing_tags, \
                 "Outgoing edge tag %s must be unique" % action.tag
             assert action.tag not in Constraints.MutuallyExclusiveOutgoing or not \
-                node.outgoing_tags.intersection(Constraints.MutuallyExclusiveOutgoing), \
+                node.outgoing_tags & Constraints.MutuallyExclusiveOutgoing, \
                 "Outgoing edge tags %s are mutually exclusive" % Constraints.MutuallyExclusiveOutgoing
-            assert action.tag == EdgeTags.Terminal or not \
-                node.incoming_tags.intersection(Constraints.ChildlessIncoming), \
+            assert action.tag in Constraints.ChildlessOutgoing or not \
+                node.incoming_tags & Constraints.ChildlessIncoming, \
                 "Units with incoming %s edges may not have children" % Constraints.ChildlessIncoming
 
         def assert_possible_child(node):
             assert node is not self.root, "The root may not have parents"
             assert (node.text is not None) == (action.tag == EdgeTags.Terminal), \
                 "Edge tag must be %s iff child is terminal" % EdgeTags.Terminal
-            assert action.tag not in Constraints.UniqueIncoming or action.tag not in node.incoming_tags, \
+            assert action.tag not in Constraints.UniqueIncoming or \
+                action.tag not in node.incoming_tags, \
                 "Incoming edge tag %s must be unique" % action.tag
-            assert action.tag not in Constraints.ChildlessIncoming or node.outgoing_tags.issubset(
-                    (EdgeTags.Terminal,)), \
+            assert action.tag not in Constraints.ChildlessIncoming or \
+                node.outgoing_tags <= Constraints.ChildlessOutgoing, \
                 "Units with incoming %s edges may not have children" % Constraints.ChildlessIncoming
+            assert not node.incoming_tags or (action.tag in Constraints.LinkerIncoming) == (
+                node.incoming_tags <= Constraints.LinkerIncoming), \
+                "Linker units may only have incoming edges from %s, but has %s" % (
+                    Constraints.LinkerIncoming, node.incoming_tags)
 
-        def assert_possible_edge(remote=False):
+        def assert_possible_edge():
             parent, child = self.get_parent_child(action)
             assert_possible_parent(parent)
             assert_possible_child(child)
-            assert parent is not self.root or child.text is None, "root->terminal edge"
+            if parent is self.root:
+                assert child.text is None, "Root may not have terminal children"
+                assert parent.outgoing_tags <= Constraints.TopLevel
             assert child not in parent.children, "Edge must not already exist"
             assert parent not in child.descendants, "Detected cycle created by edge: %s" % self
-            if remote:
-                assert parent.outgoing and child.incoming, "Remote edge may not be the first edge"
             # Include this instead of "child not in children" to allow multiple edges between nodes:
             # (as long as their tags are different)
             # assert self.create_edge(action) not in parent.outgoing, "Edge must not already exist"
@@ -116,15 +121,21 @@ class State(object):
                 assert_orig_node_exists()
             elif action.is_type(Actions.Reduce):
                 assert s0 is not self.root or s0.outgoing, "May not reduce the root without children"
-                if s0.outgoing_tags.intersection(Constraints.SceneSufficientOutgoing):  # It is a scene
-                    assert s0.outgoing_tags.intersection(Constraints.SceneNecessaryOutgoing), \
-                        "May not reduce a scene before it has any of %s" % Constraints.SceneNecessaryOutgoing
+                # Commented out due to passage 126, unit 1.338
+                # assert not s0.outgoing_tags & Constraints.SceneSufficientOutgoing and \
+                #     not s0.incoming_tags & Constraints.SceneSufficientIncoming or \
+                #     s0.outgoing_tags & Constraints.SceneNecessaryOutgoing, \
+                #     "May not reduce a scene before it has any outgoing edge of %s (it has only %s)" % (
+                #         Constraints.SceneNecessaryOutgoing, s0.outgoing_tags)
+                # Commented out due to passage 126, unit 1.60
+                # assert s0.incoming_tags == Constraints.LinkerIncoming or not \
+                #     s0.incoming_tags & Constraints.LinkerIncoming, \
+                #     "May not reduce a linker before it has all incoming edges of %s (it has only %s)" % (
+                #         Constraints.LinkerIncoming, s0.incoming_tags)
             else:  # Binary actions
                 assert len(self.stack) > 1, "Action requires at least two stack elements: %s" % action
-                if action.is_type(Actions.LeftEdge, Actions.RightEdge):
+                if action.is_type(Actions.LeftEdge, Actions.RightEdge, Actions.LeftRemote, Actions.RightRemote):
                     assert_possible_edge()
-                elif action.is_type(Actions.LeftRemote, Actions.RightRemote):
-                    assert_possible_edge(remote=True)
                 elif action.is_type(Actions.Swap):
                     # A regular swap is possible since the stack has at least two elements;
                     # A compound swap is possible if the stack is longer than the distance
