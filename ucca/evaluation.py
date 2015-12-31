@@ -3,8 +3,9 @@
 The evaluation software for UCCA layer 1.
 """
 from collections import Counter
-from ucca.layer1 import EdgeTags as ET
-from ucca.layer1 import NodeTags as NT
+
+from ucca.layer1 import EdgeTags
+from ucca.layer1 import NodeTags
 
 UNLABELED = "unlabeled"
 WEAK_LABELED = "weak_labeled"
@@ -13,12 +14,15 @@ LABELED = "labeled"
 EVAL_TYPES = (LABELED, UNLABELED, WEAK_LABELED)
 
 # Pairs that are considered as equivalent for the purposes of evaluation
-EQUIV = ((ET.Process, ET.State), (ET.ParallelScene, ET.Center), (ET.Connector, ET.Linker), (ET.Function, ET.Relator))
+EQUIV = ((EdgeTags.Process, EdgeTags.State),
+         (EdgeTags.ParallelScene, EdgeTags.Center),
+         (EdgeTags.Connector, EdgeTags.Linker),
+         (EdgeTags.Function, EdgeTags.Relator))
 
 # RELATORS = ["that", "than", "who", "what", "to", "how", "of"]
 
 ##############################################################################
-# UTILITY METHODS
+# UTILITY MEdgeTagsHODS
 ##############################################################################
 
 
@@ -28,11 +32,11 @@ def flatten_centers(p):
     :param p: Passage object to flatten
     """
     def _center_children(u):
-        return [x for x in u.children if x.tag == NT.Foundational and x.ftag == ET.Center]
+        return [x for x in u.children if x.tag == NodeTags.Foundational and x.ftag == EdgeTags.Center]
 
     to_ungroup = []
     for unit in p.layer("1").all:
-        if unit.tag == NT.Foundational and unit.ftag == ET.Center:
+        if unit.tag == NodeTags.Foundational and unit.ftag == EdgeTags.Center:
             parent = unit.fparent
             if len(_center_children(unit)) == 1 and\
                     (parent is None or len(_center_children(parent)) == 1):
@@ -47,7 +51,7 @@ def ungroup(unit):
     If the unit has an fparent, removes the unit and adds its children to that parent.
     :param unit: Node object to potentially remove
     """
-    if unit.tag != NT.Foundational:
+    if unit.tag != NodeTags.Foundational:
         return None
     fparent = unit.fparent
     if fparent is not None:
@@ -117,16 +121,17 @@ def mutual_yields(passage1, passage2, eval_type, separate_remotes=True, verbose=
                     else:
                         error_counter[(str(tags1), str(tags2))] += 1
                         if verbose:
-                            # hard coded strings were changed to ET.??? need to check that it still works!!!!!
-                            if (ET.Elaborator in tags1 and ET.Center in tags2) or \
-                               (ET.Center in tags1 and ET.Elaborator in tags2):
-                                print(ET.Center + '-' + ET.Elaborator, to_text(passage1, y))
-                            elif (ET.Process in tags1 and ET.Center in tags2) or \
-                                 (ET.Center in tags1 and {ET.Process, ET.State} & tags2):
-                                print(ET.Process + '|' + ET.State + '-' + ET.Center, to_text(passage1, y))
-                            elif (ET.Participant in tags1 and ET.Elaborator in tags2) or \
-                                 (ET.Elaborator in tags1 and ET.Participant in tags2):
-                                print(ET.Participant +'-' + ET.Elaborator, to_text(passage1, y))
+                            # hard coded strings were changed to EdgeTags.??? need to check that it still works!!!!!
+                            if (EdgeTags.Elaborator in tags1 and EdgeTags.Center in tags2) or \
+                               (EdgeTags.Center in tags1 and EdgeTags.Elaborator in tags2):
+                                print(EdgeTags.Center + '-' + EdgeTags.Elaborator, to_text(passage1, y))
+                            elif (EdgeTags.Process in tags1 and EdgeTags.Center in tags2) or \
+                                 (EdgeTags.Center in tags1 and {EdgeTags.Process, EdgeTags.State} & tags2):
+                                print(EdgeTags.Process + '|' + EdgeTags.State + '-' + EdgeTags.Center,
+                                      to_text(passage1, y))
+                            elif (EdgeTags.Participant in tags1 and EdgeTags.Elaborator in tags2) or \
+                                 (EdgeTags.Elaborator in tags1 and EdgeTags.Participant in tags2):
+                                print(EdgeTags.Participant +'-' + EdgeTags.Elaborator, to_text(passage1, y))
 
         return mutual_ys, error_counter
 
@@ -160,7 +165,10 @@ def create_passage_yields(p, remote_terminals=False):
     l1 = p.layer("1")
     edges = []
     for node in l1.all:
-        edges.extend([e for e in node if e.tag not in (ET.Punctuation, ET.LinkArgument, ET.LinkRelation, ET.Terminal)])
+        edges.extend([e for e in node if e.tag not in (EdgeTags.Punctuation,
+                                                       EdgeTags.LinkArgument,
+                                                       EdgeTags.LinkRelation,
+                                                       EdgeTags.Terminal)])
    
     table_reg, table_remote = dict(), dict()
     for e in edges:
