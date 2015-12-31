@@ -114,6 +114,9 @@ class State(object):
                 assert_orig_node_exists()
             elif action.is_type(Actions.Reduce):
                 assert s0 is not self.root or s0.outgoing, "May not reduce the root without children"
+                if s0.outgoing_tags.intersection(Constraints.SceneSufficientOutgoing):  # It is a scene
+                    assert s0.outgoing_tags.intersection(Constraints.SceneNecessaryOutgoing), \
+                        "May not reduce a scene before it has any of %s" % Constraints.SceneNecessaryOutgoing
             else:  # Binary actions
                 assert len(self.stack) > 1, "Action requires at least two stack elements: %s" % action
                 if action.is_type(Actions.LeftEdge, Actions.RightEdge):
