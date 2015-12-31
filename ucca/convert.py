@@ -23,6 +23,7 @@ from itertools import groupby
 import nltk
 
 from ucca import textutil, core, layer0, layer1
+from ucca.layer1 import EdgeTags
 
 
 class SiteXMLUnknownElement(core.UCCAError):
@@ -104,33 +105,33 @@ class SiteCfg:
     TRUE = 'true'
     FALSE = 'false'
     SchemeVersion = '1.0.3'
-    TagConversion = {'Linked U': layer1.EdgeTags.ParallelScene,
-                     'Parallel Scene': layer1.EdgeTags.ParallelScene,
-                     'Function': layer1.EdgeTags.Function,
-                     'Participant': layer1.EdgeTags.Participant,
-                     'Process': layer1.EdgeTags.Process,
-                     'State': layer1.EdgeTags.State,
-                     'aDverbial': layer1.EdgeTags.Adverbial,
-                     'Center': layer1.EdgeTags.Center,
-                     'Elaborator': layer1.EdgeTags.Elaborator,
-                     'Linker': layer1.EdgeTags.Linker,
-                     'Ground': layer1.EdgeTags.Ground,
-                     'Connector': layer1.EdgeTags.Connector,
-                     'Role Marker': layer1.EdgeTags.Relator,
-                     'Relator': layer1.EdgeTags.Relator}
+    TagConversion = {'Linked U': EdgeTags.ParallelScene,
+                     'Parallel Scene': EdgeTags.ParallelScene,
+                     'Function': EdgeTags.Function,
+                     'Participant': EdgeTags.Participant,
+                     'Process': EdgeTags.Process,
+                     'State': EdgeTags.State,
+                     'aDverbial': EdgeTags.Adverbial,
+                     'Center': EdgeTags.Center,
+                     'Elaborator': EdgeTags.Elaborator,
+                     'Linker': EdgeTags.Linker,
+                     'Ground': EdgeTags.Ground,
+                     'Connector': EdgeTags.Connector,
+                     'Role Marker': EdgeTags.Relator,
+                     'Relator': EdgeTags.Relator}
 
-    EdgeConversion = {layer1.EdgeTags.ParallelScene: 'Parallel Scene',
-                      layer1.EdgeTags.Function: 'Function',
-                      layer1.EdgeTags.Participant: 'Participant',
-                      layer1.EdgeTags.Process: 'Process',
-                      layer1.EdgeTags.State: 'State',
-                      layer1.EdgeTags.Adverbial: 'aDverbial',
-                      layer1.EdgeTags.Center: 'Center',
-                      layer1.EdgeTags.Elaborator: 'Elaborator',
-                      layer1.EdgeTags.Linker: 'Linker',
-                      layer1.EdgeTags.Ground: 'Ground',
-                      layer1.EdgeTags.Connector: 'Connector',
-                      layer1.EdgeTags.Relator: 'Relator'}
+    EdgeConversion = {EdgeTags.ParallelScene: 'Parallel Scene',
+                      EdgeTags.Function: 'Function',
+                      EdgeTags.Participant: 'Participant',
+                      EdgeTags.Process: 'Process',
+                      EdgeTags.State: 'State',
+                      EdgeTags.Adverbial: 'aDverbial',
+                      EdgeTags.Center: 'Center',
+                      EdgeTags.Elaborator: 'Elaborator',
+                      EdgeTags.Linker: 'Linker',
+                      EdgeTags.Ground: 'Ground',
+                      EdgeTags.Connector: 'Connector',
+                      EdgeTags.Relator: 'Relator'}
 
 
 class SiteUtil:
@@ -244,7 +245,7 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
         # Only nodes created by now are the terminals, or discontiguous units
         if node is not None:
             if node.tag == layer0.NodeTags.Word:
-                parent.add(layer1.EdgeTags.Terminal, node)
+                parent.add(EdgeTags.Terminal, node)
             elif node.tag == layer0.NodeTags.Punct:
                 SiteUtil.set_node(elem, l1.add_punct(parent, node), elem2node)
             else:
@@ -371,10 +372,10 @@ def to_site(passage):
     def _word(terminal):
         tag = SiteCfg.Types.Punct if terminal.punct else SiteCfg.TBD
         word = ET.Element(SiteCfg.Tags.Terminal,
-                          {SiteCfg.Attr.SiteID: state.get_id()})
+                                {SiteCfg.Attr.SiteID: state.get_id()})
         word.text = terminal.text
         elem = ET.Element(SiteCfg.Tags.Unit,
-                          {SiteCfg.Attr.ElemTag: tag,
+                                {SiteCfg.Attr.ElemTag: tag,
                            SiteCfg.Attr.SiteID: state.get_id(),
                            SiteCfg.Attr.Unanalyzable: SiteCfg.FALSE,
                            SiteCfg.Attr.Uncertain: SiteCfg.FALSE})
@@ -389,13 +390,13 @@ def to_site(passage):
                       else SiteCfg.FALSE)
         unanalyzable = (
             SiteCfg.TRUE if len(node) > 1 and all(
-                e.tag in (layer1.EdgeTags.Terminal,
-                          layer1.EdgeTags.Punctuation)
+                e.tag in (EdgeTags.Terminal,
+                          EdgeTags.Punctuation)
                 for e in node)
             else SiteCfg.FALSE)
         elem_tag = SiteCfg.EdgeConversion[node.ftag]
         elem = ET.Element(SiteCfg.Tags.Unit,
-                          {SiteCfg.Attr.ElemTag: elem_tag,
+                                {SiteCfg.Attr.ElemTag: elem_tag,
                            SiteCfg.Attr.SiteID: state.get_id(),
                            SiteCfg.Attr.Unanalyzable: unanalyzable,
                            SiteCfg.Attr.Uncertain: uncertain,
@@ -414,7 +415,7 @@ def to_site(passage):
         suggestion = (SiteCfg.TRUE if edge.child.attrib.get('suggest')
                       else SiteCfg.FALSE)
         elem = ET.Element(SiteCfg.Tags.Remote,
-                          {SiteCfg.Attr.ElemTag:
+                                {SiteCfg.Attr.ElemTag:
                            SiteCfg.EdgeConversion[edge.tag],
                            SiteCfg.Attr.SiteID: state.mapping[edge.child.ID],
                            SiteCfg.Attr.Unanalyzable: SiteCfg.FALSE,
@@ -428,7 +429,7 @@ def to_site(passage):
         suggestion = (SiteCfg.TRUE if node.attrib.get('suggest')
                       else SiteCfg.FALSE)
         elem = ET.Element(SiteCfg.Tags.Implicit,
-                          {SiteCfg.Attr.ElemTag:
+                                {SiteCfg.Attr.ElemTag:
                            SiteCfg.EdgeConversion[node.ftag],
                            SiteCfg.Attr.SiteID: state.get_id(),
                            SiteCfg.Attr.Unanalyzable: SiteCfg.FALSE,
@@ -533,7 +534,7 @@ def to_site(passage):
     groups.extend(unit_groups)
     units = ET.SubElement(root, 'units', {SiteCfg.Attr.PassageID: passage.ID})
     units0 = ET.SubElement(units, SiteCfg.Tags.Unit,
-                           {SiteCfg.Attr.ElemTag: SiteCfg.TBD,
+                                 {SiteCfg.Attr.ElemTag: SiteCfg.TBD,
                             SiteCfg.Attr.SiteID: '0',
                             SiteCfg.Attr.Unanalyzable: SiteCfg.FALSE,
                             SiteCfg.Attr.Uncertain: SiteCfg.FALSE})
@@ -569,7 +570,7 @@ def to_standard(passage):
 
     # Adds attributes element (even if empty)
     add_attrib = lambda obj, elem: ET.SubElement(elem, 'attributes',
-                                                 stringify(obj.attrib))
+                                                       stringify(obj.attrib))
 
     root = ET.Element('root', passageID=str(passage.ID), annotationID='0')
     add_attrib(passage, root)
@@ -581,12 +582,12 @@ def to_standard(passage):
         add_extra(layer, layer_elem)
         for node in layer.all:
             node_elem = ET.SubElement(layer_elem, 'node',
-                                      ID=node.ID, type=node.tag)
+                                            ID=node.ID, type=node.tag)
             add_attrib(node, node_elem)
             add_extra(node, node_elem)
             for edge in node:
                 edge_elem = ET.SubElement(node_elem, 'edge',
-                                          toID=edge.child.ID, type=edge.tag)
+                                                toID=edge.child.ID, type=edge.tag)
                 add_attrib(edge, edge_elem)
                 add_extra(edge, edge_elem)
     return root
@@ -806,18 +807,18 @@ def from_conll(lines, passage_id):
     def label_edge(dep_node):
         children = [child.rel for child in dep_node.children]
         if layer0.is_punct(dep_node.terminal):
-            return layer1.EdgeTags.Punctuation
-        elif layer1.EdgeTags.ParallelScene in children:
-            return layer1.EdgeTags.ParallelScene
-        elif layer1.EdgeTags.Participant in children:
-            return layer1.EdgeTags.Process
+            return EdgeTags.Punctuation
+        elif EdgeTags.ParallelScene in children:
+            return EdgeTags.ParallelScene
+        elif EdgeTags.Participant in children:
+            return EdgeTags.Process
         else:
-            return layer1.EdgeTags.Center
+            return EdgeTags.Center
 
     def create_nodes(dep_nodes):
         # create nodes starting from the root and going down to pre-terminals
         for dep_node in topological_sort(dep_nodes):
-            if dep_node.rel == layer1.EdgeTags.Terminal:  # part of non-analyzable expression
+            if dep_node.rel == EdgeTags.Terminal:  # part of non-analyzable expression
                 head = dep_node.head
                 if layer0.is_punct(head.terminal) and head.head.head is not None:
                     head = head.head  # do not put terminals and punctuation together
@@ -835,7 +836,7 @@ def from_conll(lines, passage_id):
                     dep_node.preterminal = dep_node.node
 
             # link pre-terminal to terminal
-            dep_node.preterminal.add(layer1.EdgeTags.Terminal, dep_node.terminal)
+            dep_node.preterminal.add(EdgeTags.Terminal, dep_node.terminal)
             if layer0.is_punct(dep_node.terminal):
                 dep_node.preterminal.tag = layer1.NodeTags.Punctuation
 
@@ -890,28 +891,28 @@ def to_conll(passage, test=False, sentences=False):
         a multi-line string representing the dependencies in the passage
     """
     ordered_tags = [    # ordered list of edge labels for head selection
-        layer1.EdgeTags.Center,
-        layer1.EdgeTags.Connector,
-        layer1.EdgeTags.ParallelScene,
-        layer1.EdgeTags.Process,
-        layer1.EdgeTags.State,
-        layer1.EdgeTags.Participant,
-        layer1.EdgeTags.Adverbial,
-        layer1.EdgeTags.Time,
-        layer1.EdgeTags.Elaborator,
-        layer1.EdgeTags.Relator,
-        layer1.EdgeTags.Function,
-        layer1.EdgeTags.Linker,
-        layer1.EdgeTags.LinkRelation,
-        layer1.EdgeTags.LinkArgument,
-        layer1.EdgeTags.Ground,
-        layer1.EdgeTags.Terminal,
-        layer1.EdgeTags.Punctuation,
+        EdgeTags.Center,
+        EdgeTags.Connector,
+        EdgeTags.ParallelScene,
+        EdgeTags.Process,
+        EdgeTags.State,
+        EdgeTags.Participant,
+        EdgeTags.Adverbial,
+        EdgeTags.Time,
+        EdgeTags.Elaborator,
+        EdgeTags.Relator,
+        EdgeTags.Function,
+        EdgeTags.Linker,
+        EdgeTags.LinkRelation,
+        EdgeTags.LinkArgument,
+        EdgeTags.Ground,
+        EdgeTags.Terminal,
+        EdgeTags.Punctuation,
     ]
 
     excluded_tags = [   # edge labels excluded from word dependencies
-        layer1.EdgeTags.LinkRelation,
-        layer1.EdgeTags.LinkArgument,
+        EdgeTags.LinkRelation,
+        EdgeTags.LinkArgument,
     ]
 
     lines = []  # list of output lines to return

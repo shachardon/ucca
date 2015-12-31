@@ -1,7 +1,8 @@
 import re
 
+from ucca.layer1 import EdgeTags
+
 from config import Config
-from ucca import layer1
 
 
 class Action(object):
@@ -46,7 +47,7 @@ class Action(object):
 
     @property
     def remote(self):
-        return self.is_type(LEFT_REMOTE, RIGHT_REMOTE)
+        return self.is_type(Actions.LeftRemote, Actions.RightRemote)
 
     @property
     def id(self):
@@ -59,14 +60,16 @@ class Action(object):
     def get_all_actions(cls):
         if cls.all_actions is None:
             cls.all_actions = [action(tag) for action in
-                               (NODE, IMPLICIT, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE)
-                               for name, tag in layer1.EdgeTags.__dict__.items()
+                               (Actions.Node, Actions.Implicit,
+                                Actions.LeftEdge, Actions.RightEdge,
+                                Actions.LeftRemote, Actions.RightRemote)
+                               for name, tag in EdgeTags.__dict__.items()
                                if isinstance(tag, str) and not name.startswith('__')] + \
-                              [REDUCE, SHIFT, FINISH]
+                              [Actions.Reduce, Actions.Shift, Actions.Finish]
             if Config().compound_swap:
-                cls.all_actions.extend(SWAP(i) for i in range(1, Config().max_swap + 1))
+                cls.all_actions.extend(Actions.Swap(i) for i in range(1, Config().max_swap + 1))
             else:
-                cls.all_actions.append(SWAP)
+                cls.all_actions.append(Actions.Swap)
             cls.all_action_ids = {(action.type_id, action.tag): i
                                   for i, action in enumerate(cls.all_actions)}
         return cls.all_actions
@@ -76,13 +79,14 @@ class Action(object):
         return cls.get_all_actions()[i]
 
 
-SHIFT = Action("SHIFT")
-NODE = Action("NODE")
-IMPLICIT = Action("IMPLICIT")
-REDUCE = Action("REDUCE")
-LEFT_EDGE = Action("LEFT-EDGE")
-RIGHT_EDGE = Action("RIGHT-EDGE")
-LEFT_REMOTE = Action("LEFT-REMOTE")
-RIGHT_REMOTE = Action("RIGHT-REMOTE")
-SWAP = Action("SWAP")
-FINISH = Action("FINISH")
+class Actions:
+    Shift = Action("SHIFT")
+    Node = Action("NODE")
+    Implicit = Action("IMPLICIT")
+    Reduce = Action("REDUCE")
+    LeftEdge = Action("LEFT-EDGE")
+    RightEdge = Action("RIGHT-EDGE")
+    LeftRemote = Action("LEFT-REMOTE")
+    RightRemote = Action("RIGHT-REMOTE")
+    Swap = Action("SWAP")
+    Finish = Action("FINISH")

@@ -1,6 +1,7 @@
 import re
 
-from ucca import layer0, layer1
+from ucca import layer0
+from ucca.layer1 import EdgeTags
 
 FEATURE_ELEMENT_PATTERN = re.compile("([sba])(\d)([lrup]*)([wtepqxyPC]*)")
 FEATURE_TEMPLATE_PATTERN = re.compile("^(%s)+$" % FEATURE_ELEMENT_PATTERN.pattern)
@@ -218,23 +219,23 @@ def get_separator_prop(nodes, terminals, p):
 
 
 EDGE_PRIORITY = {tag: i for i, tag in enumerate((
-    layer1.EdgeTags.Center,
-    layer1.EdgeTags.Connector,
-    layer1.EdgeTags.ParallelScene,
-    layer1.EdgeTags.Process,
-    layer1.EdgeTags.State,
-    layer1.EdgeTags.Participant,
-    layer1.EdgeTags.Adverbial,
-    layer1.EdgeTags.Time,
-    layer1.EdgeTags.Elaborator,
-    layer1.EdgeTags.Relator,
-    layer1.EdgeTags.Function,
-    layer1.EdgeTags.Linker,
-    layer1.EdgeTags.LinkRelation,
-    layer1.EdgeTags.LinkArgument,
-    layer1.EdgeTags.Ground,
-    layer1.EdgeTags.Terminal,
-    layer1.EdgeTags.Punctuation,
+    EdgeTags.Center,
+    EdgeTags.Connector,
+    EdgeTags.ParallelScene,
+    EdgeTags.Process,
+    EdgeTags.State,
+    EdgeTags.Participant,
+    EdgeTags.Adverbial,
+    EdgeTags.Time,
+    EdgeTags.Elaborator,
+    EdgeTags.Relator,
+    EdgeTags.Function,
+    EdgeTags.Linker,
+    EdgeTags.LinkRelation,
+    EdgeTags.LinkArgument,
+    EdgeTags.Ground,
+    EdgeTags.Terminal,
+    EdgeTags.Punctuation,
 ))}
 
 

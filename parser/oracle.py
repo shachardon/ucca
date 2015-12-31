@@ -1,4 +1,4 @@
-from action import Action, SHIFT, NODE, IMPLICIT, REDUCE, SWAP, FINISH
+from action import Action, Actions
 from config import Config
 from constants import ROOT_ID
 from ucca import layer1
@@ -22,20 +22,20 @@ class Oracle(object):
         :return: best Action to perform
         """
         if not self.edges_remaining:
-            return FINISH
+            return Actions.Finish
 
         if state.stack:
             s0 = state.stack[-1]
             incoming = self.edges_remaining.intersection(s0.orig_node.incoming)
             outgoing = self.edges_remaining.intersection(s0.orig_node.outgoing)
             if not incoming and not outgoing:
-                return REDUCE
+                return Actions.Reduce
 
             related = set([edge.child.ID for edge in outgoing] +
                           [edge.parent.ID for edge in incoming])
             # Prefer incorporating immediate relatives if possible
             if state.buffer and state.buffer[0].node_id in related:
-                return SHIFT
+                return Actions.Shift
 
             if len(state.stack) > 1:
                 s1 = state.stack[-2]
@@ -60,15 +60,15 @@ class Oracle(object):
                             distance = i + 1
                         related_in_stack += 1
                         if related_in_stack == len(related):  # All related nodes are in the stack
-                            return SWAP(distance)
+                            return Actions.Swap(distance)
 
             # Check for unary edges
             for edges, action, attr in (((e for e in incoming if
                                           e.parent.ID in self.nodes_remaining and not e.attrib.get("remote")),
-                                         NODE, "parent"),
+                                         Actions.Node, "parent"),
                                         ((e for e in outgoing if
                                           e.child.attrib.get("implicit")),
-                                         IMPLICIT, "child")):
+                                         Actions.Implicit, "child")):
                 for edge in edges:
                     self.edges_remaining.remove(edge)
                     node = getattr(edge, attr)
@@ -79,9 +79,9 @@ class Oracle(object):
             if Config().verify:
                 raise Exception("No action is possible\n" + state.str("\n") + "\n" + self.str("\n"))
             else:
-                return FINISH
+                return Actions.Finish
 
-        return SHIFT
+        return Actions.Shift
 
     def str(self, sep):
         return "nodes left: [%s]%sedges left: [%s]" % (" ".join(self.nodes_remaining), sep,

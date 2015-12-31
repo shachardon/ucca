@@ -3,12 +3,13 @@ from collections import deque, defaultdict
 from itertools import groupby
 from operator import attrgetter
 
-from action import SHIFT, NODE, IMPLICIT, REDUCE, LEFT_EDGE, RIGHT_EDGE, LEFT_REMOTE, RIGHT_REMOTE, SWAP, FINISH
+from action import Actions
 from config import Config
-from constants import ROOT_ID, UNIQUE_INCOMING, UNIQUE_OUTGOING, CHILDLESS_INCOMING, MUTUALLY_EXCLUSIVE_OUTGOING
+from constants import ROOT_ID, Constraints
 from edge import Edge
 from node import Node
 from ucca import core, layer0, layer1, convert
+from ucca.layer1 import EdgeTags
 
 
 class State(object):
@@ -61,34 +62,31 @@ class State(object):
         Raise AssertionError if the action is invalid in the current state
         :param action: action to check for validity
         """
-        def assert_orig_node():
+        def assert_orig_node_exists():
             if self.is_passage:  # We're in training, so we must have an original node to refer to
                 assert action.orig_node is not None, "May only create real nodes during training"
 
         def assert_possible_parent(node):
             assert node.text is None, "Terminals may not have children"
-            assert action.tag not in UNIQUE_OUTGOING or not any(
-                    edge.tag == action.tag for edge in node.outgoing),\
+            assert action.tag not in Constraints.UniqueOutgoing or not action.tag in node.outgoing_tags, \
                 "Outgoing edge tag %s must be unique" % action.tag
-            assert action.tag not in MUTUALLY_EXCLUSIVE_OUTGOING or not any(
-                    edge.tag in MUTUALLY_EXCLUSIVE_OUTGOING for edge in node.outgoing),\
-                "Outgoing edge tags %s are mutually exclusive" % MUTUALLY_EXCLUSIVE_OUTGOING
-            assert action.tag == layer1.EdgeTags.Terminal or not any(
-                    edge.tag in CHILDLESS_INCOMING for edge in node.incoming), \
-                "Units with incoming %s edges may not have children" % CHILDLESS_INCOMING
+            assert action.tag not in Constraints.MutuallyExclusiveOutgoing or not \
+                node.outgoing_tags.intersection(Constraints.MutuallyExclusiveOutgoing), \
+                "Outgoing edge tags %s are mutually exclusive" % Constraints.MutuallyExclusiveOutgoing
+            assert action.tag == EdgeTags.Terminal or not \
+                node.incoming_tags.intersection(Constraints.ChildlessIncoming), \
+                "Units with incoming %s edges may not have children" % Constraints.ChildlessIncoming
 
         def assert_possible_child(node):
             assert node is not self.root, "The root may not have parents"
-            assert (node.text is not None) == (action.tag == layer1.EdgeTags.Terminal), \
-                "Edge tag must be %s iff child is terminal" % layer1.EdgeTags.Terminal
-            assert action.tag not in UNIQUE_INCOMING or not any(
-                    edge.tag == action.tag for edge in node.incoming),\
+            assert (node.text is not None) == (action.tag == EdgeTags.Terminal), \
+                "Edge tag must be %s iff child is terminal" % EdgeTags.Terminal
+            assert action.tag not in Constraints.UniqueIncoming or not action.tag in node.incoming_tags, \
                 "Incoming edge tag %s must be unique" % action.tag
-            assert action.tag not in CHILDLESS_INCOMING or all(
-                    edge.tag == layer1.EdgeTags.Terminal for edge in node.outgoing), \
-                "Units with incoming %s edges may not have children" % CHILDLESS_INCOMING
+            assert action.tag not in Constraints.ChildlessIncoming or node.outgoing_tags.issubset((EdgeTags.Terminal,)), \
+                "Units with incoming %s edges may not have children" % Constraints.ChildlessIncoming
 
-        def assert_edge():
+        def assert_possible_edge():
             parent, child = self.get_parent_child(action)
             assert parent is not self.root or child.text is None, "root->terminal edge"
             assert child not in parent.children, "Edge must not already exist"
@@ -100,30 +98,30 @@ class State(object):
             # assert self.create_edge(action) not in parent.outgoing, "Edge must not already exist"
             return parent, child
 
-        if action.is_type(FINISH):
+        if action.is_type(Actions.Finish):
             assert self.root.outgoing, "Root must have at least one child at the end of the parse"
-        elif action.is_type(SHIFT):
+        elif action.is_type(Actions.Shift):
             assert self.buffer, "Buffer must not be empty in order to shift from it"
         else:  # Unary actions
             assert self.stack, "Action requires non-empty stack: %s" % action
             s0 = self.stack[-1]
-            if action.is_type(NODE):
+            if action.is_type(Actions.Node):
                 assert_possible_child(s0)
-                assert_orig_node()
-            elif action.is_type(IMPLICIT):
+                assert_orig_node_exists()
+            elif action.is_type(Actions.Implicit):
                 assert not s0.implicit, "Implicit node loop"
                 assert_possible_parent(s0)
-                assert_orig_node()
-            elif action.is_type(REDUCE):
+                assert_orig_node_exists()
+            elif action.is_type(Actions.Reduce):
                 assert s0 is not self.root or s0.outgoing, "May not reduce the root without children"
             else:  # Binary actions
                 assert len(self.stack) > 1, "Action requires at least two stack elements: %s" % action
-                if action.is_type(LEFT_EDGE, RIGHT_EDGE):
-                    assert_edge()
-                elif action.is_type(LEFT_REMOTE, RIGHT_REMOTE):
-                    parent, child = assert_edge()
+                if action.is_type(Actions.LeftEdge, Actions.RightEdge):
+                    assert_possible_edge()
+                elif action.is_type(Actions.LeftRemote, Actions.RightRemote):
+                    parent, child = assert_possible_edge()
                     assert parent.outgoing and child.incoming, "Remote edge may not be the first edge"
-                elif action.is_type(SWAP):
+                elif action.is_type(Actions.Swap):
                     # A regular swap is possible since the stack has at least two elements;
                     # A compound swap is possible if the stack is longer than the distance
                     distance = action.tag or 1
@@ -142,30 +140,30 @@ class State(object):
         :param action: Action object to apply
         """
         self.log = []
-        if action.is_type(SHIFT):  # Push buffer head to stack; shift buffer
+        if action.is_type(Actions.Shift):  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())
-        elif action.is_type(NODE):  # Create new parent node and add to the buffer
+        elif action.is_type(Actions.Node):  # Create new parent node and add to the buffer
             parent = self.add_node(action.orig_node)
             self.update_swap_index(parent)
             self.add_edge(Edge(parent, self.stack[-1], action.tag))
             self.buffer.appendleft(parent)
-        elif action.is_type(IMPLICIT):  # Create new child node and add to the buffer
+        elif action.is_type(Actions.Implicit):  # Create new child node and add to the buffer
             child = self.add_node(action.orig_node, implicit=True)
             self.update_swap_index(child)
             self.add_edge(Edge(self.stack[-1], child, action.tag))
             self.buffer.appendleft(child)
-        elif action.is_type(REDUCE):  # Pop stack (no more edges to create with this node)
+        elif action.is_type(Actions.Reduce):  # Pop stack (no more edges to create with this node)
             self.stack.pop()
-        elif action.is_type(LEFT_EDGE, LEFT_REMOTE, RIGHT_EDGE, RIGHT_REMOTE):
+        elif action.is_type(Actions.LeftEdge, Actions.LeftRemote, Actions.RightEdge, Actions.RightRemote):
             parent, child = self.get_parent_child(action)
             self.add_edge(Edge(parent, child, action.tag, remote=action.remote))
-        elif action.is_type(SWAP):  # Place second (or more) stack item back on the buffer
+        elif action.is_type(Actions.Swap):  # Place second (or more) stack item back on the buffer
             distance = action.tag or 1
             s = slice(-distance - 1, -1)
             self.log.append("%s <--> %s" % (", ".join(map(str, self.stack[s])), self.stack[-1]))
             self.buffer.extendleft(reversed(self.stack[s]))  # extendleft reverses the order
             del self.stack[s]
-        elif action.is_type(FINISH):  # Nothing left to do
+        elif action.is_type(Actions.Finish):  # Nothing left to do
             self.finished = True
         else:
             raise Exception("Invalid action: " + action)
@@ -193,9 +191,9 @@ class State(object):
         self.log.append("edge: %s" % edge)
 
     def get_parent_child(self, action):
-        if action.is_type(LEFT_EDGE, LEFT_REMOTE):
+        if action.is_type(Actions.LeftEdge, Actions.LeftRemote):
             return self.stack[-1], self.stack[-2]
-        elif action.is_type(RIGHT_EDGE, RIGHT_REMOTE):
+        elif action.is_type(Actions.RightEdge, Actions.RightRemote):
             return self.stack[-2], self.stack[-1]
         else:
             return None, None
@@ -245,10 +243,10 @@ class State(object):
                 link_args = []
                 for edge in node.outgoing:
                     assert edge.child.node is not None, "Linkage edge to nonexistent node"
-                    if edge.tag == layer1.EdgeTags.LinkRelation:
+                    if edge.tag == EdgeTags.LinkRelation:
                         assert link_relation is None, "Multiple link relations: %s, %s" % (link_relation, edge.child.node)
                         link_relation = edge.child.node
-                    elif edge.tag == layer1.EdgeTags.LinkArgument:
+                    elif edge.tag == EdgeTags.LinkArgument:
                         link_args.append(edge.child.node)
                 assert link_relation is not None, "No link relations: %s" % node
                 if len(link_args) < 2:

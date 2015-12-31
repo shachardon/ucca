@@ -1,8 +1,9 @@
 from collections import deque
 from operator import attrgetter
 
-from ucca import core, layer0, layer1
 from config import Config
+from ucca import core, layer0
+from ucca.layer1 import EdgeTags
 
 
 class Node(object):
@@ -21,6 +22,8 @@ class Node(object):
         self.incoming = []  # Edge list
         self.children = []  # Node list: the children of all edges in outgoing
         self.parents = []  # Node list: the parents of all edges in incoming
+        self.outgoing_tags = set()  # String set
+        self.incoming_tags = set()  # String set
         self.node = None  # Associated core.Node, when creating final Passage
         self.implicit = implicit  # True or False
         self.swap_index = self.index  # Used to make sure nodes are not swapped more than once
@@ -29,10 +32,12 @@ class Node(object):
     def add_incoming(self, edge):
         self.incoming.append(edge)
         self.parents.append(edge.parent)
+        self.incoming_tags.add(edge.tag)
 
     def add_outgoing(self, edge):
         self.outgoing.append(edge)
         self.children.append(edge.child)
+        self.outgoing_tags.add(edge.tag)
         self._terminals = None  # Invalidate terminals because we might have added some
 
     def add_to_l1(self, l1, parent, tag, terminals):
@@ -45,12 +50,12 @@ class Node(object):
         edge = self.outgoing[0] if len(self.outgoing) == 1 else None
         if self.text:  # For Word terminals (Punctuation already created by add_punct for parent)
             if self.node is None and parent.node is not None:
-                self.node = parent.node.add(layer1.EdgeTags.Terminal,
+                self.node = parent.node.add(EdgeTags.Terminal,
                                             terminals[self.index]).child
         elif edge and edge.child.text and layer0.is_punct(terminals[edge.child.index]):
             if Config().verify:
-                assert tag == layer1.EdgeTags.Punctuation, "Tag for %s is %s" % (parent.node_id, tag)
-                assert edge.tag == layer1.EdgeTags.Terminal, "Tag for %s is %s" % (self.node_id, edge.tag)
+                assert tag == EdgeTags.Punctuation, "Tag for %s is %s" % (parent.node_id, tag)
+                assert edge.tag == EdgeTags.Terminal, "Tag for %s is %s" % (self.node_id, edge.tag)
             self.node = l1.add_punct(parent.node, terminals[edge.child.index])
             edge.child.node = self.node[0].child
         else:  # The usual case
@@ -63,9 +68,7 @@ class Node(object):
         """
         Is this a LKG type node? (During parsing there are no node types)
         """
-        return self.outgoing and all(e.tag in (layer1.EdgeTags.LinkRelation,
-                                               layer1.EdgeTags.LinkArgument)
-                                     for e in self.outgoing)
+        return self.outgoing_tags and self.outgoing_tags.issubset((EdgeTags.LinkRelation, EdgeTags.LinkArgument))
 
     @property
     def descendants(self):
