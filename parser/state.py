@@ -68,7 +68,7 @@ class State(object):
 
         def assert_possible_parent(node):
             assert node.text is None, "Terminals may not have children"
-            assert action.tag not in Constraints.UniqueOutgoing or not action.tag in node.outgoing_tags, \
+            assert action.tag not in Constraints.UniqueOutgoing or action.tag not in node.outgoing_tags, \
                 "Outgoing edge tag %s must be unique" % action.tag
             assert action.tag not in Constraints.MutuallyExclusiveOutgoing or not \
                 node.outgoing_tags.intersection(Constraints.MutuallyExclusiveOutgoing), \
@@ -81,22 +81,24 @@ class State(object):
             assert node is not self.root, "The root may not have parents"
             assert (node.text is not None) == (action.tag == EdgeTags.Terminal), \
                 "Edge tag must be %s iff child is terminal" % EdgeTags.Terminal
-            assert action.tag not in Constraints.UniqueIncoming or not action.tag in node.incoming_tags, \
+            assert action.tag not in Constraints.UniqueIncoming or action.tag not in node.incoming_tags, \
                 "Incoming edge tag %s must be unique" % action.tag
-            assert action.tag not in Constraints.ChildlessIncoming or node.outgoing_tags.issubset((EdgeTags.Terminal,)), \
+            assert action.tag not in Constraints.ChildlessIncoming or node.outgoing_tags.issubset(
+                    (EdgeTags.Terminal,)), \
                 "Units with incoming %s edges may not have children" % Constraints.ChildlessIncoming
 
-        def assert_possible_edge():
+        def assert_possible_edge(remote=False):
             parent, child = self.get_parent_child(action)
-            assert parent is not self.root or child.text is None, "root->terminal edge"
-            assert child not in parent.children, "Edge must not already exist"
             assert_possible_parent(parent)
             assert_possible_child(child)
+            assert parent is not self.root or child.text is None, "root->terminal edge"
+            assert child not in parent.children, "Edge must not already exist"
             assert parent not in child.descendants, "Detected cycle created by edge: %s" % self
-            # Include this (instead of child not in children) to allow multiple edges between nodes:
+            if remote:
+                assert parent.outgoing and child.incoming, "Remote edge may not be the first edge"
+            # Include this instead of "child not in children" to allow multiple edges between nodes:
             # (as long as their tags are different)
             # assert self.create_edge(action) not in parent.outgoing, "Edge must not already exist"
-            return parent, child
 
         if action.is_type(Actions.Finish):
             assert self.root.outgoing, "Root must have at least one child at the end of the parse"
@@ -122,8 +124,7 @@ class State(object):
                 if action.is_type(Actions.LeftEdge, Actions.RightEdge):
                     assert_possible_edge()
                 elif action.is_type(Actions.LeftRemote, Actions.RightRemote):
-                    parent, child = assert_possible_edge()
-                    assert parent.outgoing and child.incoming, "Remote edge may not be the first edge"
+                    assert_possible_edge(remote=True)
                 elif action.is_type(Actions.Swap):
                     # A regular swap is possible since the stack has at least two elements;
                     # A compound swap is possible if the stack is longer than the distance
@@ -137,6 +138,7 @@ class State(object):
                 else:
                     raise Exception("Invalid action: %s" % action)
 
+    # noinspection PyTypeChecker
     def transition(self, action):
         """
         Main part of the parser: apply action given by oracle or classifier
@@ -247,7 +249,8 @@ class State(object):
                 for edge in node.outgoing:
                     assert edge.child.node is not None, "Linkage edge to nonexistent node"
                     if edge.tag == EdgeTags.LinkRelation:
-                        assert link_relation is None, "Multiple link relations: %s, %s" % (link_relation, edge.child.node)
+                        assert link_relation is None, \
+                            "Multiple link relations: %s, %s" % (link_relation, edge.child.node)
                         link_relation = edge.child.node
                     elif edge.tag == EdgeTags.LinkArgument:
                         link_args.append(edge.child.node)
