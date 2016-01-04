@@ -99,11 +99,11 @@ class State(object):
             if parent is self.root:
                 assert child.text is None, "Root may not have terminal children"
                 assert parent.outgoing_tags <= Constraints.TopLevel
-            assert child not in parent.children, "Edge must not already exist"
+            if Config().multiple_edges:
+                assert self.create_edge(action) not in parent.outgoing, "Edge must not already exist"
+            else:
+                assert child not in parent.children, "Edge must not already exist"
             assert parent not in child.descendants, "Detected cycle created by edge: %s" % self
-            # Include this instead of "child not in children" to allow multiple edges between nodes:
-            # (as long as their tags are different)
-            # assert self.create_edge(action) not in parent.outgoing, "Edge must not already exist"
 
         if action.is_type(Actions.Finish):
             assert self.root.outgoing, "Root must have at least one child at the end of the parse"

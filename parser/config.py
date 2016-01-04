@@ -49,6 +49,8 @@ class Config(object, metaclass=Singleton):
                                help="maximum ratio between non-terminal to terminal nodes")
         argparser.add_argument('-P', '--overrideprob', type=float, default=1.0,
                                help="probability to override predicted action by true action during training")
+        argparser.add_argument('-M', '--multiedge', action='store_true', default=False,
+                               help="allow multiple edges between the same nodes (with different tags)")
         self.args = argparser.parse_args()
 
         self.iterations = self.args.iterations
@@ -72,6 +74,7 @@ class Config(object, metaclass=Singleton):
         self.max_nodes_ratio = self.args.maxnodes
 
         self.override_action_probability = self.args.overrideprob
-        
+        self.multiple_edges = self.args.multiedge
+
     def __str__(self):
         return " ".join("--%s=%s" % item for item in vars(self.args).items())
