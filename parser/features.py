@@ -241,12 +241,11 @@ EDGE_PRIORITY = {tag: i for i, tag in enumerate((
 
 def get_head_terminal(node):
     while node.text is None:  # Not a terminal
-        if not node.outgoing:
+        edges = [edge for edge in node.outgoing
+                 if not edge.remote and not edge.child.implicit]
+        if not edges:
             return None
-        sorted_edges = sorted([edge for edge in node.outgoing
-                               if not edge.remote and not edge.child.implicit],
-                              key=lambda edge: EDGE_PRIORITY[edge.tag])
-        node = sorted_edges[0].child
+        node = min(edges, key=lambda edge: EDGE_PRIORITY[edge.tag]).child
     return node
 
 
