@@ -68,7 +68,7 @@ class Parser(object):
                 if score > best_score:
                     print("Better than previous best score (%.3f)" % best_score)
                     best_score = score
-                    best_model = self.model.average_weights()
+                    best_model = self.model.average()
                     if self.model_file is not None:  # Save trained model
                         best_model.save(self.model_file)
                 else:
