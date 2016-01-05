@@ -236,11 +236,13 @@ class Parser(object):
         :param true_action: from the oracle, to copy orig_node if the same action is selected
         :return: valid action with maximum probability according to classifier
         """
-        scores = self.model.score(features)
-        best_action = self.select_action(scores.argmax(), true_action)
+        scores = self.model.score(features)  # Returns dict of id -> score
+        best_action = self.select_action(max(scores, key=scores.get), true_action)
         if self.state.is_valid(best_action):
             return best_action
-        scores_sorted = scores.argsort()[-2::-1]  # Exclude max, already checked
+        # Usually the best action is valid, so max is enough to choose it in O(n) time
+        # Otherwise, sort all the other scores to choose the best valid one in O(n lg n)
+        scores_sorted = sorted(scores, key=scores.get)[-2::-1]  # Exclude max, already checked
         actions = (self.select_action(i, true_action) for i in scores_sorted)
         try:
             return next(action for action in actions if self.state.is_valid(action))

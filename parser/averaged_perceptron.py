@@ -58,8 +58,8 @@ class AveragedPerceptron(object):
     def score(self, features):
         """
         Calculate score for each label
-        :param features: extracted feature values, in the form of a dict (name: value)
-        :return: np.array with a score for each label from 0 to (num_labels - 1)
+        :param features: extracted feature values, in the form of a dict (name -> value)
+        :return: score for each label: dict (label -> score)
         """
         scores = np.zeros(self.num_labels)
         for feature, value in features.items():
@@ -69,7 +69,7 @@ class AveragedPerceptron(object):
             if weights is None or not self.is_frozen and weights.update_count < self.min_update:
                 continue
             scores += value * weights.weights
-        return scores
+        return dict(enumerate(scores))
 
     def update(self, features, pred, true, learning_rate=1):
         """
