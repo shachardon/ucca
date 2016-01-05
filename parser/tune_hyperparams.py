@@ -1,0 +1,21 @@
+import numpy as np
+import sys
+
+import parser
+from config import Config
+
+if __name__ == "__main__":
+    out_file = sys.argv.pop(0)
+    learning_rates = set(np.round(0.001 + np.random.exponential(0.8, 50), 3))
+    print("All learning rates to try: " + ",".join(
+            "%.3f" % learning_rate for learning_rate in learning_rates))
+    scores = []
+    for learning_rate in learning_rates:
+        print("Running with learning rate of %.3f" % learning_rate)
+        Config().learning_rate = learning_rate
+        score = parser.main()
+        scores.append(score)
+        best = np.argmax(scores)
+        print("Best learning rate: %f (F1=%f)" % (learning_rates[best], scores[best]))
+        with open(out_file, mode="a"):
+            print([learning_rate, score], sep=",", file=out_file)
