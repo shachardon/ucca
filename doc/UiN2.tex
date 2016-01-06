@@ -3,26 +3,22 @@
 \newcommand{\be}{\begin{enumerate}}
 \newcommand{\ee}{\end{enumerate}}
 \usepackage[top=0.5in, bottom=1.5in, left=0.5in, right=0.5in]{geometry}
+\setcounter{tocdepth}{4}
 
 \title{UCCA's Foundational Layer:  Annotation 	Guidelines \\
-\normalsize{Version 1.41} \\
-\url{http://homepages.inf.ed.ac.uk/oabend/ucca.html}}
-\author{
-Omri Abend and Ari Rappoport
-}
-
+\url{http://www.cs.huji.ac.il/~oabend/ucca.html}}
 
 \begin{document}
 \maketitle
+\tableofcontents
 
-These are the annotation guidelines for annotating the foundational layer of UCCA. Short, concise definitions are available through the help screens of the UCCA website.
-
-\section*{\large UCCA in a Nutshell}
+\newpage
+\section{\large UCCA in a Nutshell}
 
 \begin{enumerate}
 
 \item
-UCCA views the text as a sequence of scenes containing relations and participants.
+UCCA views the text as a sequence of Scenes containing relations and participants.
 \item
 UCCA divides the text into units (stretches of text; not necessarily contiguous), each referring to a relation, a participant in a relation or a relation along with its participants. The types of relations we annotate are listed below.
 \item
@@ -51,17 +47,17 @@ Each unit is assigned a category, reflecting its role in a super-ordinate relati
 UCCA does not annotate ambiguity. Not in the word level, not in the phrase level, nor in the passage level.
 
 \item
-The text is segmented to a sequence of Scenes; each contains a main relation which is either an action, a movement or a state along with participants in the scene. In concrete cases, a scene can be imagined as a single mental image or a short script. Each Scene is considered a unit. There is no one category for Scenes, rather the category of the scene unit reflects the role of that unit in super-ordinate relation it participates in (see below).
+The text is segmented to a sequence of Scenes; each contains a main relation which is either an action, a movement or a state along with participants in the Scene. In concrete cases, a Scene can be imagined as a single mental image or a short script. Each Scene is considered a unit. There is no one category for Scenes, rather the category of the Scene unit reflects the role of that unit in super-ordinate relation it participates in (see below).
 
 \begin{itemize}
 \item
-``Woody walked in the park'' (1 scene)
+``Woody walked in the park'' (1 Scene)
 \item
-``I got home and took a shower'' (2 scenes)
+``I got home and took a shower'' (2 Scenes)
 \end{itemize}
 
 \item
-Each scene contains (one or more) participants (A). These are the principal participants in the main relation of the scene (including locations). Participants may refer either to physical or abstract entities.
+Each Scene contains (one or more) participants (A). These are the principal participants in the main relation of the Scene (including locations). Participants may refer either to physical or abstract entities.
 
 \begin{itemize}
 \item
@@ -71,30 +67,31 @@ Each scene contains (one or more) participants (A). These are the principal part
 \end{itemize}
 
 \item
-Each Scene has one main relation, the main thing happening in the scene. This main relation can be either a State (S) – if the scene is constant in time; or a Process (P) – an action, movement or some other relation that evolves in time.
+Each Scene has one main relation, the main thing happening in the Scene. This main relation can be either a State (S) – if the Scene is constant in time; or a Process (P) – an action, movement or some other relation that evolves in time.
 
 \item
-In static scenes, the main relation is annotated as a State (S). The State unit includes its auxiliary verbs if present:
+  In static Scenes, the main relation is annotated as a State (S). The State unit should not include its auxiliary
+  verbs if present:
 
 \begin{itemize}
 \item
-``John$_A$ [is tall]$_S$''
+``John$_A$ is tall$_S$''
 \item
-``[The apple tree]$_A$ [is in]$_S$ [the garden]$_A$''
+``[The apple tree]$_A$ is in$_S$ [the garden]$_A$''
 \item
 ``[An apple]$_A$ [weighs]$_S$ [200g]$_A$''
 \item
-``[This apple]$_A$ [does weigh]$_S$ [200g]$_A$''
+``[This apple]$_A$ does weigh$_S$ 200g$_A$''
 \end{itemize}
 
 \item
-In dynamic scenes, the main relation is marked as a Process (P). The process includes its auxiliary verbs if present:
+In dynamic Scenes, the main relation is marked as a Process (P). The process should not include its auxiliary verbs if present:
 
 \begin{itemize}
 \item
-``John$_A$ [kicked]$_P$ [the ball]$_A$''
+``John$_A$ kicked$_P$ [the ball]$_A$''
 \item
-``John$_A$ [has been kicking]$_P$ [the ball]$_A$ since breakfast''
+``John$_A$ has been kicking$_P$ [the ball]$_A$ since breakfast''
 \end{itemize}
 
 \item
@@ -121,7 +118,7 @@ Units whose primary purpose is to specify the time in which the Scene occurred s
 \end{itemize}
 
 \item
-Some relations do not evoke a scene on their own. We distinguish between three types of non-scene relations.
+Some relations do not evoke a Scene on their own. We distinguish between three types of non-Scene relations.
 
 \item
 Elaborators (E) describe a property or add some information about one specific entity or relation. The elaborated entity is the Center (C).
@@ -138,7 +135,7 @@ Connectors (N) relate two or more entities (annotated as Cs) in a way that highl
 \item
 ``[John$_C$ and$_N$ Mary$_C$]$_A$ went$_P$ [to school]$_A$ together$_D$''
 \item
-``I$_A$ ``ll$_D$ [have]$_P$ [gin$_C$ and$_N$ tonic$_C$ ]$_A$''
+``I$_A$ ``ll$_D$ have$_P$ [gin$_C$ and$_N$ tonic$_C$ ]$_A$''
 \end{itemize}
 
 \item
@@ -146,7 +143,7 @@ Relators (R) are relations that relate one or more entities without evoking a ne
 
 \begin{itemize}
 \item
-Rs can pertain to a specific entity (much like Elaborators), but unlike Es they then relate that entity to other relations/entities in the context. In this case, the R should be positioned as a sibling of the C (or the A scene) they pertain to.
+Rs can pertain to a specific entity (much like Elaborators), but unlike Es they then relate that entity to other relations/entities in the context. In this case, the R should be positioned as a sibling of the C (or the A Scene) they pertain to.
 
 \begin{itemize}
 \item
@@ -154,7 +151,7 @@ Rs can pertain to a specific entity (much like Elaborators), but unlike Es they 
 \item
 ``They arrived [after$_R$ dinner$_C$]$_T$''
 \item
-``John said [that$_R$ he$_A$ ['s$_F$ going$_C$]$_P$ home$_A$]$_A$''
+``John said [that$_R$ he$_A$ 's$_F$ going$_P$ home$_A$]$_A$''
 \end{itemize}
 
 \item
@@ -178,11 +175,11 @@ Functions (F) are units that do not introduce a new participant or relation. The
 Examples:
 \begin{itemize}
 \item
-``I$_A$ want$_D$ [to$_F$ run$_C$]$_P$ [a$_E$ marathon$_C$]$_A$''
+``I$_A$ want$_D$ to$_F$ run$_P$ [a$_E$ marathon$_C$]$_A$''
 \item
-``I$_A$ [am$_F$ going$_C$]$_P$ [to$_R$ the$_E$ supermarket$_C$]$_A$''
+``I$_A$ am$_F$ going$_P$ [to$_R$ the$_E$ supermarket$_C$]$_A$''
 \item
-``It$_F$ [is likely]$_S$ [that he will make it]$_A$''
+``It$_F$ is likely$_S$ [that he will make it]$_A$''
 \item
 ``Let$_F$ me$_A$ introduce$_P$ John$_A$''
 \end{itemize}
@@ -190,7 +187,7 @@ Examples:
 \item
 When some relation (corresponding to a unit X) is clearly described by the text, but either it or one of its arguments is not expressed explicitly in the text, we say the unit X is missing a sub-unit. If the missing entity is overtly referred to in another place in the text by the unit Y, we say that Y is a remote sub-unit of X. If the omitted unit does not appear explicitly in any place in the text, we say X has an implicit unit. Remote and implicit units have categories just like any other unit.
 
-Add a remote unit whenever you think there is a participant or relation which is strongly present in your conceptualization of the scene, but is not explicitly mentioned.
+Add a remote unit whenever you think there is a participant or relation which is strongly present in your conceptualization of the Scene, but is not explicitly mentioned.
 
 Examples: (target relations (X) underlined, remote units (Y) boldfaced)
 
@@ -203,11 +200,11 @@ Examples: (target relations (X) underlined, remote units (Y) boldfaced)
 \end{itemize}
 
 \item
-Linkage is the term for inter-scene relations in UCCA. There are three major
-types of relations in which scenes may participate, and therefore three major types of categories scene units may receive. The next three items describe these types.
+Linkage is the term for inter-Scene relations in UCCA. There are three major
+types of relations in which Scenes may participate, and therefore three major types of categories Scene units may receive. The next three items describe these types.
 
 \item
-\textbf{Elaborator Scenes:} an E-scene adds information to a previously established unit. Usually answers a ``which X'' or ``what kind of X'' question. Es should place the C they are elaborating as a remote A. A way to check where a scene is an E-scene is to ask whether the scene along with the C it relates to are of the same type as the C itself.
+\textbf{Elaborator Scenes:} an E-Scene adds information to a previously established unit. Usually answers a ``which X'' or ``what kind of X'' question. Es should place the C they are elaborating as a remote A. A way to check where a Scene is an E-Scene is to ask whether the Scene along with the C it relates to are of the same type as the C itself.
 \begin{itemize}
 \item
 ``[The$_E$ dog$_C$ [that ate my homework]$_{E, REMOTE-A(dog)}$ ]$_A$ is brown'' (``dog'' is a remote A in ``that ate my homework'')
@@ -218,7 +215,7 @@ types of relations in which scenes may participate, and therefore three major ty
 \end{itemize}
 
 \item
-\textbf{Participant Scenes:} an A-scene is a participant in the scene. It does not add information to some specific participant in it, and if you remove it, it doesn't retain the same type. Usually answers a ``what'' question about the scene.
+\textbf{Participant Scenes:} an A-Scene is a participant in the Scene. It does not add information to some specific participant in it, and if you remove it, it doesn't retain the same type. Usually answers a ``what'' question about the Scene.
 
 \begin{itemize}
 \item
@@ -230,7 +227,7 @@ types of relations in which scenes may participate, and therefore three major ty
 \end{itemize}
 
 \item
-{\bf Parallel Scenes:} any other scene receives the category Parallel Scene (H). Sometimes there is an accompanying relation word and sometimes not. If so, it is a Linker (L). Note that there are no D scenes. If it's not an A or an E, it's an H.
+{\bf Parallel Scenes:} any other Scene receives the category Parallel Scene (H). Sometimes there is an accompanying relation word and sometimes not. If so, it is a Linker (L). Note that there are no D Scenes. If it's not an A or an E, it's an H.
 
 \begin{itemize}
 \item
@@ -245,25 +242,25 @@ types of relations in which scenes may participate, and therefore three major ty
 ``[You're only saying this]$_H$ because$_L$ [John told you to]$_H$''
 \end{itemize}
 
-Specific cases of parallel scenes include (examples of relevant linkers in brackets): purposive (``in order to'' or ``to''), logical (``if ... then ...'', temporal (``when X, Y'', ``before X, Y''), coordination (``and'', ``but''), and contrastive linkages (``however'', ``still'').
+Specific cases of parallel Scenes include (examples of relevant linkers in brackets): purposive (``in order to'' or ``to''), logical (``if ... then ...'', temporal (``when X, Y'', ``before X, Y''), coordination (``and'', ``but''), and contrastive linkages (``however'', ``still'').
 
 Scenes that are not related to any other units and are therefore in the top level of organization in the text are also Hs.
 
-Linkers do not necessarily appear between the scenes they are linking (see example \#2 above).
+Linkers do not necessarily appear between the Scenes they are linking (see example \#2 above).
 
 \item
-A unit is marked as a Ground Relation (G) (or Ground for short), if its primary purpose is to relate some unit to its ground (i.e., the speech event; either the speaker, the hearer or the general context in which the text was uttered/written/conceived). Gs are used for annotating mentions of the ground scene that are missing almost all their elements save for one word or expression.
+A unit is marked as a Ground Relation (G) (or Ground for short), if its primary purpose is to relate some unit to its ground (i.e., the speech event; either the speaker, the hearer or the general context in which the text was uttered/written/conceived). Gs are used for annotating mentions of the ground Scene that are missing almost all their elements save for one word or expression.
 
-Gs are similar to Ls, except that they don''t relate the scene to something else, but rather to the speech act of the text (the speaker, the hearer or their opinions).
+Gs are similar to Ls, except that they don''t relate the Scene to something else, but rather to the speech act of the text (the speaker, the hearer or their opinions).
 
 \begin{itemize}
 \item
 ``[Surprisingly$_G$ , [our flight]$_A$ arrived$_P$ [on time]$_T$]$_H$''
 \item
-``[[In my opinion]$_G$, John$_A$ [is coming]$_P$ home$_A$ ]$_H$''
+``[[In my opinion]$_G$, John$_A$ is$_F$ coming$_P$ home$_A$ ]$_H$''
 \end{itemize}
 
-Note that a complete scene that refers to the ground (with As and Ds etc.) should be annotated as a scene and not as a G.
+Note that a complete Scene that refers to the ground (with As and Ds etc.) should be annotated as a Scene and not as a G.
 
 \begin{itemize}
 \item
@@ -275,7 +272,7 @@ Note that a complete scene that refers to the ground (with As and Ds etc.) shoul
 \end{enumerate}
 
 
-\section*{\large Technical Notes and Guidelines}
+\section{\large Technical Notes and Guidelines}
 
 \begin{enumerate}
 \item
@@ -287,7 +284,7 @@ Prefer Ls over Ds, where possible.
 \item
 Prefer Ls over Gs where possible.
 \item
-Prefer annotating A-scenes and E-scenes over parallel scenes where possible.
+Prefer annotating A-Scenes and E-Scenes over parallel Scenes where possible.
 \item
 Prefer separating participants from their relations where possible.
 \item
@@ -297,7 +294,7 @@ Since morphology in English is very impoverished, we take a pragmatic approach a
 \item
 Function units (Fs) do not refer to a participant or relation and, since the UCCA annotation reflects participation in relations, it is often not clear in what level of the hierarchy an F unit should be placed in. When this occurs, include the F in the deepest unit that stands to reason.
 \item
-Single words can be scenes as well. This will usually happen where none of the participants is explicitly mentioned.
+Single words can be Scenes as well. This will usually happen where none of the participants is explicitly mentioned.
 \begin{itemize}
 \item
 ``[The$_E$ [negotiations$_P$]$_C$ ]$_A$ [took place]$_P$ [in$_R$ Rome$_C$]$_A$''
@@ -306,13 +303,13 @@ Single words can be scenes as well. This will usually happen where none of the p
 
 \end{enumerate}
 
-\section*{\large Appendix A: Classification of Prepositions}
+\section{\large Appendix A: Classification of Prepositions}
 
 Prepositions are in frequent use in English. They include words such as ``in'', ``on'', ``after'', ``with'' and ``under''.
 
 \begin{enumerate}
 \item
-{\bf Prepositions as Relators:} As mentioned above, Rs have two varieties. In cases where they mostly relate to one unit and relate it to the rest of the scene, we incorporate the R inside that one unit.
+{\bf Prepositions as Relators:} As mentioned above, Rs have two varieties. In cases where they mostly relate to one unit and relate it to the rest of the Scene, we incorporate the R inside that one unit.
 \begin{itemize}
 \item
 ``President$_C$ [of$_R$ the$_E$ USA$_C$]$_E$''
@@ -378,13 +375,13 @@ Classifier constructions (i.e., when the elaborator specifies the type, and the 
 \end{itemize}
 
 \item
-{\bf Main relations:} If the preposition is the main relation in the scene, then it is a P or S.
+{\bf Main relations:} If the preposition is the main relation in the Scene, then it is a P or S.
 
 \begin{itemize}
 \item
-``[The apple tree]$_A$ [is in]$_S$ [the garden]$_A$''
+``[The apple tree]$_A$ is in$_S$ [the garden]$_A$''
 \item
-``John$_A$ [is$_F$ into$_C$]$_S$ Mary$_A$''
+``John$_A$ is$_F$ into$_S$ Mary$_A$''
 \end{itemize}
 
 
@@ -392,7 +389,7 @@ Classifier constructions (i.e., when the elaborator specifies the type, and the 
 
 \end{enumerate}
 
-\section*{\large Appendix B: Participant-Adverbial Distinction}
+\section{\large Appendix B: Participant-Adverbial Distinction}
 
 A basic issue in almost any grammatical theory is to determine when a unit is a participant and when it is a secondary relation. In UCCA, this is the distinction between Participants and Adverbials.
 
@@ -400,7 +397,7 @@ A basic issue in almost any grammatical theory is to determine when a unit is a 
 \item
 Any unit that introduces a new participant is an A. Subjects, objects, instruments, locations, destinations are therefore invariably As.
 \item
-Adverbs and any other unit that introduces another relation (without introducing a pari ticipant) into the scene is a D. Manner adverbs (e.g., ``quickly'', ``politely'') are invariably Ds.
+Adverbs and any other unit that introduces another relation (without introducing a pari ticipant) into the Scene is a D. Manner adverbs (e.g., ``quickly'', ``politely'') are invariably Ds.
 \item
 Prepositional phrases constitute most of the borderline cases.
 \end{itemize}
@@ -426,14 +423,14 @@ Prepositional phrases constitute most of the borderline cases.
 \end{enumerate}
 
 
-\section*{\large Appendix C: Analyzability}
+\section{\large Appendix C: Analyzability}
 
 By default, analyze all cases down to the word level.
 The only cases which should not be analyzed are:
 
 \begin{itemize}
 \item
-Where the internal structure cannot be analyzed using any of the models: a scene, C+Es, N+Cs, linkage.
+Where the internal structure cannot be analyzed using any of the models: a Scene, C+Es, N+Cs, linkage.
 \item
 This usually happens where it's not clear what the meanings of the individual words in this context are.
 \item
@@ -444,7 +441,7 @@ Examples:
 
 \begin{enumerate}
 \item
-``The$_E$ October$_E$ Revolution$_C$'': analyzable although it is not
+``The$_E$ October$_E$ [Revolution$_P$]$_C$'': analyzable although it is not
 simply a revolution that happened in October, but rather a specific one.
 \item
 ``Chief$_E$ executive$_E$ officer$_C$'': analyzable.
@@ -463,39 +460,39 @@ categories to assign to the individual words.
 \end{enumerate}
 
 
-\section*{\large Appendix D: Other Constructions}
+\section{\large Appendix D: Other Constructions}
 
 
-\subsection*{Scenes.}
+\subsection{Scenes.}
 
-\paragraph{Distinguishing A scenes and E scenes.} You can distinguish between A scenes
-and E scenes by asking yourself whether the scene answers a question of
+\paragraph{Distinguishing A Scenes and E Scenes.} You can distinguish between A Scenes
+and E Scenes by asking yourself whether the Scene answers a question of
 ``which A'' or ``what kind of A'' question. You can also ask yourself whether,
-if you omit the scene, you will end up with a unit of the same semantic
+if you omit the Scene, you will end up with a unit of the same semantic
 type.
 \be
 \item
-E scene: ``The dog that ate my homework is brown'' (``that ate my homework''
+E Scene: ``The dog that ate my homework is brown'' (``that ate my homework''
 answers the question ``which dog'' and also omitting it ends up with ``the
 dog'' which is of the semantic type as ``the dog that ate my homework'').
 \item
-A scene: ``John's kick saved the game'' (``John's kick'' is not a type of
+A Scene: ``John's kick saved the game'' (``John's kick'' is not a type of
 ``John'', also it cannot serve as an answer to the question ``which kick''.
 Note that ``John's kick'' could answer the question ``which kick'', but the
 question should be on the A and not the P).
 \item
-E scene: ``Brad played an American going to the Adriatic'' (``an American
+E Scene: ``Brad played an American going to the Adriatic'' (``an American
 going to the Adriatic'' is a type of American. Also, ``going to the Adriatic''
 answers the question ``what kind of American'').
 \item
-A scene: ``John said he likes skating'' (``he likes skating'' is not a type of
+A Scene: ``John said he likes skating'' (``he likes skating'' is not a type of
 ``he'' or of ``skating''. Rather it answers the question ``what did John say''.
-It is therefore an A scene).
+It is therefore an A Scene).
 \ee
 
-\paragraph{Dependent scenes.}
-A scene is not necessarily something that can stand on its own. It may require
-a larger construction to rely on, but it is still considered a scene:
+\paragraph{Dependent Scenes.}
+A Scene is not necessarily something that can stand on its own. It may require
+a larger construction to rely on, but it is still considered a Scene:
 \be
 \item
 ``[he retired]$_H$ [with]$_L$ [a rank of major]$_H$''
@@ -504,12 +501,12 @@ a larger construction to rely on, but it is still considered a scene:
 \ee
 
 \paragraph{Linkers with a single argument.}
-We also allow linkers with a single argument. This usually happens if a linker relates one scene with everything that follows/precedes it, without there being any particular unit that the scene relates to. Another case where we use a single argument linker is when one of its arguments is omitted.
+We also allow linkers with a single argument. This usually happens if a linker relates one Scene with everything that follows/precedes it, without there being any particular unit that the Scene relates to. Another case where we use a single argument linker is when one of its arguments is omitted.
 
 An example would be a paragraph that starts with ``However'' that contrasts with everything that was written in the previous paragraph.
 
 \paragraph{Distinguishing Ground and Participant Scenes.}
-A ground relates the speech event or some aspect of it with a given unit. It does not introduce a new scene above and beyond evoking the speech event.
+A ground relates the speech event or some aspect of it with a given unit. It does not introduce a new Scene above and beyond evoking the speech event.
 \be
 \item
 ``[ [The truth is that]$_G$ [John]$_A$ [is]$_S$ [a conservative]$_A$]$_H$''
@@ -520,14 +517,14 @@ A ground relates the speech event or some aspect of it with a given unit. It doe
 \item
 ``[you can go home, [for all I care]$_G$ ]$_H$''
 \ee
-Contrast with participant scenes. Both ``I think'' and ``Mary saw'' introduce a new scene, with a new P. They are therefore participant scenes.
+Contrast with participant Scenes. Both ``I think'' and ``Mary saw'' introduce a new Scene, with a new P. They are therefore participant Scenes.
 \be \item
 ``[I]$_A$ [think]$_P$ [that]$_F$ [John is a conservative]$_A$''
 \item
 ``[Mary]$_A$ [saw]$_P$ [John running in the park]$_A$''
 \ee
 
-\paragraph{Static Scenes.} Static scenes are scenes which can be fully described by a single picture, no temporal dimension involved. Following are several examples of static scenes.
+\paragraph{Static Scenes.} Static Scenes are Scenes which can be fully described by a single picture, no temporal dimension involved. Following are several examples of static Scenes.
 \be
 \item
 Identity. Expressing the identity between two entities\footnote{Do not confuse identity with ``Noun as a P/S'' (see below).}. Identity is the case where there are two well-defined entities (not a set or a relation, but two well-defined entities), and the ``be'' verb equates them. See also ``
@@ -544,185 +541,176 @@ But: ``John$_A$ [is$_F$ a$_E$ member$_C$]$_S$ [of$_R$ the$_E$ NRAC]$_A$'' (since
 Attribution/Benefaction/Location. Specifying a quality, a benefactor or a location of an argument.
 \be
 \item
-``[This man]$_A$ [is clever]$_S$''
+``[This man]$_A$ is$_F$ clever$_S$''
 \item
-``[This present]$_A$ [is for]$_S$ [John's birthday]$_A$''
+``[This present]$_A$ is$_F$ for$_S$ [John's birthday]$_A$''
 \item
-``[The apple tree]$_A$ [is in]$_S$ [the garden]$_A$''
+``[The apple tree]$_A$ is$_F$ in$_S$ [the garden]$_A$''
 \ee
 
 \item
 Possession.
 \be
 \item
-``[This book]$_A$ [is]$_{S-}$ [John]$_A$ ['s]$_{-S(CONT.)}$''
+``[This book]$_A$ is$_F$ John$_A$ 's$_S$''
 \ee
 \item
-Existential There. This is a special type of a static scene. Since ``there are'' determines the relation here (namely existence), it is marked as S. Since it is not clear what its internal structure should be, it is considered unanalyzable.
+Existential There. This is a special type of a static Scene. Since ``there are'' determines the relation here (namely existence), it is marked as S. Since it is not clear what its internal structure should be, it is considered unanalyzable.
 \be
 \item
 ``[There are]$_S$ [earrings]$_A$ [on$_R$ the$_E$ table$_C$]$_A$''
 \ee
 
 \item
-Note that, as always, the category is not defined by the words comprising the unit, but by the function it has in the given scene. Consider these pairs of examples:
+Note that, as always, the category is not defined by the words comprising the unit, but by the function it has in the given Scene. Consider these pairs of examples:
 \be
 \item
-``[John]$_A$ [is sitting]$_P$ [[in]Rthe garden]$_A$'' / ``[The apple tree]$_A$ [is in]$_S$ [the garden]$_A$''
+``John$_A$ is$_F$ sitting$_P$ [in$_R$ the$_E$ garden$_C$]$_A$'' / ``[The apple tree]$_A$ is$_F$ in$_S$ [the garden]$_A$''
 \item
-``[John]$_A$ [bought]$_P$ [wine]$_A$ [for$_R$ Mary$_E$ 's$_F$ birthday$_C$]$_A$'' / ``[This present]$_A$ [is for]$_S$ [John's birthday]$_A$''
+``[John]$_A$ [bought]$_P$ [wine]$_A$ [for$_R$ Mary$_E$ 's$_F$ birthday$_C$]$_A$'' / ``[This present]$_A$ is$_F$ for$_S$ [John's birthday]$_A$''
 \ee
 \ee
 
-\paragraph{
-Scene or not a scene.} One of the most important decisions in UCCA is to determine whether a relation is an S or P, and therefore evokes a scene, or not. Processes are usually easier to spot - they describe an event that evolves in time, usually some action or movement. As for States, they differ from non-scenes in being specific in time (i.e., you can add temporal modifiers to it like ``today'' or ``two years ago''), and in the fact they are asserted rather than simply mentioned.
+\paragraph{Scene or not a Scene.} One of the most important decisions in UCCA is to determine whether a relation is an S or P, and therefore evokes a Scene, or not. Processes are usually easier to spot - they describe an event that evolves in time, usually some action or movement. As for States, they differ from non-Scenes in being specific in time (i.e., you can add temporal modifiers to it like ``today'' or ``two years ago''), and in the fact they are asserted rather than simply mentioned.
 \be
 \item
-``[The outbreak]$_P$ [of the Croatian War]$_A$'' - a scene.
+``[The outbreak]$_P$ [of the Croatian War]$_A$'' - a Scene.
 \item
-``Oscilating$_P$ [between$_R$ [atheism$_C$ and$_N$ agnosticism$_C$]$_C$]$_A$'' - a scene.
+``Oscilating$_P$ [between$_R$ [atheism$_C$ and$_N$ agnosticism$_C$]$_C$]$_A$'' - a Scene.
 \item
-``[John$_C$ ``s$_R$]$_A$ accurate$_D$ kick$_P$'' - a scene.
+``[John$_C$ 's$_R$]$_A$ accurate$_D$ kick$_P$'' - a Scene.
 \item
-``[broken$_E$ glass$_C$]$_A$ [is dangerous]$_S$'' - ``broken'' does not evoke a scene, the scene in which the glass was broken is not evoked here, only the end result of it being broken.
+``[broken$_E$ glass$_C$]$_A$ is$_F$ dangerous$_S$'' - ``broken'' does not evoke a Scene, the Scene in which the glass was broken is not evoked here, only the end result of it being broken.
 \item
-``John$_A$ always$_D$ wanted$_P$ [a$_E$ garden$_C$ [with trees]$_E$]$_A$'' - ``with trees'' is not a scene, it is not specific in time, and it is not asserted (that is, it is not claimed to be true).
+``John$_A$ always$_D$ wanted$_P$ [a$_E$ garden$_C$ [with trees]$_E$]$_A$'' - ``with trees'' is not a Scene, it is not specific in time, and it is not asserted (that is, it is not claimed to be true).
 \item
-``The trees [are in]$_S$ [the garden]$_A$'' - here the fact that the trees are in the garden is asserted.
+``The trees are$_F$ in$_S$ [the garden]$_A$'' - here the fact that the trees are in the garden is asserted.
 \ee
 
-\paragraph{
-One scene or two.} Where two potentially scene-evoking relations appear in proximity to one another, the question of whether to consider them one complex P/S or two separate ones rises. It should be one scene if the two relations are conceptually hard to separate and are similar in their participants, time, location and ground. It should be two scenes if this is not the case.
+\paragraph{One Scene or two.} Where two potentially Scene-evoking relations appear in proximity to one another, the question of whether to consider them one complex P/S or two separate ones rises. It should be one Scene if the two relations are conceptually hard to separate and are similar in their participants, time, location and ground. It should be two Scenes if this is not the case.
 \be
 \item
-``[I got home]$_H$ and$_L$ [took a shower]$_H$'' (2 scenes)
+``[I got home]$_H$ and$_L$ [took a shower]$_H$'' (2 Scenes)
 \item
-``[it took a lot of effort]$_H$ to$_L$ [win this fight]$_H$'' (2 scenes)
+``[it took a lot of effort]$_H$ to$_L$ [win this fight]$_H$'' (2 Scenes)
 \item
-``[he is on vacation]$_H$, [sailing a yacht near Greece]$_H$'' (2 scenes)
+``[he is on vacation]$_H$, [sailing a yacht near Greece]$_H$'' (2 Scenes)
 \item
-``[John eats and drinks enthusiastically]$_H$'' (1 scene)
+``[John eats and drinks enthusiastically]$_H$'' (1 Scene)
 \item
-``[He yelled and swore to no avail] H'' (1 scene)
+``[He yelled and swore to no avail]$_H$'' (1 Scene)
 \item
-``[The$_E$ [decline$_C$ and$_N$ death$_C$]$_C$ ]$_P$ [of$_R$ a$_E$ monarch$_C$]$_A$'' (1 scene)
+``[The$_E$ [decline$_C$ and$_N$ death$_C$]$_C$ ]$_P$ [of$_R$ a$_E$ monarch$_C$]$_A$'' (1 Scene)
 \item
-``[He$_A$ [is planning]$_P$ [to kick the ball]$_A$ ]$_H$'' (2 scenes) (``to kick the ball'' is a participant scene of ``he is planning'')
+``[He$_A$ is$_F$ planning$_P$ [to kick the ball]$_A$ ]$_H$'' (2 Scenes) (``to kick the ball'' is a participant Scene of ``he is planning'')
 \item
-``She$_A$ [went away angry]$_P$'' (1 scene, the two original scenes, of her going away and of her being angry, are fused into one)
+``She$_A$ [went away angry]$_P$'' (1 Scene, the two original Scenes, of her going away and of her being angry, are fused into one)
 \ee
 
-\paragraph{
-Secondary Verb or Participant Scene.} Distinguishing between secondary verb constructions and participant scene constructions is done by determining whether the sentence in question refers to one or two scenes. Participant scenes correspond to cases where there are two separate scenes, while secondary verbs correspond to the cases where there are two verbs, one dependent (secondary, not describing a scene in its own right, could not by itself be the P/S of a scene) and one independent (the main verb) within the same scene.
+\paragraph{Secondary Verb or Participant Scene.} Distinguishing between secondary verb constructions and participant Scene constructions is done by determining whether the sentence in question refers to one or two Scenes. Participant Scenes correspond to cases where there are two separate Scenes, while secondary verbs correspond to the cases where there are two verbs, one dependent (secondary, not describing a Scene in its own right, could not by itself be the P/S of a Scene) and one independent (the main verb) within the same Scene.
 \be
 \item
-``[He]]$_A$ [demanded]$_P$ [to see the manager]$_A$,REMOTE-A(``He'')]'' (two scenes, since the demanding and the seeing are two separate scenes which take place in different times and locations)
+``[He]]$_A$ [demanded]$_P$ [to see the manager]$_{A,REMOTE-A(``He'')}$]'' (two Scenes, since the demanding and the seeing are two separate Scenes which take place in different times and locations)
 \item
-``[He]$_A$ [began kicking]$_P$ [the ball]$_A$'' (one scene, since ``began'' does not describe an action in its own right, but is dependent on the ``kicking'')
+``[He]$_A$ began$_D$ kicking$_P$ [the ball]$_A$'' (one Scene, since ``began'' does not describe an action in its own right, but is dependent on the ``kicking'')
 \item
-``[He]$_A$ [wants to kick]$_P$ [the ball]$_A$'' (one scene, since ``wants'' does not describe an action in its own right, but is dependent on the ``kicking'')
+``[He]$_A$ wants$_D$ to$_F$ kick$_P$ [the ball]$_A$'' (one Scene, since ``wants'' does not describe an action in its own right, but is dependent on the ``kicking'')
 \item
-``[He]$_A$ [was planning]$_P$ [to kick the ball]$_A$,REMOTE-A(``He'')'' (two scenes,  planning and kicking are two separate actions that do not necessarily happen in the same time)
+``[He]$_A$ was$_F$ planning$_P$ [to kick the ball]$_A$,REMOTE-A(``He'')'' (two Scenes,  planning and kicking are two separate actions that do not necessarily happen in the same time)
 \ee
 
-\paragraph{
-Verbs that can be primary or secondary.} These verbs can be used either as secondary verbs (applying to the same scene as the main verb) or as primary verbs (in that case, there are two separate scenes). This decision is context-dependent, and the annotation of these verbs depends on the decision whether to annotate a single scene or two scenes (see criteria above):
+\paragraph{Verbs that can be primary or secondary.} These verbs can be used either as secondary verbs (applying to the same Scene as the main verb) or as primary verbs (in that case, there are two separate Scenes). This decision is context-dependent, and the annotation of these verbs depends on the decision whether to annotate a single Scene or two Scenes (see criteria above):
 \be
 \item
-``[John]$_A$ [ [remembered]$_E$ [to]$_F$ [take]$_C$ ]$_P$ [the keys]$_A$'' (context-dependent, but it's very likely that the ``remembered'' here is mostly for emphasis and therefore secondary)
+``[John]$_A$ remembered$_D$ to$_F$ take$_P$ [the keys]$_A$'' (context-dependent, but it's very likely that the ``remembered'' here is mostly for emphasis and therefore secondary)
 \item
-``[John]$_A$ [remembered]$_P$ [the$_E$ [hike$_P$ [with all his friends]$_A$ ]$_C$ ]$_A$''
+``[John]$_A$ remembered$_P$ [the$_E$ [hike$_P$ [with all his friends]$_A$ ]$_C$ ]$_A$''
 \item
 ``[John]$_A$ [forgot]$_P$ [[how]$_D$ [to]$_F$ [ride]$_P$ [his bicycle]$_A$]$_A$'' (clearly the forgetting and the riding are not in the same time)
 \ee
 
-\paragraph{
-Noun Scenes.} The process by which a scene is converted into an abstract participant. Nominalizations should be internally analyzed as scenes, with a P/S, As, Ds and Rs. However, nominalizations may also be modified by nominal elaborators. In that case, they should be marked as Es.
+\paragraph{Noun Scenes.} The process by which a Scene is converted into an abstract participant. Nominalizations should be internally analyzed as Scenes, with a P/S, As, Ds and Rs. However, nominalizations may also be modified by nominal elaborators. In that case, they should be marked as Es.
 \be
 \item
 ``[[John]$_C$ ['s]$_R$]$_A$ [accurate]$_D$ [kick]$_P$]$_A$ [saved]$_P$ [the game]$_A$''
 \item
-``[Him$_A$ destroying$_P$ [the city]$_A$ ]$_A$ [[was]$_F$ [a disaster]$_C$ ]$_S$''
+``[Him$_A$ destroying$_P$ [the city]$_A$ ]$_A$ was$_F$ [a$_E$ disaster$_C$]$_S$''
 \item
-``[ [His]$_A$ [destruction]$_P$ [of]$_F$ [the city]$_A$ ]$_A$ [[was]$_F$ [a disaster]$_C$ ]$_S$''
+``[ [His]$_A$ destruction$_P$ of$_F$ [the city]$_A$ ]$_A$ was$_F$ [a disaster]$_S$''
 \ee
 
-\paragraph{
-Scenes with neither a P nor an S.} Some scenes have no P or S, since it is omitted or implied. In this case, we should add them as remote units.
+\paragraph{Scenes with neither a P nor an S.} Some Scenes have no P or S, since it is omitted or implied. In this case, we should add them as remote units.
 
 \be
 \item
-``[John bought eggs]$_H$ [and]$_L$ [[Mary]$_A$ [chewing gum]$_A$]$_H$,REMOTE-P(``bought'')''
+``[John bought eggs]$_H$ and$_L$ [Mary$_A$ [chewing gum]$_A$]$_{H,REMOTE-P(``bought'')}$''
 \item
-``[John wanted a real life]$_H$, [[not]$_D$ [life in a caravan]$_A$]$_H$,REMOTE-A(``John''),REMOTE-P(``wanted'')''
+``[John wanted a real life]$_H$, [not$_D$ [life in a caravan]$_A$]$_{H,REMOTE-A(``John''),REMOTE-P(``wanted'')}$''
 \item
 ``[how about]$_F$ [coffee]$_A$?''
 \ee
 
 
-\paragraph{
-Fragments.} Occasionally, a fragment of text does not describe a scene in its own right, nor belongs to any other specific scene. The category of such a unit, as always, is determined by its role in a super-ordinate relation it participates in (if any). By default, it's an H.
+\paragraph{Fragments.} Occasionally, a fragment of text does not describe a Scene in its own right, nor belongs to any other specific Scene. The category of such a unit, as always, is determined by its role in a super-ordinate relation it participates in (if any). By default, it's an H.
 \be
 \item
 ``[No]$_H$, [this will not stand]$_H$''
 \ee
 
-\paragraph{
-Expletive it.} Sometimes ``it'' is used to take the place of the subject when there is no other A which does so. In this case it should be marked as an A.
+\paragraph{Expletive it.} Sometimes ``it'' is used to take the place of the subject when there is no other A which does so. In this case it should be marked as an A.
 \be
 \item
-``It$_F$ [is$_F$ strange$_C$]$_S$ [that$_R$ I$_A$ met$_P$ him$_A$ here$_A$]$_A$''
+``It$_F$ is$_F$ strange$_S$ [that$_R$ I$_A$ met$_P$ him$_A$ here$_A$]$_A$''
 \item
-``It$_F$ [is$_F$ likely$_C$]$_S$ [to rain]$_A$''
+``It$_F$ is$_F$ likely$_S$ [to rain]$_A$''
 \ee
 
 
-\subsection*{Remotes.}
+\subsection{Remotes.}
 
-\paragraph{Two Types of verbs that take a participant scene.} Note that some verbs with a participant scene have a remote unit taken from the participant scene or vice versa. Other verbs do not exhibit such behavior.
+\paragraph{Two Types of verbs that take a participant Scene.} Note that some verbs with a participant Scene have a remote unit taken from the participant Scene or vice versa. Other verbs do not exhibit such behavior.
 \be
 \item
 ``[ [I]$_A$ [expected]$_P$ [John to come]$_A$]$_H$''
 \item
 ``[ [We]$_A$ [agreed]$_P$ [for John to give the funeral oration]$_A$]$_H$''
 \item
-``[I persuaded [John to come]$_A$]$_H$,REMOTE-A(''JOHN'')''
+``[I persuaded [John to come]$_A$]$_{H,REMOTE-A(''John'')}$''
 \item
-``[John promised [to be better]$_A$,REMOTE-A(''JOHN'')]$_H$''
+``[John promised [to be better]$_{A,REMOTE-A(''JOHN'')}$]$_H$''
 \ee
 
-\paragraph{
-Prominent Cases of Remote Participants.} A remote participant is a unit that is referenced in a scene in which it is not contained. By convention, the remote participant should be chosen as the minimal unit that refers to the target entity (for instance, ``table'' and not ``the red table''). Several prominent cases of remote participants: (target scenes underlined; remote participants boldfaced)
+\paragraph{Prominent Cases of Remote Participants.} A remote participant is a unit that is referenced in a Scene in which it is not contained. By convention, the remote participant should be chosen as the minimal unit that refers to the target entity (for instance, ``table'' and not ``the red table''). Several prominent cases of remote participants: (target Scenes underlined; remote participants boldfaced)
 \be
 \item
 Coordination. The subject is often omitted.
 \be \item ``John had dinner and went to bed'' \ee
 \item
-Relative scenes. The head of the elaboration is not contained in the relative scene.
-\be \item ``[The table I''m using]$_A$ [[is]$_F$ [too]$_E$ [short]$_C$]$_S$'' \ee
+Relative Scenes. The head of the elaboration is not contained in the relative Scene.
+\be \item ``[The table I'm using]$_A$ [is]$_F$ [too]$_D$ short$_S$'' \ee
 \item
 Infinitives. The subject is omitted.
-\be \item ``Driving to school upsets John''
-\item ``to be expected to wash the car infuriates Mary''
+\be \item ``[Driving to school]$_{A,REMOTE-A(``John'')}$ upsets John''
+\item ``[to be expected to wash the car]$_{A,REMOTE-A(``Mary'')}$ infuriates Mary''
 \ee
 \ee
 
-\subsection*{Secondary Relations in Scenes.}
+\subsection{Secondary Relations in Scenes.}
 
 \be \item
-Modification by Ds and by Es. We should distinguish two types of modifying units for an A scene.
+Modification by Ds and by Es. We should distinguish two types of modifying units for an A Scene.
 \be
 \item
-Ds refer to the scene itself and express a secondary relation in that scene:
-\be \item ``[[John]$_A$ ['s]$_F$ [accurate]$_D$ [kick]$_P$]$_A$ [saved]$_P$ [the game]$_A$'' \ee
+Ds refer to the Scene itself and express a secondary relation in that Scene:
+\be \item ``[John$_A$ 's$_F$ accurate$_D$ kick$_P$]$_A$ saved$_P$ [the game]$_A$'' \ee
 \item
-Es refer to scene when it is construed as a single entity, and don't provide any information of what is happening in the scene itself:
+Es refer to Scene when it is construed as a single entity, and don't provide any information of what is happening in the Scene itself:
 \be \item
 ``The$_E$ final$_E$ countdown$_C$''
 \item
 ``[The$_E$ [accurate$_D$ kick$_P$]$_C$ ]$_A$ saved the game''
 \item
-``[ [Ali$_C$ 's$_R$]$_A$ ]$_{C-}$ last$_E$ [ fight$_P$]$_{-C(CONT.)}$ ]$_A$ will surely be remembered'' (here ``last'' is an E since it tells us nothing on the fighting scene, but only specifies which scene it is)
+``[ [Ali$_C$ 's$_R$]$_A$ ]$_{C-}$ last$_E$ [ fight$_P$]$_{-C(CONT.)}$ ]$_A$ will surely be remembered'' (here ``last'' is an E since it tells us nothing on the fighting Scene, but only specifies which Scene it is)
 \item
 ``[ [The]$_E$ [fruitless]$_E$ [ [negotiations]$_P$ [between]$_F$ [John]$_A$ [and]$_F$ [Mary]$_A$ ]$_C$ ]$_A$ [lasted]$_P$ [3 years]$_A$''
 \ee
@@ -732,14 +720,14 @@ Quantity Adverbs. Adverbs of quantity such as ``just'' and ``only'' should be an
 \be \item
 ``[There is]$_S$ [only]$_D$ [one piece of cake]$_A$''
 \item
-``[The supermarket] [is]$_{S-}$ [just]$_D$ [around]$_{-S(CONT.)}$ [the corner]$_A$''
+``[The supermarket] is$_F$ just$_D$ around$_S$ [the corner]$_A$''
 \ee
 \item
 Negation. Negation is considered an adverbial.
 \be \item
-``[John]$_A$ [did]$_F$ [n''t]$_D$ [touch]$_P$ [the piano]$_A$''
+``John$_A$ did$_F$ n't$_D$ touch$_P$ [the piano]$_A$''
 \item
-``[John]$_A$ [is]$_{P-}$ [no]$_D$ [joker]$_{-P(CONT.)}$''
+``[John]$_A$ is$_F$ [no]$_D$ [joker]$_P$''
 \ee
 \item D in coordination. Occasionally, several entities are connected by an N, where there is a D (usually a frequency, probability or temporal relation) which relates specifically to one of them. In this case, the proper annotation is to annotate it as a D.
 \be
@@ -747,20 +735,28 @@ Negation. Negation is considered an adverbial.
 ``He$_A$ appeared$_P$ [in$_R$ [ [Head of the Class]$_C$, [Freddy 's Nightmares]$_C$ , [Thirtysomething ]$_C$, and$_N$ [( [for a second time]$_D$ ) [Growing Pains]$_C$ ]$_C$ ]$_C$ ]$_A$ .''
 \item
 ``John$_A$ [is$_F$ intending$_F$ to$_F$ go$_C$]$_P$ [to$_R$ [Rome$_C$, Paris$_C$ and$_N$ [perhaps$_D$ London$_C$]$_C$ ]$_A$''.
+  \ee
+\item
+Copulas: Some verbs in English may serve as copulas, mostly taking an adjective or adjectival phrase as an argument. These are also considered Ds:
+\be
+\item ``John$_A$ stayed$_D$ awake$_S$ [all evening]$_T$''
+\item ``Mary$_A$ turned$_D$ ill$_S$''
 \ee
+  
 \ee
 
-\subsection*{Complex Units.}
+
+\subsection{Complex Units.}
 
 
 
 \paragraph{Relator position.} There are two varieties of Rs.
 \be \item
-It may be a relation that pertains mostly to one entity, but relates it to other relations and participants in the scene. In this case, it should be part of the unit it pertains to.
+It may be a relation that pertains mostly to one entity, but relates it to other relations and participants in the Scene. In this case, it should be part of the unit it pertains to.
 \be \item
 ``There are cookies [in$_R$ the$_E$ jar$_C$]$_A$''
 \item
-``They arrived [after$_R$ dinner$_C$]$_D$''
+``They arrived [after$_R$ dinner$_C$]$_T$''
 \item
 ``She bought a car [with$_R$ her$_E$ prize$_E$ money$_C$]$_A$''
 \item
@@ -783,35 +779,31 @@ Practical guideline: To find out in what level to place the If the R, ask yourse
 ``[John]$_E$ ['s]$_F$ [car]$_C$''
 \ee
 
-\paragraph{
-Determiners.} Determiners should be annotated as elaborators of the noun.
+\paragraph{Determiners.} Determiners should be annotated as elaborators of the noun.
 \be \item
 ``[The]$_E$ [Knesset]$_C$''
 \item
 ``[A]$_E$ [big]$_E$ [brown]$_E$ [dog]$_C$''
 \ee
 
-\paragraph{
-Extraposition.} Cases where an elaborator does not create a contiguous stretch of text with its center. In this case, they should be marked together as a non-contiguous unit.
+\paragraph{Extraposition.} Cases where an elaborator does not create a contiguous stretch of text with its center. In this case, they should be marked together as a non-contiguous unit.
 \be
 \item
 ``He saw [that painting]$_{A-}$ before, [[that lovely magnificent painting]$_E$]$_{-A(CONT)}$''
 \item
-``I met [the guy]$_A$- yesterday, [[whom I first saw in the park]$_E$]$_{‑A(CONT)}$''
+``I met [the guy]$_{A-}$ yesterday, [[whom I first saw in the park]$_E$]$_{‑A(CONT)}$''
 \ee
 
-\paragraph{
-Fused E scenes.} There are many constructions that resemble an E scene construction, but have a somewhat different form. Their internal structure should look like that of a scene:
+\paragraph{Fused E Scenes.} There are many constructions that resemble an E Scene construction, but have a somewhat different form. Their internal structure should look like that of a Scene:
 \be \item
 ``[[What]$_A$ [I]$_A$ [meant]$_P$]$_A$ [was]$_S$ [I want to have dinner]$_A$''
 \item
-``[ [Any]$_E$ [recipes]$_C$ [[she]$_A$ [used]$_P$]$_E$-REMOTE-A(``receipes'') ]$_A$ [are marked]$_P$ [in red]$_D$''
+``[ Any$_E$ recipes$_C$ [she$_A$ used$_P$]$_{E,REMOTE-A(``recipes'')}$]$_A$ are$_F$ marked$_P$ [in red]$_D$''
 \item
-``[you]$_A$ [are$_F$ playing$_C$]$_P$ [with$_R$ [somebody$_A$ better$_S$ than$_F$ you$_A$]$_C$]$_A$''
+``[you]$_A$ are$_F$ playing$_P$ [with$_R$ [somebody$_A$ better$_S$ than$_F$ you$_A$]$_C$]$_A$''
 \ee
 
-\paragraph{
-Numbers and Quantifiers.} They are considered Es. The question of their scope is not addressed in the current layer of the annotation. Therefore they are considered a part of the unit adjacent to it.
+\paragraph{Numbers and Quantifiers.} They are considered Es. The question of their scope is not addressed in the current layer of the annotation. Therefore they are considered a part of the unit adjacent to it.
 \be
 \item
 ``[[All]$_E$ [Greeks]$_C$]$_A$ are mortals''
@@ -825,11 +817,10 @@ Numbers and Quantifiers.} They are considered Es. The question of their scope is
 \be \item
 ``I''m going to give him [100E USDC]$_A$ for his job''
 \item
-``John$_A$ bought$_P$ milk$_A$ [next door]$_A$ [for$_R$ 50E p$_C$]$_A$'' (``next door'' is a location, albeit an abstract one)
+``John$_A$ bought$_P$ milk$_A$ [next door]$_A$ [for$_R$ 50$_E$ p$_C$]$_A$'' (``next door'' is a location, albeit an abstract one)
 \ee
 
-\paragraph{
-C within C.} The question of whether to mark all the Es in a flat structure (as in ``big$_E$ brown$_E$ dogs$_C$'') or to set some order of precedence between them (as in ``orange$_E$ [laptop$_E$ covers$_C$]$_C$'', where it's clear that ``orange'' elaborates ``laptop covers'' and not that ``laptop'' elaborates ``orange covers''). The rule is: ``mark a C within C whenever there is an order of precedence between the Elaborators, otherwise use a flat structure''.
+\paragraph{C within C.} The question of whether to mark all the Es in a flat structure (as in ``big$_E$ brown$_E$ dogs$_C$'') or to set some order of precedence between them (as in ``orange$_E$ [laptop$_E$ covers$_C$]$_C$'', where it's clear that ``orange'' elaborates ``laptop covers'' and not that ``laptop'' elaborates ``orange covers''). The rule is: ``mark a C within C whenever there is an order of precedence between the Elaborators, otherwise use a flat structure''.
 \be \item
 ``big$_E$ brown$_E$ dogs$_C$''
 \item
@@ -840,8 +831,7 @@ C within C.} The question of whether to mark all the Es in a flat structure (as 
 ``[heavy$_E$ water$_C$]$_E$ [production]$_C$''
 \ee
 
-\paragraph{
-Classifiers.} Units comprised of a sub-unit that specifies the whole W, and another which specifies which category it belongs to P (in order to specify what aspect of meaning we would like to refer to). In these cases, UCCA will annotate W as a C and P as an E.
+\paragraph{Classifiers.} Units comprised of a sub-unit that specifies the whole W, and another which specifies which category it belongs to P (in order to specify what aspect of meaning we would like to refer to). In these cases, UCCA will annotate W as a C and P as an E.
 \be \item
 ``[the name]$_E$ [John]$_C$''
 \item
@@ -852,16 +842,14 @@ Classifiers.} Units comprised of a sub-unit that specifies the whole W, and anot
 ``[his strange belief that$_R$]$_E$ [chickens are immortal]$_C$''
 \ee
 
-\paragraph{
-Ordinals.} Ordinals are words like ``first'', ``second'', ``last'' which select a member from a group according to some order. In the current coarse-grained level of annotation, we annotate them as Es.
+\paragraph{Ordinals.} Ordinals are words like ``first'', ``second'', ``last'' which select a member from a group according to some order. In the current coarse-grained level of annotation, we annotate them as Es.
 \be \item
 ``the$_E$ first$_E$ game$_C$''
 \item
-``the$_E$ first$_E$ movie$_C$ [I$_A$ have$_P$- ever$_D$ seen-P]$_E$''
+``the$_E$ first$_E$ movie$_C$ [I$_A$ have$_F$ ever$_D$ seen$_P$]$_E$''
 \ee
 
-\paragraph{
-Part-Whole relations.} Units comprised of a sub-unit that specifies the whole W, and another that specifies the specific sub-part of it P. In these cases, UCCA will annotate W as a C and P as an E.
+\paragraph{Part-Whole relations.} Units comprised of a sub-unit that specifies the whole W, and another that specifies the specific sub-part of it P. In these cases, UCCA will annotate W as a C and P as an E.
 \be
 \item
 ``[bottom$_E$ of$_R$]$_E$ [the]$_E$ [sea]$_C$''
@@ -871,62 +859,56 @@ Part-Whole relations.} Units comprised of a sub-unit that specifies the whole W,
 ``[a$_E$ period$_E$ of$_R$]$_E$ [time]$_C$''
 \ee
 
-\paragraph{
-Comparatives/Superlatives.} Comparatives/superlatives generally evoke a static Scene. If the domain of application is explicitly mentioned (namely the set of entities the comparison applies to), it should be marked as a participant.
+\paragraph{Comparatives/Superlatives.} Comparatives/superlatives generally evoke a static Scene. If the domain of application is explicitly mentioned (namely the set of entities the comparison applies to), it should be marked as a participant.
 \be
 \item
 ``[Jordan]$_A$ was$_F$ better$_S$ than$_F$ James$_A$''
 \item
-``[China]$_A$ [is the greatest]$_S$''
+``[China]$_A$ is$_F$ [the greatest]$_S$''
 \item
-``[China]$_A$ [is the greatest]$_S$ [place on earth]$_A$''
+``[China]$_A$ is$_F$ [the greatest]$_S$ [place on earth]$_A$''
 \ee
 
-\paragraph{
-Directions.} Directions should be considered as As, as they can be said to refer to an abstract location. This applies to both absolute directions (like ``north'') and relative directions (like ``away'').
+\paragraph{Directions.} Directions should be considered as As, as they can be said to refer to an abstract location. This applies to both absolute directions (like ``north'') and relative directions (like ``away'').
 \be
 \item
-``John$_A$ told$_P$ Mary$_A$ [[to come]$_P$ [in]$_A$ ]$_A$''
+``John$_A$ told$_P$ Mary$_A$ [to$_F$ come$_P$ [in]$_A$ ]$_A$''
 \item
 ``John$_A$ walked$_P$ away$_A$''
 \item
 ``[dance]$_P$ [the night]$_A$ [away]$_D$'' (a metaphorical use)
 \ee
 
-\paragraph{
-Passive ``by''.} The ``by'' of the passive should be annotated as R.
+\paragraph{Passive ``by''.} The ``by'' of the passive should be annotated as R.
 \be \item
 ``He$_A$ is$_F$ considered$_S$ [by$_R$ many$_C$]$_A$ to be the best chef town.''
 \ee
 
-\paragraph{
-Prepositions with an omitted argument.} In some cases (usually in E scenes), an A is missing but its preposition is in place. We mark the preposition as an A, with an R inside of it, and add a remote C:
+\paragraph{Prepositions with an omitted argument.} In some cases (usually in E Scenes), an A is missing but its preposition is in place. We mark the preposition as an A, with an R inside of it, and add a remote C:
 \be \item
-``The$_E$ book$_C$ [I$_A$ [''m$_F$ looking$_C$]$_P$ [for$_R$ ]$_A$,REMOTE-C(``book'')]$_E$''
+``The$_E$ book$_C$ [I$_A$ 'm$_F$ looking$_P$ [for$_R$ ]$_{A,REMOTE-C(``book'')}$]$_E$''
 \item
-``The$_E$ work$_C$ [I$_A$ pay$_P$ [the$_E$ most$_E$ attention$_C$]$_A$ [to$_R$ ]$_A$,REMOTE-C(``work'') ]$_E$''
+``The$_E$ work$_C$ [I$_A$ pay$_P$ [the$_E$ most$_E$ attention$_C$]$_A$ [to$_R$ ]$_{A,REMOTE-C(``work'')}$]$_E$''
 \ee
 
-\subsection*{Processes/States.}
+\subsection{Processes/States.}
 
-\paragraph{
-P/S sub-units.} If the P/S is multi-worded, it will usually contain sub-units. The main verb is the C. Other sub-units that have significant semantic input, chiefly secondary verbs, are Es. Modals should invariably be annotated as secondary verbs (and therefore as Es). This applies to ``would'' and ``will'' as well. Auxiliary verbs (be, have and do), which do not have significant semantic input in their own right\footnote{UCCA in its foundational layer does not annotate tense. Even if it did, the tense would not be considered a feature encoded on the auxiliaries, but rather in the combination of the auxiliary and the inflection.} are considered F.
+\paragraph{Modals and Auxilliaries.} If the P/S is multi-worded, it will usually contain sub-units. The main verb is the C. Other sub-units that have significant semantic input, chiefly secondary verbs, are Ds and should not be included within the P/S. Modals should invariably be annotated as secondary verbs (and therefore as Ds). This applies to ``would'' and ``will'' as well. Auxiliary verbs (be, have and do), which do not have significant semantic input in their own right\footnote{UCCA in its foundational layer does not annotate tense. Even if it did, the tense would not be considered a feature encoded on the auxiliaries, but rather in the combination of the auxiliary and the inflection.} are considered Fs.
 \be \item
-``John$_A$ [will]$_D$ [come]$_P$''
+``John$_A$ will$_D$ come$_P$''
 \item
-``Mary$_A$ [should]$_D$ [come]$_P$''
+``Mary$_A$ should$_D$ [come]$_P$''
 \item
-``Mary$_A$ [is$_F$ coming$_C$]$_P$''
+``Mary$_A$ is$_F$ coming$_P$''
 \item
-``John$_A$ [[has to]$_E$ come$_C$]$_P$''
+``John$_A$ [has to]$_D$ come$_P$''
 \item
-``I$_A$ [have$_F$ done$_C$]$_P$ it$_A$''
+``I$_A$ have$_F$ done$_P$ it$_A$''
 \item
-``John$_A$ [does$_F$]$_P$- [n''t]$_D$ [know$_C$]-P(CONT.) [him]$_A$''
+``John$_A$ [n't]$_D$ know$_P$ [him]$_A$''
 \ee
 
-\paragraph{
-Distinguishing identity and other static scenes.}
+\paragraph{Distinguishing identity and other static Scenes.}
 Occasionally nouns are used as Ps or Ss, accompanied by some inflection of the verb ``be''. UCCA distinguishes between two cases:
 \be \item
 Identity: where there are two separate, defined entities.
@@ -939,44 +921,29 @@ Identity: where there are two separate, defined entities.
 \item
 Attribution: where there is one A, and the noun is used to describe some set of elements to which that A belongs to. In this case, we include the set-denoting noun in the P or S.
 \be \item
-"[his speech]$_A$ [was an embarrassment]$_S$"
+"[his speech]$_A$ was$_F$ [an embarrassment]$_S$"
 \item
-``[Brad Pitt]$_A$ [was a slimeball]$_S$ [as the boyfriend]$_A$ [in the soap opera Dalls]$_A$''
+``[Brad Pitt]$_A$ was$_F$ [a slimeball]$_S$ [as the boyfriend]$_A$ [in the soap opera Dalls]$_A$''
 \item
-``John$_A$ [is$_F$ [[six$_E$ years$_C$]$_E$ old$_C$]$_C$ ]$_S$''
+``John$_A$ is$_F$ [[six$_E$ years$_C$]$_E$ old$_C$]$_S$''
 \ee
 \ee
 
-\paragraph{
-Non-contiguous P/S in questions.} The auxiliaries should be annotated as a (non-contiguous) part of the process/state.
-\be \item
-``Who$_A$ [did$_F$ ]$_P$- n''t$_D$ you$_A$ [invite$_C$]$_{P(CONT.)}$ ?
-\ee
-
-%\paragraph{
-%%%%%Verbal Es and Adverbials.} A common ambiguity is between Es inside a P/S and Ds. In case the unit refers directly to the verb and constitutes an inseparable part of it (as in secondary verbs), we mark it as an E inside the P/S. In any other case, we mark it as a D. When in doubt, prefer annotating it as a D.
+%\paragraph{%%%%%Verbal Es and Adverbials.} A common ambiguity is between Es inside a P/S and Ds. In case the unit refers directly to the verb and constitutes an inseparable part of it (as in secondary verbs), we mark it as an E inside the P/S. In any other case, we mark it as a D. When in doubt, prefer annotating it as a D.
 %\be \item
 %``I$_A$ [did$_F$]$_S$- n''t$_D$ always$_D$ [like$_C$]$_{-S(CONT.)}$ him$_A$''
 %\item
 %``I$_A$ [must$_E$ eat$_C$]$_P$''
 %\ee
 
-\paragraph{
-Non-contiguous Process/State.} Occasionally, an adverbial is placed between the auxiliary and the main verb. In that case, a non-contiguous process/state should be marked.
+\paragraph{Infinitive ``to''.} By convention, when ``to'' is used as an F, it should not be included within the process/state.
 \be \item
-``I$_A$ [am$_F$]$_{P-}$ still$_D$ [waiting$_C$]$_{P(CONTINUED)}$ [for$_R$ your$_A$ reply$_P$]$_A$''
-\ee
-
-\paragraph{
-Infinitive ``to''.} By convention, when ``to'' is used as an F, it should be included within the process/state.
-\be \item
-``He [wanted$_E$ [to$_F$ come$_C$]$_C$]$_P$ home''
+``He wanted$_D$ to$_F$ come$_P$ home''
 \item
-``[ [to$_F$ kick$_C$]$_P$ [a penalty shot]$_A$ [in soccer]$_A$]$_A$ [is$_F$ exciting$_C$]$_S$''
+``[to$_F$ kick$_P$ [a penalty shot]$_A$ [in soccer]$_A$]$_A$ is$_F$ exciting$_S$''
 \ee
 
-\paragraph{
-Light Verbs.} Cases where the verb is almost void of meaning, and most of the meaning is determined by the object. The verb is usually ``have'', ``give'', ``take'' or ``make'' (although there are other examples). Annotation: the noun denoting the action is considered to be a part of the P/S. The verb is considered an F, while the ``object'' is considered a C.
+\paragraph{Light Verbs.} Cases where the verb is almost void of meaning, and most of the meaning is determined by the object. The verb is usually ``have'', ``give'', ``take'' or ``make'' (although there are other examples). Annotation: the noun denoting the action is considered to be a part of the P/S. The verb is considered an F, while the ``object'' is considered a C.
 \be \item
 ``John$_A$ [took$_F$ [a$_E$ shower$_C$]$_C$]$_P$''
 \item
@@ -985,53 +952,47 @@ Light Verbs.} Cases where the verb is almost void of meaning, and most of the me
 ``Brad$_A$ [made$_F$ [a$_E$ guest$_E$ appearance$_C$]$_C$]$_P$ [in$_R$ ABC$_C$]$_A$''
 \ee
 
-\paragraph{
-Adjective followed by a scene:} Analyzed as an E+C construction.
+\paragraph{Adjective followed by a Scene:} Analyzed as an D+P construction.
 \be \item
-``John$_A$ [is$_F$ easy$_E$ to$_F$ please$_C$ ]$_P$''
+``John$_A$ is$_F$ easy$_D$ to$_F$ please$_P$''
 \item
-``John$_A$ [is$_F$ likely$_E$ to$_F$ leave$_C$ ]$_P$''
+``John$_A$ is$_F$ likely$_D$ to$_F$ leave$_P$''
 \item
-``John$_A$ [is$_F$ ready$_E$ to$_F$ come$_C$ ]$_P$''
+``John$_A$ is$_F$ ready$_D$ to$_F$ come$_P$''
 \ee
 
-\paragraph{
-Make X  \textless State\textgreater.} We view this construction as a main scene and a participant scene.
+\paragraph{Causatives.} We view this construction as a secondary verb with an additional role construction.
 \be \item
-``John$_A$ [makes]$_P$ Mary$_A$ [ happy$_S$ ]$_{A, REMOTE-A(``Mary'')}$''
+``John$_A$ makes$_D$ Mary$_A$ happy$_S$''
 \item
 ``John$_A$ [inspires$_C$ interest$_C$]$_P$ [in$_R$ Mary$_C$]$_A$''
 \ee
 
-\paragraph{
-Secondary Verbs with another role.}
-Some secondary verbs introduce another role beside the roles of the main verb. An example is ``help'', ``force'' and ``permit''. Like all secondary verbs, such verbs are considered an E inside the process/state. The additional participant is marked as an A in the scene.
+\paragraph{Secondary Verbs with an additional role.}
+Some secondary verbs introduce another role beside the roles of the main verb. An example is ``help'', ``force'' and ``permit''. Like all secondary verbs, such verbs are considered an E inside the process/state. The additional participant is marked as an A in the Scene.
 \be \item
-``John$_A$ [helped$_E$]$_{P-}$ Mary$_A$ [climb$_C$]$_{-P(CONT.)}$ [the ladder]$_A$''
+``John$_A$ helped$_D$ Mary$_A$ climb$_P$ [the ladder]$_A$''
 \item
-``John$_A$ [ forced$_E$]$_P$ [Mary]$_A$ [ to$_F$ climb$_C$]$_{-P(CONT.)}$ [the ladder]$_A$''
+``John$_A$ forced$_D$ [Mary]$_A$ to$_F$ climb$_P$ [the ladder]$_A$''
 \item
-"[he]$_A$ [is$_F$ guilty$_E$ of$_F$ not$_E$ cleaning$_C$]$_P$ [the dishes]$_A$"
+"he$_A$ is$_F$ guilty$_D$ of$_F$ not$_D$ cleaning$_P$ [the dishes]$_A$"
 \ee
 
 
 
-\subsection*{Other Relations.}
+\subsection{Other Relations.}
 
-\paragraph{
-Punctuation.} Invariably considered F in the current layer of UCCA (even commas).
+\paragraph{Punctuation.} Invariably considered F in the current layer of UCCA (even commas).
 
-\paragraph{
-Focus Constructions.} Some constructions are used to emphasize one specific entity. These distinctions are generally not treated in this layer of annotation and are therefore Fs.
+\paragraph{Focus Constructions.} Some constructions are used to emphasize one specific entity. These distinctions are generally not treated in this layer of annotation and are therefore Fs.
 \be
 \item
-``[ [there are]$_F$ ]$_S$- [ [lots$_C$ of$_R$]$_E$ them$_C$]$_A$ [lurking$_C$]$_{-S(CONT.)}$ [in$_R$ the$_E$ bushes$_C$]$_A$''
+``[there are]$_F$ [ [lots$_C$ of$_R$]$_E$ them$_C$]$_A$ lurking$_P$ [in$_R$ the$_E$ bushes$_C$]$_A$''
 \item
 ``it$_F$ was$_F$  [John$_A$ who$_F$] wrote$_P$ [this$_E$ novel$_C$]$_A$''
 \ee
 
-\paragraph{
-WH-pronouns.} WH-pronouns should be annotated with the same category as the participant they refer to. In some cases (notably E scenes), the wh-pronoun does not refer to an entity, and merely relates the E scene with the elaborated entity. It is therefore an R.
+\paragraph{WH-pronouns.} WH-pronouns should be annotated with the same category as the participant they refer to. In some cases (notably E Scenes), the wh-pronoun does not refer to an entity, and merely relates the E Scene with the elaborated entity. It is therefore an R.
 \be \item
 ``How$_D$ did you fix the car?''
 \item
@@ -1039,29 +1000,26 @@ WH-pronouns.} WH-pronouns should be annotated with the same category as the part
 \item
 ``[Which$_E$ car$_C$]$_A$ did you buy?''
 \item
-``the$_E$ man$_C$ [who$_R$ was$_P$- n''t$_D$ there$_{-P(CONT.)}$]$_E$,REMOTE-A(``man'')''
+``the$_E$ man$_C$ [who$_R$ was$_P$- n''t$_D$ there$_{-P(CONT.)}$]$_{E,REMOTE-A(``man'')}$''
 \item
-``the$_E$ tiger$_C$ [which$_R$ lost$_P$ [his$_E$ hair$_C$]$_A$ ]$_E$,REMOTE-A(``tiger'')''
+``the$_E$ tiger$_C$ [which$_R$ lost$_P$ [his$_E$ hair$_C$]$_A$ ]$_{E,REMOTE-A(``tiger'')}$''
 \item
 ``the­E city$_C$ [ [in which]$_R$ John$_A$ lives$_P$]$_E$''
 \ee
 
-\paragraph{
-Non-contiguous Linkers.} In some cases, the linkers do not form one contiguous unit. We mark them by convention as two separate linkers and not as a non-contiguous unit. The units linked by these two linkers are the same.
+\paragraph{Non-contiguous Linkers.} In some cases, the linkers do not form one contiguous unit. We mark them by convention as two separate linkers and not as a non-contiguous unit. The units linked by these two linkers are the same.
 \be \item
 ``[Either]$_L$ you buy it [or]$_L$ you don''t''
 \ee
 
-\paragraph{
-Dates and Names.} Dates and names are treated as unanalyzable. Therefore, no sub-units should be annotated:
+\paragraph{Dates and Names.} Dates and names are treated as unanalyzable. Therefore, no sub-units should be annotated:
 \be \item
 ``I live in [New York]$_A$''
 \item
-``The event took place [[on]$_R$ [May 17th, 1832]$_C$]$_D$''
+``The event took place [[on]$_R$ [May 17th, 1832]$_C$]$_T$''
 \ee
 
-\paragraph{
-Reflexives.} Reflexives are the words that (in their primary sense) state that two participants of an event are one and the same (``himself'', ``themselves'', ``to one another'' etc.). In UCCA, we mark them as Ds. Note, however, that in some cases reflexives are not used in their primary sense. In these cases, they should be analyzed according to their meaning in the context.
+\paragraph{Reflexives.} Reflexives are the words that (in their primary sense) state that two participants of an event are one and the same (``himself'', ``themselves'', ``to one another'' etc.). In UCCA, we mark them as Ds. Note, however, that in some cases reflexives are not used in their primary sense. In these cases, they should be analyzed according to their meaning in the context.
 \be \item
 ``John$_A$ washed$_P$ himself$_A$''
 \item
@@ -1078,14 +1036,14 @@ Reflexives.} Reflexives are the words that (in their primary sense) state that t
 \be \item
 ``[[According  to]$_S$ John$_A$]$_H$, [the soup is too salty]$_H$''
 \item
-``Mary$_A$ [ is$_F$ [in charge of]$_C$]$_S$ John$_A$''
+``Mary$_A$is$_F$ [in charge of]$_S$ John$_A$''
 \item
-``John­A studies$_P$ [media$_C$ [[with$_F$ a$_F$ focus$_C$ on$_F$]$_R$ advertising$_C$]$_E$ ]$_A$''
+``John$_A$ studies$_P$ [media$_C$ [[with$_F$ a$_F$ focus$_C$ on$_F$]$_R$ advertising$_C$]$_E$ ]$_A$''
 \item
-``[[later in]$_R$ 1988C]$_D$, John$_A$ bought$_P$ [a$_E$ car$_C$]$_A$''
+``[[later in]$_R$ 1988$_C$]$_T$, John$_A$ bought$_P$ [a$_E$ car$_C$]$_A$''
 \ee
 
-\paragraph{Frame of reference.} Some scenes are accompanied by a background statement which explains in what way it should be construed. If the background does not refer to the same event as the scene itself, it should be treated as a separate scene.
+\paragraph{Frame of reference.} Some Scenes are accompanied by a background statement which explains in what way it should be construed. If the background does not refer to the same event as the Scene itself, it should be treated as a separate Scene.
 \be \item
 ``[Under European law]$_H$, [this is an infringement]$_H$''
 \item
@@ -1094,7 +1052,7 @@ Reflexives.} Reflexives are the words that (in their primary sense) state that t
 ``[According to]$_L$ [our figures]$_H$, [you lost a lot of money]$_H$''
 \ee
 
-\subsection*{Morphology.}
+\subsection{Morphology.}
 
 \paragraph{Inflectional and Derivational Morphology.} UCCA does not annotate them in the current layer. Therefore the word ``dogs'' has no sub-units and neither does the word ``talked''. This will be added in future layers.
 
@@ -1103,12 +1061,12 @@ Several words that were coersed into one and obtained their own idiosyncratic me
 \be \item
 ``There are [pickpockets]$_A$ in this side of town''
 \item
-``[he]$_A$ [ ['s]$_F$ [a]$_E$ [have-been]$_C$ ]$_S$''
+``[he]$_A$ ['s]$_F$ [a$_E$ have-been$_C$]$_S$''
 \item
-Let's go [[to]$_R$ [the]$_E$ [merry-go-round]$_C$]$_E$''
+Let's go [to$_R$ the$_E$ merry-go-round$_C$]$_A$''
 \ee
 
-\section*{Appendix D: Plain Text Notation}
+\section{Appendix D: Plain Text Notation}
 
 
 In order to make UCCA's annotation legible and standardized, we give here guidelines for UCCA's notation in plain text. We note that the hierarchical structure formed by UCCA can be annotated by standard bracketing. The abbreviation of the category should be either adjacent to the left or to the right side of the category.
@@ -1117,7 +1075,7 @@ We use the following abbreviations for the categories:\\
 
 \noindent
 T -- time \\
-H -- parallel scene \\
+H -- parallel Scene \\
 A -- participant \\
 C -- center \\
 L -- linker\\
