@@ -6,9 +6,9 @@ from config import Config
 
 if __name__ == "__main__":
     out_file = sys.argv.pop(0)
-    learning_rates = set(np.round(0.001 + np.random.exponential(0.8, 50), 3))
+    learning_rates = list(set(np.round(0.001 + np.random.exponential(0.8, 50), 3)))
     print("All learning rates to try: " + ",".join(
-            "%.3f" % learning_rate for learning_rate in learning_rates))
+            "%.3f" % learning_rate for learning_rate in sorted(learning_rates)))
     scores = []
     for learning_rate in learning_rates:
         print("Running with learning rate of %.3f" % learning_rate)
