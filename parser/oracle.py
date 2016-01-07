@@ -14,74 +14,96 @@ class Oracle(object):
         self.nodes_remaining = {node.ID for node in passage.layer(layer1.LAYER_ID).all} - {ROOT_ID}
         self.edges_remaining = {edge for node in passage.nodes.values() for edge in node}
         self.passage = passage
+        self.edge_found = False
 
-    def get_action(self, state):
+    def get_actions(self, state):
         """
-        Determine best action according to current state
+        Determine all zero-cost action according to current state
+        Asserts that the returned action is valid before returning
         :param state: current State of the parser
-        :return: best Action to perform
+        :return: list of Action items to perform
+        """
+        actions = []
+        for action in self.generate_actions(state):
+            try:
+                state.assert_valid(action)
+            except AssertionError as e:
+                raise AssertionError("Oracle returned invalid action: %s" % action) from e
+            actions.append(action)
+        assert actions, "Oracle found no action\n" + state.str("\n") + "\n" + self.str("\n")
+        return actions
+
+    def generate_actions(self, state):
+        """
+        Determine all zero-cost action according to current state
+        :param state: current State of the parser
+        :return: generator of Action items to perform
         """
         if not self.edges_remaining:
-            return Actions.Finish
+            yield Actions.Finish
+            if state.stack:
+                yield Actions.Reduce
+            return
 
+        self.edge_found = False
         if state.stack:
             s0 = state.stack[-1]
             incoming = self.edges_remaining.intersection(s0.orig_node.incoming)
             outgoing = self.edges_remaining.intersection(s0.orig_node.outgoing)
             if not incoming and not outgoing:
-                return Actions.Reduce
-
-            related = set([edge.child.ID for edge in outgoing] +
-                          [edge.parent.ID for edge in incoming])
-            # Prefer incorporating immediate relatives if possible
-            if state.buffer and state.buffer[0].node_id in related:
-                return Actions.Shift
-
-            if len(state.stack) > 1:
-                s1 = state.stack[-2]
-                # Check for binary edges
-                for edges, prefix in (((e for e in incoming if
-                                        e.parent.ID == s1.node_id),
-                                       "RIGHT"),
-                                      ((e for e in outgoing if
-                                        e.child.ID == s1.node_id),
-                                       "LEFT")):
-                    for edge in edges:
-                        self.edges_remaining.remove(edge)
-                        return Action(prefix + ("-REMOTE" if edge.attrib.get("remote") else "-EDGE"),
-                                      edge.tag)
-
-                # Check if a swap is necessary, and how far (if compound swap is enabled)
-                distance = None  # Swap distance (how many nodes in the stack to swap)
-                related_in_stack = 0  # How many nodes in the stack are related to the stack top
-                for i, s in enumerate(state.stack[-3::-1]):  # Skip top two, they are not related
-                    if s.node_id in related:
-                        if distance is None and Config().compound_swap:
-                            distance = i + 1
-                        related_in_stack += 1
-                        if related_in_stack == len(related):  # All related nodes are in the stack
-                            return Actions.Swap(distance)
-
-            # Check for unary edges
-            for edges, action, attr in (((e for e in incoming if
-                                          e.parent.ID in self.nodes_remaining and not e.attrib.get("remote")),
-                                         Actions.Node, "parent"),
-                                        ((e for e in outgoing if
-                                          e.child.attrib.get("implicit")),
-                                         Actions.Implicit, "child")):
-                for edge in edges:
-                    self.edges_remaining.remove(edge)
-                    node = getattr(edge, attr)
-                    self.nodes_remaining.remove(node.ID)
-                    return action(edge.tag, node)
-
-        if not state.buffer:
-            if Config().verify:
-                raise Exception("No action is possible\n" + state.str("\n") + "\n" + self.str("\n"))
+                yield Actions.Reduce
+                return
             else:
-                return Actions.Finish
+                # Check for actions to create new nodes
+                for edge in incoming:
+                    if edge.parent.ID in self.nodes_remaining and not edge.attrib.get("remote"):
+                        yield self.create_node_action(edge, edge.parent, Actions.Node)
 
-        return Actions.Shift
+                for edge in outgoing:
+                    if edge.child.attrib.get("implicit"):
+                        yield self.create_node_action(edge, edge.child, Actions.Implicit)
+
+                if len(state.stack) > 1:
+                    s1 = state.stack[-2]
+                    # Check for actions to create binary edges
+                    for edge in incoming:
+                        if edge.parent.ID == s1.node_id:
+                            yield self.create_edge_action(edge, Action.RIGHT)
+
+                    for edge in outgoing:
+                        if edge.child.ID == s1.node_id:
+                            yield self.create_edge_action(edge, Action.LEFT)
+
+                    if not self.edge_found:
+                        # Check if a swap is necessary, and how far (if compound swap is enabled)
+                        related = set([edge.child.ID for edge in outgoing] +
+                                      [edge.parent.ID for edge in incoming])
+                        distance = None  # Swap distance (how many nodes in the stack to swap)
+                        for i, s in enumerate(state.stack[-3::-1]):  # Skip top two, they are not related
+                            if s.node_id in related:
+                                related.remove(s.node_id)
+                                if distance is None and Config().compound_swap:
+                                    distance = i + 1
+                                if not related:  # All related nodes are in the stack
+                                    yield Actions.Swap(distance)
+                                    return
+
+        if state.buffer and not self.edge_found:
+            yield Actions.Shift
+
+    def create_edge_action(self, edge, direction):
+        self.edge_found = True
+        return Action.edge_action(direction, edge.attrib.get("remote"), edge.tag,
+                                  orig_edge=edge, oracle=self)
+
+    def create_node_action(self, edge, node, action):
+        self.edge_found = True
+        return action(edge.tag, orig_edge=edge, orig_node=node, oracle=self)
+
+    def remove(self, edge, node=None):
+        self.edges_remaining.remove(edge)
+        if node is not None:
+            self.nodes_remaining.remove(node.ID)
 
     def str(self, sep):
         return "nodes left: [%s]%sedges left: [%s]" % (" ".join(self.nodes_remaining), sep,

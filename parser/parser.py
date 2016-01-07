@@ -24,6 +24,7 @@ class Parser(object):
     def __init__(self, model_file=None):
         self.state = None  # State object created at each parse
         self.oracle = None  # Oracle object created at each parse
+        self.scores = None  # dict of action IDs -> model scores at each action
         self.action_count = 0
         self.correct_count = 0
         self.total_actions = 0
@@ -180,39 +181,36 @@ class Parser(object):
             if Config().check_loops and history is not None:
                 self.check_loop(history, train)
 
-            true_action = None
+            true_actions = None
             if self.oracle is not None:
                 try:
-                    true_action = self.oracle.get_action(self.state)
-                    self.state.assert_valid(true_action)
+                    true_actions = self.oracle.get_actions(self.state)
                 except AttributeError as e:
                     if train:
                         raise Exception("Error in oracle during training") from e
-                except AssertionError as e:
-                    raise AssertionError("Oracle returned invalid action: %s" % true_action) from e
 
             features = self.feature_extractor.extract_features(self.state)
-            predicted_action = self.predict_action(features, true_action)
+            predicted_action = self.predict_action(features, true_actions)
             action = predicted_action
-            prefix = " "  # Will be "*" if true action is taken instead of predicted one
-            if true_action is None:
-                true_action = "?"
-            elif predicted_action == true_action:
+            if true_actions is None:
+                true_actions = "?"
+            elif predicted_action in true_actions:
                 self.correct_count += 1
             elif train:
-                self.model.update(features, predicted_action.id, true_action.id,
+                best_true_action_id = max([true_action.id for true_action in true_actions],
+                                          key=self.scores.get)
+                self.model.update(features, predicted_action.id, best_true_action_id,
                                   Config().learning_rate)
-                if random.random() < Config().override_action_probability:
-                    action = true_action
-                    prefix = "*"
+                action = random.choice(true_actions)
             self.action_count += 1
             self.state.transition(action)
             if Config().verbose:
                 if self.oracle is None:
-                    print("%s action: %-15s %s" % (prefix, predicted_action, self.state))
+                    print("  action: %-15s %s" % (action, self.state))
                 else:
-                    print("%s predicted: %-15s true: %-15s %s" % (
-                        prefix, predicted_action, true_action, self.state))
+                    print("  predicted: %-15s true: %-15s taken: %-15s %s" % (
+                        predicted_action, "|".join(str(true_action) for true_action in true_actions),
+                        action, self.state))
                 for line in self.state.log:
                     print("    " + line)
             if self.state.finished:
@@ -229,30 +227,33 @@ class Parser(object):
                                  "\n" + self.oracle.str("\n") if train else ""
         history.add(h)
 
-    def predict_action(self, features, true_action=None):
+    def predict_action(self, features, true_actions=None):
         """
         Choose action based on classifier
         :param features: extracted feature values
-        :param true_action: from the oracle, to copy orig_node if the same action is selected
+        :param true_actions: from the oracle, to copy orig_node if the same action is selected
         :return: valid action with maximum probability according to classifier
         """
-        scores = self.model.score(features)  # Returns dict of id -> score
-        best_action = self.select_action(max(scores, key=scores.get), true_action)
+        self.scores = self.model.score(features)  # Returns dict of id -> score
+        best_action = self.select_action(max(self.scores, key=self.scores.get), true_actions)
         if self.state.is_valid(best_action):
             return best_action
         # Usually the best action is valid, so max is enough to choose it in O(n) time
         # Otherwise, sort all the other scores to choose the best valid one in O(n lg n)
-        scores_sorted = sorted(scores, key=scores.get)[-2::-1]  # Exclude max, already checked
-        actions = (self.select_action(i, true_action) for i in scores_sorted)
+        scores_sorted = sorted(self.scores, key=self.scores.get)[-2::-1]  # Exclude max, already checked
+        actions = (self.select_action(i, true_actions) for i in scores_sorted)
         try:
             return next(action for action in actions if self.state.is_valid(action))
         except StopIteration as e:
             raise AssertionError("No valid actions available") from e
 
     @staticmethod
-    def select_action(i, true_action):
+    def select_action(i, true_actions):
         action = Action.by_id(i)
-        return true_action if action == true_action else action
+        try:
+            return next(true_action for true_action in true_actions if action == true_action)
+        except StopIteration:
+            return action
 
     @staticmethod
     def verify_passage(passage, predicted_passage, show_diff):

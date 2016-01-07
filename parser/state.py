@@ -151,11 +151,15 @@ class State(object):
                     assert 1 <= distance < len(self.stack), "Invalid swap distance: %d" % distance
                     swapped = self.stack[-distance - 1]
                     # To prevent swap loops: only swap if the nodes are currently in their original order
-                    assert swapped.swap_index < s0.swap_index,\
+                    assert self.swappable(s0, swapped),\
                         "Swapping already-swapped nodes: %s (swap index %d) <--> %s (swap index %d)" % (
                             swapped, swapped.swap_index, s0, s0.swap_index)
                 else:
                     raise Exception("Invalid action: %s" % action)
+
+    @staticmethod
+    def swappable(right, left):
+        return left.swap_index < right.swap_index
 
     # noinspection PyTypeChecker
     def transition(self, action):
@@ -163,6 +167,7 @@ class State(object):
         Main part of the parser: apply action given by oracle or classifier
         :param action: Action object to apply
         """
+        action.apply()
         self.log = []
         if action.is_type(Actions.Shift):  # Push buffer head to stack; shift buffer
             self.stack.append(self.buffer.popleft())

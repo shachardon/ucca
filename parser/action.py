@@ -10,11 +10,16 @@ class Action(object):
     all_actions = None
     all_action_ids = None
 
-    def __init__(self, action_type, tag=None, orig_node=None):
+    RIGHT = 0
+    LEFT = 1
+
+    def __init__(self, action_type, tag=None, orig_edge=None, orig_node=None, oracle=None):
         self.type = action_type  # String
         self.tag = tag  # Usually the tag of the created edge; but if COMPOUND_SWAP, the distance
         self.orig_node = orig_node  # Node created by this action, if any (during training)
+        self.orig_edge = orig_edge
         self.edge = None  # Will be set by State when the edge created by this action is known
+        self.oracle = oracle
 
         self.type_id = Action.type_to_id.get(self.type)  # Allocate ID for fast comparison
         if self.type_id is None:
@@ -25,6 +30,10 @@ class Action(object):
     def is_type(self, *others):
         return self.type_id in (o.type_id for o in others)
 
+    def apply(self):
+        if self.oracle is not None:
+            self.oracle.remove(self.orig_edge, self.orig_node)
+
     @staticmethod
     def from_string(s):
         m = re.match("(.*)-(.*)", s)
@@ -32,6 +41,13 @@ class Action(object):
             action_type, tag = m.groups()
             return Action(action_type, tag)
         return Action(s)
+
+    @classmethod
+    def edge_action(cls, direction, remote, tag, *args, **kwargs):
+        if direction == cls.RIGHT:
+            return Actions.RightRemote(tag, *args, **kwargs) if remote else Actions.RightEdge(tag, *args, **kwargs)
+        else:
+            return Actions.LeftRemote(tag, *args, **kwargs) if remote else Actions.LeftEdge(tag, *args, **kwargs)
 
     def __repr__(self):
         return Action.__name__ + "(" + self.type + (", " + self.tag if self.tag else "") + ")"
