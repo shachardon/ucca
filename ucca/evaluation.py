@@ -131,7 +131,7 @@ def mutual_yields(passage1, passage2, eval_type, separate_remotes=True, verbose=
                                       to_text(passage1, y))
                             elif (EdgeTags.Participant in tags1 and EdgeTags.Elaborator in tags2) or \
                                  (EdgeTags.Elaborator in tags1 and EdgeTags.Participant in tags2):
-                                print(EdgeTags.Participant +'-' + EdgeTags.Elaborator, to_text(passage1, y))
+                                print(EdgeTags.Participant + '-' + EdgeTags.Elaborator, to_text(passage1, y))
 
         return mutual_ys, error_counter
 
@@ -165,10 +165,10 @@ def create_passage_yields(p, remote_terminals=False):
     l1 = p.layer("1")
     edges = []
     for node in l1.all:
-        edges.extend([e for e in node if e.tag not in (EdgeTags.Punctuation,
-                                                       EdgeTags.LinkArgument,
-                                                       EdgeTags.LinkRelation,
-                                                       EdgeTags.Terminal)])
+        edges.extend(e for e in node if e.tag not in (EdgeTags.Punctuation,
+                                                      EdgeTags.LinkArgument,
+                                                      EdgeTags.LinkRelation,
+                                                      EdgeTags.Terminal))
    
     table_reg, table_remote = dict(), dict()
     for e in edges:
