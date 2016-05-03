@@ -15,13 +15,13 @@ unit)
     python parsing/parse.py doc/toy.xml -esvm model_toy_paragraphs
     ;;
 sparse)
-    python parsing/parse.py -c sparse -WeLMCbs pickle/dev -t pickle/train -d pickle/dev
+    python parsing/parse.py -c sparse -WeLMCbs pickle/dev -t pickle/train
     ;;
 dense)
-    python parsing/parse.py -c dense -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev -t pickle/train -d pickle/dev
+    python parsing/parse.py -c dense -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev -t pickle/train
     ;;
 nn)
-    python parsing/parse.py -c nn -WeLMCbs pickle/dev -t pickle/train -d pickle/dev
+    python parsing/parse.py -c nn -WeLMCbs pickle/dev -t pickle/train
     ;;
 convert)
     ci/test_convert_all.sh
