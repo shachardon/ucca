@@ -4,7 +4,6 @@ import argparse
 import os
 import sys
 
-from parsing import util
 from parsing.classifiers.dense_perceptron import DensePerceptron
 from parsing.classifiers.sparse_perceptron import SparsePerceptron
 
@@ -20,7 +19,7 @@ def main():
     args = argparser.parse_args()
 
     model = DensePerceptron() if args.model == "dense" else SparsePerceptron()
-    model.load(args.infile, util)
+    model.load(args.infile)
     model.write(args.outfile or os.path.splitext(args.infile)[0] + ".tsv")
 
     sys.exit(0)
