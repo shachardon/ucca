@@ -32,6 +32,7 @@ env:
   - TEST_SUITE=sparse
   - TEST_SUITE=dense
   - TEST_SUITE=nn
+  - TEST_SUITE=tune
   - TEST_SUITE=convert
 script:
   - ci/test.sh

@@ -23,6 +23,10 @@ dense)
 nn)
     python parsing/parse.py -c nn -WeLMCbs pickle/dev -t pickle/train
     ;;
+tune)
+    python parsing/tune.py doc/toy.xml -t doc/toy.xml
+    column -t -s, params.csv
+    ;;
 convert)
     ci/test_convert_all.sh
     ;;
