@@ -238,13 +238,11 @@ class Scores(object):
 
     def fields(self):
         e = self.evaluators[LABELED]
-        return ["%.3f" % float(p) for p in
-                (e.regular.p, e.regular.r, e.regular.f1, e.remotes.p, e.remotes.r, e.remotes.f1)]
+        return ["%.3f" % float(getattr(x, y)) for x in (e.regular, e.remotes) for y in ("p", "r", "f1")]
 
     @staticmethod
     def field_titles():
-        return ["regular labeled precision", "regular labeled recall", "regular labeled f1",
-                "remote labeled precision", "remote labeled recall", "remote labeled f1"]
+        return ["%s_labeled_%s" % (x, y) for x in ("regular", "remote") for y in ("precision", "recall", "f1")]
 
 
 class EvaluatorResults(object):
