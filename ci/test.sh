@@ -3,16 +3,16 @@
 case "$TEST_SUITE" in
 unit)
     # unit tests
-    python -m unittest discover -v
+    python -m unittest discover -v || exit 1
     # basic conversion test
-    ci/test_convert_toy.sh
+    ci/test_convert_toy.sh || exit 1
     # basic parser tests
-    python parsing/parse.py -I 10 -t doc/toy.xml -d doc/toy.xml -vm model_toy
-    python parsing/parse.py doc/toy.xml -evm model_toy
-    python parsing/parse.py -I 10 -t doc/toy.xml -d doc/toy.xml -svm model_toy_sentences
-    python parsing/parse.py doc/toy.xml -esvm model_toy_sentences
-    python parsing/parse.py -I 10 -t doc/toy.xml -d doc/toy.xml -avm model_toy_paragraphs
-    python parsing/parse.py doc/toy.xml -esvm model_toy_paragraphs
+    python parsing/parse.py -I 10 -t doc/toy.xml -d doc/toy.xml -vm model_toy || exit 1
+    python parsing/parse.py doc/toy.xml -evm model_toy || exit 1
+    python parsing/parse.py -I 10 -t doc/toy.xml -d doc/toy.xml -svm model_toy_sentences || exit 1
+    python parsing/parse.py doc/toy.xml -esvm model_toy_sentences || exit 1
+    python parsing/parse.py -I 10 -t doc/toy.xml -d doc/toy.xml -avm model_toy_paragraphs || exit 1
+    python parsing/parse.py doc/toy.xml -esvm model_toy_paragraphs || exit 1
     ;;
 sparse)
     python parsing/parse.py -c sparse -WeLMCbs pickle/dev -t pickle/train
@@ -33,7 +33,7 @@ convert)
     ;;
 convert_sentences)
     mkdir -p pickle/sentences
-    python scripts/standard_to_sentences.py pickle/*.pickle -o pickle/sentences -p "ucca_passage" -b
-    ci/test_convert_all_sentences.sh
+    python scripts/standard_to_sentences.py pickle/*.pickle -o pickle/sentences -p "ucca_passage" -b || exit 1
+    ci/test_convert_all_sentences.sh || exit 1
     ;;
 esac
