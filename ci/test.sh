@@ -21,7 +21,7 @@ dense)
     python parsing/parse.py -c dense -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev -t pickle/train
     ;;
 nn)
-    python parsing/parse.py -c nn -WeLMCbs pickle/dev -t pickle/train
+    python parsing/parse.py -c nn -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev -t pickle/train
     ;;
 tune)
     python parsing/tune.py doc/toy.xml -t doc/toy.xml
