@@ -24,6 +24,7 @@ nn)
     python parsing/parse.py -c nn -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev -t pickle/train
     ;;
 tune)
+    export W2V_FILE=word_vectors/sskip.100.vectors.txt
     python parsing/tune.py doc/toy.xml -t doc/toy.xml
     column -t -s, params.csv
     ;;
