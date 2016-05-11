@@ -2,7 +2,7 @@ import pickle
 
 import numpy as np
 
-from scenes import features, lex, tokeneval
+from scenes import scene_features, lex, tokeneval
 
 DB_PATH = "/home/beka/thesis/db/"
 PREFIXES = [x.strip() for x in open(DB_PATH + 'prefixes')]
@@ -36,13 +36,13 @@ def main():
 
     # First calculate all features which are computed together
     if USE_MORPH_DICT:
-        res = features.extract_dict_features(lemmas_tuples, COLLINS_PATH)
+        res = scene_features.extract_dict_features(lemmas_tuples, COLLINS_PATH)
         res = [x.split(' ') for x in res]
         res = [[int(x) for x in y] for y in res]
         dict_features = list(zip(*res))
     if USE_HFW:
-        res = features.extract_hfw_dict_features(lemmas_tuples, COLLINS_PATH,
-                                                 HFW)
+        res = scene_features.extract_hfw_dict_features(lemmas_tuples, COLLINS_PATH,
+                                                       HFW)
         res = [x.split(' ') for x in res]
         res = [[int(x) for x in y] for y in res]
         hfw_features = list(zip(*res))

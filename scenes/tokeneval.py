@@ -2,7 +2,7 @@ import re
 
 import nltk
 
-from scenes import classify
+from scenes import classify_scene
 from ucca import layer0, layer1
 
 
@@ -80,7 +80,7 @@ def evaluate_with_classifier(tokens, token_labels, targets,
                              token_features, classifier):
     tp, tn, fp, fn = [], [], [], []  # True/Flase positive/negative labels
     found, not_found = [], []
-    pred = classify.predict_labels(classifier, token_features).tolist()
+    pred = classify_scene.predict_labels(classifier, token_features).tolist()
     for token, token_label, guessed_label in zip(tokens, token_labels, pred):
         lemma = lemmatize(token, targets)
         if lemma in targets:

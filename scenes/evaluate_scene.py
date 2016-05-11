@@ -4,7 +4,7 @@ import random
 
 import numpy as np
 
-from scenes import classify
+from scenes import classify_scene
 
 
 def get_data_objects(labels_fd, fmat_fd):
@@ -59,9 +59,9 @@ def run_kfold_evaluation(orig_targets, orig_labels, orig_fmat, method,
     targets, labels, fmat = filter_data(orig_targets, orig_labels, orig_fmat,
                                         ratio)
 
-    stats, details = classify.evaluate(fmat, labels, targets, method, 10,
-                                       c_param, nu_param, learn_rate,
-                                       n_estimators)
+    stats, details = classify_scene.evaluate(fmat, labels, targets, method, 10,
+                                             c_param, nu_param, learn_rate,
+                                             n_estimators)
     # We use zip(*stats) because stats are [(prec1, rec1, acc1), ((prec2 ...))]
     # and this turns them into [(prec1, prec2 ...), (rec1, rec2 ..)] which is
     # what we want to use mean() on
@@ -76,7 +76,7 @@ def run_kfold_evaluation(orig_targets, orig_labels, orig_fmat, method,
 def run_bl_evaluation(orig_targets, orig_labels, orig_fmat, ratio, coll, wikt):
     targets, labels, fmat = filter_data(orig_targets, orig_labels, orig_fmat,
                                         ratio)
-    return classify.evaluate_bl(labels, classify.baseline(targets, coll, wikt))
+    return classify_scene.evaluate_bl(labels, classify_scene.baseline(targets, coll, wikt))
 
 
 def main():

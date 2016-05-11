@@ -1,7 +1,7 @@
 import pickle
 import sys
 
-from scenes import classify, tokeneval
+from scenes import classify_scene, tokeneval
 
 DB_PATH = "/home/beka/thesis/db/"
 _, LABELS = pickle.load(open(DB_PATH + "nouns2/targets-labels.nouns2.pickle",
@@ -24,15 +24,15 @@ def main():
     terminals, token_labels = tokeneval.get_terminals_labels(passages)
     tokens = [x.text for x in terminals]
 
-    clas = classify.train_classifier(FMAT[:len(LABELS)], LABELS, METHOD,
-                                     c_param=PARAM, nu_param=PARAM,
-                                     learn_rate=PARAM, n_estimators=500)
+    clas = classify_scene.train_classifier(FMAT[:len(LABELS)], LABELS, METHOD,
+                                           c_param=PARAM, nu_param=PARAM,
+                                           learn_rate=PARAM, n_estimators=500)
     if TOKENS_FMAT is not None:  # use token evaluation, not type
         stats = tokeneval.evaluate_with_classifier(tokens, token_labels,
                                                    TARGETS, TOKENS_FMAT, clas)
     else:
         target_labels = LABELS.tolist()
-        target_labels += classify.predict_labels(clas, FMAT[len(LABELS):]).tolist()
+        target_labels += classify_scene.predict_labels(clas, FMAT[len(LABELS):]).tolist()
         stats = tokeneval.evaluate_with_type(tokens, token_labels, TARGETS,
                                              target_labels)
 

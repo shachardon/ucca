@@ -2,7 +2,7 @@ import pickle
 import random
 import sys
 
-from scenes import classify, tokeneval
+from scenes import classify_scene, tokeneval
 
 METHOD = sys.argv[1]
 CLS_PRM = float(sys.argv[2])
@@ -78,12 +78,12 @@ def main():
     #for i, params in enumerate(params_generator(NUM_SAMPLING)):
     for i, params in enumerate(PARAMS):
         sys.stderr.write('{} {}\n'.format(METHOD, i))
-        clas, _, _ = classify.self_train_classifier(
+        clas, _, _ = classify_scene.self_train_classifier(
             fmat, scores, target_array, params, method=METHOD,
             c_param=CLS_PRM, nu_param=CLS_PRM, learn_rate=CLS_PRM,
             n_estimators=500)
-        target_labels = [int(x >= classify.PRE_LABELS_THRESH) for x in scores]
-        target_labels += list(classify.predict_labels(clas,
+        target_labels = [int(x >= classify_scene.PRE_LABELS_THRESH) for x in scores]
+        target_labels += list(classify_scene.predict_labels(clas,
                                                       fmat[len(scores):]))
         stats = tokeneval.evaluate_with_classifier(
             tokens, token_labels, target_list, tokens_fmat, clas)
