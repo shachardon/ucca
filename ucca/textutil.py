@@ -15,7 +15,7 @@ def break2sentences(passage):
         of a sentence.
     """
     l1 = passage.layer(layer1.LAYER_ID)
-    terminals = passage.layer(layer0.LAYER_ID).all
+    terminals = extract_terminals(passage)
     ps_ends = [ps.end_position for ps in l1.top_scenes]
     ps_starts = [ps.start_position for ps in l1.top_scenes]
     marks = [t.position for t in terminals if t.text[-1] in SENTENCE_END_MARKS]
@@ -28,6 +28,11 @@ def break2sentences(passage):
     return sorted(set(marks + break2paragraphs(passage)))
 
 
+def extract_terminals(p):
+    """returns an iterator of the terminals of the passage p1"""
+    return p.layer(layer0.LAYER_ID).all
+
+
 def break2paragraphs(passage):
     """
     Breaks into paragraphs according to the annotation.
@@ -37,7 +42,7 @@ def break2paragraphs(passage):
     :return: a list of positions in the Passage, each denotes a closing Terminal
         of a paragraph.
     """
-    terminals = passage.layer(layer0.LAYER_ID).all
+    terminals = list(extract_terminals(passage))
     paragraph_ends = [(t.position - 1) for t in terminals
                       if t.position != 1 and t.para_pos == 1]
     paragraph_ends.append(terminals[-1].position)
