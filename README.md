@@ -19,10 +19,7 @@ Install NLTK and the required modules:
 
     pip3 install -r requirements.txt
     python3 -m nltk.downloader averaged_perceptron_tagger punkt
-
-Add this directory to your `PYTHONPATH`:
-
-    setenv PYTHONPATH $PWD
+    python3 setup.py install
 
 Download and extract the pre-trained model:
 
