@@ -17,7 +17,7 @@ Running the parser:
 
 Install NLTK and the required modules:
 
-    pip3 install --user nltk
+    pip3 install -r requirements.txt
     python3 -m nltk.downloader averaged_perceptron_tagger punkt
 
 Add this directory to your `PYTHONPATH`:
