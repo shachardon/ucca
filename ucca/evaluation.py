@@ -206,12 +206,13 @@ class Scores(object):
     def __init__(self, evaluators):
         self.evaluators = dict(evaluators)
 
-    def average_unlabeled_f1(self):
+    def average_f1(self, mode=LABELED):
         """
-        Calculate the average unlabeled F1 score across regular/remote edges
+        Calculate the average F1 score across regular/remote edges
+        :param mode: LABELED, UNLABELED or WEAK_LABELED
         :return: a single number, the average F1
         """
-        return float(self.evaluators.get(UNLABELED).aggregate_all().f1)
+        return float(self.evaluators[mode].aggregate_all().f1)
 
     @staticmethod
     def aggregate(scores):
