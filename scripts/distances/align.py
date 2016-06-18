@@ -13,7 +13,7 @@ from ucca import layer0, layer1
 import inspect
 
 def compare(n1, n2):
-	return True if labels(n1) & labels(n2) else False
+	return bool(labels(n1) & labels(n2))
 
 
 def labels(n):
@@ -25,20 +25,21 @@ def label(n):
 
 
 def is_terminal(n):
+	"""returns true if the node contains only one terminal or less"""
 	return len(n.get_terminals()) <= 1
 
 
-def isFoundational(node):
+def is_foundational(node):
 	return node.tag == layer1.NodeTags.Foundational
 
 
 def is_passage(n):
-	return False if n.fparent else True
+	return not bool(n.fparent)
 
 
 def is_comparable(n):
 	"""checks if the node is a node that should be compared between passages"""
-	return isFoundational(n) and (not is_terminal(n)) and (not is_passage(n))
+	return is_foundational(n) and (not is_terminal(n)) and (not is_passage(n))
 
 
 def top_from_passage(p):
@@ -64,8 +65,8 @@ def align(sen1, sen2, string=True):
 		sen2 = [preprocess_word(terminal.text) for terminal in sen2]
 
 	#find lengths
-	lengthDif = len(sen1) - len(sen2)
-	if lengthDif > 0:
+	length_dif = len(sen1) - len(sen2)
+	if length_dif > 0:
 		shorter = sen2
 		longer = sen1
 		switched = False
@@ -73,13 +74,13 @@ def align(sen1, sen2, string=True):
 		shorter = sen1
 		longer = sen2
 		switched = True
-		lengthDif = abs(lengthDif)
-	shorter += ["emptyWord"] * lengthDif
+		length_dif = abs(length_dif)
+	shorter += ["emptyWord"] * length_dif
 
 	#create matrix	
 	matrix = np.zeros((len(longer), len(longer)))
 	for i in range(len(longer)):
-		for j in range(len(longer) - lengthDif):
+		for j in range(len(longer) - length_dif):
 			matrix[i,j] = distance.levenshtein(longer[i], shorter[j]) + float(abs(i-j))/len(longer)
 	
 	#compare with munkres
@@ -91,7 +92,7 @@ def align(sen1, sen2, string=True):
 	mapping = []
 	start = 0 if string else 1
 	for i, j in indexes:
-		if j >= len(longer) - lengthDif:
+		if j >= len(longer) - length_dif:
 			j = -1 - start
 		if switched:
 			refactored_indexes.append((j + start, i + start))
@@ -174,7 +175,7 @@ def two_sided_f(count1, count2, sum1, sum2):
 
 def node_word2word_similarity(node1, node2, word2word, graceful=True):
 	""" compute an F score for two nodes based on the word2word mapping"""
-	if not (isFoundational(node1) and isFoundational(node2)):
+	if not (is_foundational(node1) and is_foundational(node2)):
 		if not graceful:
 			print("one of the requested nodes is not foundational")
 		return 0
@@ -201,7 +202,7 @@ def get_lowest_FN(p):
 	""" finds the FN that has terminals as children"""
 	s = set()
 	for term in extract_terminals(p):
-		s.update([edge.parent for edge in term.incoming if isFoundational(edge.parent)])
+		s.update([edge.parent for edge in term.incoming if is_foundational(edge.parent)])
 	return s
 
 
@@ -240,8 +241,8 @@ def buttom_up_by_levels_align(p1, p2, word2word=None):
 	if not word2word:
 		word2word = align_yields(p1, p2)
 	mapping = {}
-	nodes1 = set(n for n in get_lowest_FN(p1))
-	nodes2 = set(n for n in get_lowest_FN(p2))
+	nodes1 = set(get_lowest_FN(p1))
+	nodes2 = set(get_lowest_FN(p2))
 	while nodes1 and nodes2:
 		mapping.update((align_nodes(nodes1, nodes2, word2word)))
 		nodes1 = set(node.fparent for node in nodes1 if node.fparent is not None)
@@ -307,8 +308,8 @@ def align_nodes(nodes1, nodes2, word2word):
 		"""
 	best = {}
 	mapping = {}
-	gen1 = (node for node in nodes1 if isFoundational(node))
-	gen2 = [node for node in nodes2 if isFoundational(node)]
+	gen1 = (node for node in nodes1 if is_foundational(node))
+	gen2 = [node for node in nodes2 if is_foundational(node)]
 	for node1 in gen1:
 		for node2 in gen2:
 			sim = node_word2word_similarity(node1, node2, word2word)

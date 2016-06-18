@@ -29,7 +29,7 @@ def break2sentences(passage):
 
 
 def extract_terminals(p):
-    """returns an iterator of the terminals of the passage p1"""
+    """returns an iterator of the terminals of the passage p"""
     return p.layer(layer0.LAYER_ID).all
 
 
