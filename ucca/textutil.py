@@ -15,10 +15,10 @@ def break2sentences(passage):
         of a sentence.
     """
     l1 = passage.layer(layer1.LAYER_ID)
-    terminals = passage.layer(layer0.LAYER_ID).all
+    terminals = extract_terminals(passage)
     ps_ends = [ps.end_position for ps in l1.top_scenes]
     ps_starts = [ps.start_position for ps in l1.top_scenes]
-    marks = [t.position for t in terminals if t.text in SENTENCE_END_MARKS]
+    marks = [t.position for t in terminals if t.text[-1] in SENTENCE_END_MARKS]
     # Annotations doesn't always include the ending period (or other mark)
     # with the parallel scene it closes. Hence, if the terminal before the
     # mark closed the parallel scene, and this mark doesn't open a scene
@@ -26,6 +26,11 @@ def break2sentences(passage):
     marks = [x for x in marks
              if x in ps_ends or ((x - 1) in ps_ends and x not in ps_starts)]
     return sorted(set(marks + break2paragraphs(passage)))
+
+
+def extract_terminals(p):
+    """returns an iterator of the terminals of the passage p"""
+    return p.layer(layer0.LAYER_ID).all
 
 
 def break2paragraphs(passage):
@@ -37,7 +42,7 @@ def break2paragraphs(passage):
     :return: a list of positions in the Passage, each denotes a closing Terminal
         of a paragraph.
     """
-    terminals = passage.layer(layer0.LAYER_ID).all
+    terminals = list(extract_terminals(passage))
     paragraph_ends = [(t.position - 1) for t in terminals
                       if t.position != 1 and t.para_pos == 1]
     paragraph_ends.append(terminals[-1].position)

@@ -109,7 +109,8 @@ class SiteCfg:
                      'Ground': EdgeTags.Ground,
                      'Connector': EdgeTags.Connector,
                      'Role Marker': EdgeTags.Relator,
-                     'Relator': EdgeTags.Relator}
+                     'Relator': EdgeTags.Relator,
+                     'Time': EdgeTags.Time}
 
     """ mapping of layer1.EdgeTags to site XML tag attributes. """
     EdgeConversion = {EdgeTags.ParallelScene: 'Parallel Scene',
@@ -123,7 +124,8 @@ class SiteCfg:
                       EdgeTags.Linker: 'Linker',
                       EdgeTags.Ground: 'Ground',
                       EdgeTags.Connector: 'Connector',
-                      EdgeTags.Relator: 'Relator'}
+                      EdgeTags.Relator: 'Relator',
+                      EdgeTags.Time: 'Time'}
 
 
 class SiteUtil:
