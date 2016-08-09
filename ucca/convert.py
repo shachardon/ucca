@@ -762,7 +762,7 @@ class FormatConverter(object):
     def from_format(self, lines, passage_id, split=False):
         pass
 
-    def to_format(self, passage, test=False):
+    def to_format(self, passage, test=False, tree=True):
         pass
 
 
@@ -823,7 +823,7 @@ class DependencyConverter(FormatConverter):
         return DependencyConverter.Node()
 
     @staticmethod
-    def _generate_lines(dep_nodes, test):
+    def _generate_lines(dep_nodes, test, tree):
         yield ""
 
     @staticmethod
@@ -986,11 +986,12 @@ class DependencyConverter(FormatConverter):
         if not split:
             yield self._build_passage()
 
-    def to_format(self, passage, test=False):
+    def to_format(self, passage, test=False, tree=True):
         """ Convert from a Passage object to a string in CoNLL-X format (conll)
 
         :param passage: the Passage object to convert
         :param test: whether to omit the head and deprel columns. Defaults to False
+        :param tree: whether to omit columns for non-primary parents. Defaults to True
 
         :return a list of strings representing the dependencies in the passage
         """
@@ -1095,7 +1096,7 @@ class DependencyConverter(FormatConverter):
             edge.remove()
 
         lines += ["\t".join(str(field) for field in entry)
-                  for entry in self._generate_lines(dep_nodes, test)] + [""]  # different for each subclass
+                  for entry in self._generate_lines(dep_nodes, test, tree)] + [""]  # different for each subclass
         return lines
 
 
@@ -1113,21 +1114,22 @@ class ConllConverter(DependencyConverter):
             DependencyConverter.Terminal(text, tag))
 
     @staticmethod
-    def _generate_lines(dep_nodes, test):
+    def _generate_lines(dep_nodes, test, tree):
         # id, form, lemma, coarse pos, fine pos, features
         for i, dep_node in enumerate(dep_nodes):
             position = i + 1
             tag = dep_node.terminal.tag
             fields = [position, dep_node.terminal.text, "_", tag, tag, "_"]
-            if not test:
+            if test:
+                fields += ["_", "_"]   # projective head, projective dependency relation (optional)
+                yield fields
+            else:
                 heads = [(e.head_index + 1, e.rel) for e in dep_node.incoming] or \
                         [(0, DependencyConverter.ROOT)]
-                # if len(heads) > 1:
-                #     print("More than one non-remote non-linkage parent for '%s': %s"
-                #           % (dep_node.terminal, heads), file=sys.stderr)
-                fields += heads[0]   # head, dependency relation
-            fields += ["_", "_"]   # projective head, projective dependency relation (optional)
-            yield fields
+                if tree:
+                    heads = [heads[0]]
+                for head in heads:
+                    yield fields + list(head) + ["_", "_"]
 
     def _omit_edge(self, edge):
         return edge.tag == EdgeTags.LinkArgument or edge.attrib.get("remote")
@@ -1150,7 +1152,7 @@ class SdpConverter(DependencyConverter):
             DependencyConverter.Terminal(text, tag), is_head=(pred == "+"))
 
     @staticmethod
-    def _generate_lines(dep_nodes, test):
+    def _generate_lines(dep_nodes, test, tree):
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
         preds = sorted({e.head_index for dep_node in dep_nodes
                         for e in dep_node.incoming})
@@ -1162,8 +1164,10 @@ class SdpConverter(DependencyConverter):
             pred = "+" if i in preds else "-"
             fields = [position, dep_node.terminal.text, "_", tag]
             if not test:
-                fields += ["-", pred, "_"] + \
-                          [heads.get(pred, "_") for pred in preds]  # rel for each pred
+                head_preds = [heads.get(pred, "_") for pred in preds]
+                if tree and head_preds:
+                    head_preds = [head_preds[0]]
+                fields += ["-", pred, "_"] + head_preds  # rel for each pred
             yield fields
 
     def _omit_edge(self, edge):
@@ -1332,16 +1336,17 @@ def from_conll(lines, passage_id, split=False, *args, **kwargs):
     return ConllConverter().from_format(lines, passage_id, split)
 
 
-def to_conll(passage, test=False, *args, **kwargs):
+def to_conll(passage, test=False, tree=True, *args, **kwargs):
     """ Convert from a Passage object to a string in CoNLL-X format (conll)
 
     :param passage: the Passage object to convert
     :param test: whether to omit the head and deprel columns. Defaults to False
+    :param tree: whether to omit columns for non-primary parents. Defaults to True
 
     :return list of lines representing the dependencies in the passage
     """
     del args, kwargs
-    return ConllConverter().to_format(passage, test)
+    return ConllConverter().to_format(passage, test, tree)
 
 
 def from_sdp(lines, passage_id, split=False, mark_aux=False, *args, **kwargs):
@@ -1358,11 +1363,12 @@ def from_sdp(lines, passage_id, split=False, mark_aux=False, *args, **kwargs):
     return SdpConverter(mark_aux=mark_aux).from_format(lines, passage_id, split)
 
 
-def to_sdp(passage, test=False, mark_aux=False, *args, **kwargs):
+def to_sdp(passage, test=False, tree=False, mark_aux=False, *args, **kwargs):
     """ Convert from a Passage object to a string in SemEval 2015 SDP format (sdp)
 
     :param passage: the Passage object to convert
     :param test: whether to omit the top, head, frame, etc. columns. Defaults to False
+    :param tree: whether to omit columns for non-primary parents. Defaults to False
     :param mark_aux: omit edges with labels with a preceding #
 
     :return list of lines representing the semantic dependencies in the passage
