@@ -1374,7 +1374,7 @@ def to_sdp(passage, test=False, tree=False, mark_aux=False, *args, **kwargs):
     :return list of lines representing the semantic dependencies in the passage
     """
     del args, kwargs
-    return SdpConverter(mark_aux=mark_aux).to_format(passage, test)
+    return SdpConverter(mark_aux=mark_aux).to_format(passage, test, tree)
 
 
 def from_export(lines, passage_id=None, split=False, *args, **kwargs):
