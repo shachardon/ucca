@@ -25,7 +25,13 @@ def break2sentences(passage):
     # in any way (hence it probably just "hangs" there), it's a sentence end
     marks = [x for x in marks
              if x in ps_ends or ((x - 1) in ps_ends and x not in ps_starts)]
-    return sorted(set(marks + break2paragraphs(passage)))
+    marks = sorted(set(marks + break2paragraphs(passage)))
+    # Avoid punctuation-only sentences
+    if len(marks) > 1:
+        marks = [x for x, y in zip(marks[:-1], marks[1:])
+                 if not all(layer0.is_punct(t) for t in terminals[x:y])] +\
+                [marks[-1]]
+    return marks
 
 
 def extract_terminals(p):
