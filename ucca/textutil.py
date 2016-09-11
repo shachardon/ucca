@@ -18,7 +18,7 @@ def break2sentences(passage):
     terminals = extract_terminals(passage)
     ps_ends = [ps.end_position for ps in l1.top_scenes]
     ps_starts = [ps.start_position for ps in l1.top_scenes]
-    marks = [t.position for t in terminals if t.text[-1] in SENTENCE_END_MARKS]
+    marks = [t.position for t in terminals if t.text in SENTENCE_END_MARKS]
     # Annotations doesn't always include the ending period (or other mark)
     # with the parallel scene it closes. Hence, if the terminal before the
     # mark closed the parallel scene, and this mark doesn't open a scene
