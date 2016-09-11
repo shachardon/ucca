@@ -92,7 +92,8 @@ def to_text(p, terminal_indices):
     words = get_text(p, l)
     pre_context = get_text(p, range(l[0] - 3, l[0]))
     post_context = get_text(p, range(l[-1] + 1, l[-1] + 3))
-    return ' '.join(pre_context) + ' { ' + ' '.join(words) + ' } ' + ' '.join(post_context)
+    text = ' '.join(pre_context) + ' { ' + ' '.join(words) + ' } ' + ' '.join(post_context)
+    return text.encode("utf-8")
 
 
 def mutual_yields(passage1, passage2, eval_type, separate_remotes=True, verbose=True):

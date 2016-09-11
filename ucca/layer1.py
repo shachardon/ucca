@@ -317,6 +317,8 @@ class FoundationalNode(core.Node):
                     edge.tag == EdgeTags.Punctuation and not punct:
                 continue
             elif edge.tag == EdgeTags.Terminal:
+                if edge.child.layer.ID != layer0.LAYER_ID:
+                    raise ValueError("Non-terminal with incoming %s edge" % edge.tag)
                 terms.append(edge.child)
             elif edge.tag == EdgeTags.Punctuation:
                 terms += edge.child.terminals

@@ -32,9 +32,13 @@ def main():
             raise IOError("Not found: " + pattern)
         for filename in filenames:
             ref = file2passage(filename)
-            guessed = next(converter2(converter1(ref), ref.ID))
-            scores.append(evaluate(guessed, ref, fscore=True, verbose=True,
-                                   units=False, errors=False))
+            try:
+                converted = converter1(ref, tree=args.tree) if args.tree else converter1(ref)
+                guessed = next(converter2(converted, ref.ID))
+                scores.append(evaluate(guessed, ref, fscore=True, verbose=False,
+                                       units=False, errors=False))
+            except Exception as e:
+                raise ValueError("Error evaluating conversion of %s" % filename, e)
     if len(scores) > 1:
         print("Aggregated scores:")
         Scores.aggregate(scores).print()

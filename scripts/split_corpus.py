@@ -6,8 +6,8 @@ from shutil import copyfile
 desc = """Split a directory of files into "train", "dev" and "test" directories.
 All files not in either "train" or "dev" will go into "test".
 """
-TRAIN_DEFAULT = 290
-DEV_DEFAULT = 35
+TRAIN_DEFAULT = 300
+DEV_DEFAULT = 34
 # TEST on all the rest
 
 

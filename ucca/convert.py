@@ -1175,13 +1175,17 @@ class SdpConverter(DependencyConverter):
 
         
 class ExportConverter(FormatConverter):
+    MIN_TERMINAL_ID = 500
+    MAX_TERMINAL_ID = 999
+
     class _IdGenerator:
         def __init__(self):
-            self._id = 499
+            self._id = ExportConverter.MIN_TERMINAL_ID - 1
 
         def __call__(self):
             self._id += 1
-            assert self._id < 1000, "Cannot convert to export; more than 1000 nodes found"
+            assert self._id <= ExportConverter.MAX_TERMINAL_ID,\
+                "More than %d nodes found" % ExportConverter.MAX_TERMINAL_ID
             return str(self._id)
 
     def __init__(self):
@@ -1199,6 +1203,8 @@ class ExportConverter(FormatConverter):
         self.linkages = defaultdict(list)
         self.terminals = []
         self.node_ids_with_children = set()
+        self.in_terminals_section = True
+        self.generate_id = self._IdGenerator()
 
     @staticmethod
     def _split_tags(tag, edge_tag):
@@ -1211,25 +1217,28 @@ class ExportConverter(FormatConverter):
         fields = line.split()
         text, tag = fields[:2]
         m = re.match("#(\d+)", text)
-        if not m:  # does not start with a # and a number; then it is a terminal
+        if m and int(m.group(1)) == ExportConverter.MIN_TERMINAL_ID:
+            self.in_terminals_section = False
+        if self.in_terminals_section:
             parent_id = fields[4]
             self.node_ids_with_children.add(parent_id)
             edge_tag, parent_id = fields[3:5]
             tag, edge_tag = self._split_tags(tag, edge_tag)
             self.terminals.append((text, tag, edge_tag, parent_id))
-            return
-        node_id = m.group(1)
-        for edge_tag, parent_id in zip(fields[3::2], fields[4::2]):
-            _, edge_tag = self._split_tags(tag, edge_tag)
-            self.node_ids_with_children.add(parent_id)
-            if parent_id == "0":
-                self.node_by_id[node_id] = None  # root node: to add to it, we add to None
-            elif edge_tag.endswith("*"):
-                self.remotes.append((parent_id, edge_tag.rstrip("*"), node_id))
-            elif edge_tag in (EdgeTags.LinkArgument, EdgeTags.LinkRelation):
-                self.linkages[parent_id].append((node_id, edge_tag))
-            else:
-                self.pending_nodes.append((parent_id, edge_tag, node_id))
+        else:
+            node_id = m.group(1)
+            assert node_id == self.generate_id(), "Node ID does not match order: " + node_id
+            for edge_tag, parent_id in zip(fields[3::2], fields[4::2]):
+                _, edge_tag = self._split_tags(tag, edge_tag)
+                self.node_ids_with_children.add(parent_id)
+                if parent_id == "0":
+                    self.node_by_id[node_id] = None  # root node: to add to it, we add to None
+                elif edge_tag.endswith("*"):
+                    self.remotes.append((parent_id, edge_tag.rstrip("*"), node_id))
+                elif edge_tag in (EdgeTags.LinkArgument, EdgeTags.LinkRelation):
+                    self.linkages[parent_id].append((node_id, edge_tag))
+                else:
+                    self.pending_nodes.append((parent_id, edge_tag, node_id))
 
     def _build_passage(self):
         p = core.Passage(self.sentence_id or self.passage_id)
