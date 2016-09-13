@@ -33,8 +33,7 @@ def main():
         for filename in filenames:
             ref = file2passage(filename)
             try:
-                converted = converter1(ref, tree=args.tree) if args.tree else converter1(ref)
-                guessed = next(converter2(converted, ref.ID))
+                guessed = next(converter2(converter1(ref, tree=args.tree), ref.ID))
                 scores.append(evaluate(guessed, ref, fscore=True, verbose=False,
                                        units=False, errors=False))
             except Exception as e:
