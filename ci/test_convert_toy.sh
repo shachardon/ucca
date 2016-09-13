@@ -3,6 +3,7 @@
 cd $(dirname $0)
 mkdir -p converted
 for format in conll sdp export txt; do
+    echo Evaluating $format ...
     if [ $# -lt 1 -o "$format" = "$1" ]; then
         python3 ../scripts/convert_from_standard.py ../doc/toy.xml -f $format -o converted || exit 1
         python3 ../scripts/convert_to_standard.py converted/504.$format -f $format -o converted || exit 1

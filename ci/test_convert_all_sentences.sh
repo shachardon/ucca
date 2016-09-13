@@ -3,6 +3,7 @@
 cd $(dirname $0)
 mkdir -p converted-sentences
 for format in conll sdp export "export --tree" txt; do
+    echo Evaluating $format ...
     if [ $# -lt 1 -o "$format" = "$1" ]; then
         for passage in ../pickle/sentences/ucca_passage*.pickle; do
             base=$(basename $passage .pickle)
