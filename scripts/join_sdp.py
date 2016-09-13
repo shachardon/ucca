@@ -29,9 +29,9 @@ def main():
         for filename in filenames:
             base = os.path.basename(os.path.splitext(filename)[0])
             lines.append(args.prefix + base + "\n")
-            with open(filename) as f:
+            with open(filename, encoding="utf-8") as f:
                 lines += f.readlines()
-        f = sys.stdout if args.outfile is None else open(args.outfile, "w")
+        f = sys.stdout if args.outfile is None else open(args.outfile, "w", encoding="utf-8")
         f.writelines(lines)
         if args.outfile is not None:
             f.close()
