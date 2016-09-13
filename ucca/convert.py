@@ -780,7 +780,7 @@ class DependencyConverter(FormatConverter):
             self.is_head = is_head
             self.node = None
             self.level = None
-            self.num_heads_visited = 0  # for topological sort
+            self.heads_visited = set()  # for topological sort
             self.preterminal = None
 
         def add_edges(self, edges):
@@ -853,12 +853,12 @@ class DependencyConverter(FormatConverter):
             if node.level is not None:  # done already
                 continue
             if node.incoming:
-                heads = {e.head for e in node.incoming if e.head.level is None}
-                if node.num_heads_visited < len(node.incoming):  # need to process heads first
-                    node.num_heads_visited += 1  # use counter to avoid cycles
-                    remaining += [node] + list(heads)
+                heads = [e.head for e in node.incoming if e.head.level is None and e.head not in node.heads_visited]
+                if heads:
+                    node.heads_visited.update(heads)  # to avoid cycles
+                    remaining += [node] + heads
                     continue
-                node.level = 1 + max(e.head.level for e in node.incoming)  # done with heads
+                node.level = 1 + max(e.head.level or 0 for e in node.incoming)  # done with heads
             else:  # root
                 node.level = 0
             levels[node.level].add(node)
@@ -992,7 +992,7 @@ class DependencyConverter(FormatConverter):
             elif split:
                 try:
                     yield self._build_passage()
-                except ValueError as e:
+                except Exception as e:
                     sys.stderr.write("Skipped passage '%s': %s\n" % (self.sentence_id, e))
                 self._init_nodes(passage_id)
             else:
