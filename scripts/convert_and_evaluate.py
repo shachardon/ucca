@@ -41,7 +41,7 @@ def main():
                 raise ValueError("Error evaluating conversion of %s" % filename, e)
     if len(scores) > 1:
         print("Aggregated scores:")
-        Scores.aggregate(scores).print()
+    Scores.aggregate(scores).print()
 
     sys.exit(0)
 

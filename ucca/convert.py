@@ -770,19 +770,32 @@ class DependencyConverter(FormatConverter):
     ROOT = "ROOT"
 
     class Node:
-        def __init__(self, incoming=None, terminal=None, is_head=True):
-            self.incoming = [] if incoming is None else list(incoming)
-            for edge in self.incoming:
-                edge.dependent = self
+        def __init__(self, position=0, incoming=None, terminal=None, is_head=True):
+            self.position = position
+            self.incoming = []
+            if incoming is not None:
+                self.add_edges(incoming)
             self.outgoing = []
             self.terminal = terminal
             self.is_head = is_head
             self.node = None
             self.level = None
+            self.num_heads_visited = 0  # for topological sort
             self.preterminal = None
-    
+
+        def add_edges(self, edges):
+            for edge in edges:
+                self.incoming.append(edge)
+                edge.dependent = self
+
         def __repr__(self):
             return self.terminal.text if self.terminal else DependencyConverter.ROOT
+
+        def __eq__(self, other):
+            return self.position == other.position
+
+        def __hash__(self):
+            return hash(self.position)
     
     class Edge:
         def __init__(self, head_index, rel, remote):
@@ -807,6 +820,14 @@ class DependencyConverter(FormatConverter):
                    "-[" + self.rel + ("*" if self.remote else "") + "]->" + \
                    repr(self.dependent)
 
+        def __eq__(self, other):
+            return self.head == other.head and \
+                   self.rel == other.rel and \
+                   self.dependent == other.dependent
+
+        def __hash__(self):
+            return hash((self.head, self.rel, self.dependent))
+
     class Terminal:
         def __init__(self, text, tag):
             self.text = text
@@ -819,7 +840,7 @@ class DependencyConverter(FormatConverter):
         self.mark_aux = mark_aux
 
     @staticmethod
-    def _read_line(line):
+    def _read_line(line, previous_node):
         return DependencyConverter.Node()
 
     @staticmethod
@@ -846,9 +867,10 @@ class DependencyConverter(FormatConverter):
             if node.level is not None:  # done already
                 continue
             if node.incoming:
-                remaining_heads = {e.head for e in node.incoming if e.head.level is None}
-                if remaining_heads:  # need to process heads first
-                    remaining += [node] + list(remaining_heads)
+                heads = {e.head for e in node.incoming if e.head.level is None}
+                if node.num_heads_visited < len(node.incoming):  # need to process heads first
+                    node.num_heads_visited += 1  # use counter to avoid cycles
+                    remaining += [node] + list(heads)
                     continue
                 node.level = 1 + max(e.head.level for e in node.incoming)  # done with heads
             else:  # root
@@ -968,6 +990,7 @@ class DependencyConverter(FormatConverter):
         
         self._init_nodes(passage_id)
         # read dependencies and terminals from lines and create nodes
+        dep_node = None
         for line in lines:
             if self.dep_nodes is None:
                 self.dep_nodes = [DependencyConverter.Node()]  # dummy root
@@ -975,11 +998,15 @@ class DependencyConverter(FormatConverter):
             if m:  # comment
                 self.sentence_id = m.group(1)  # comment may optionally contain the sentence ID
             elif line.strip():
-                dep_node = self._read_line(line)  # different implementation for each subclass
-                dep_node.terminal.paragraph = self.paragraph  # mark down which paragraph this is in
-                self.dep_nodes.append(dep_node)
+                dep_node = self._read_line(line, dep_node)  # different implementation for each subclass
+                if dep_node is not None:
+                    dep_node.terminal.paragraph = self.paragraph  # mark down which paragraph this is in
+                    self.dep_nodes.append(dep_node)
             elif split:
-                yield self._build_passage()
+                try:
+                    yield self._build_passage()
+                except ValueError as e:
+                    sys.stderr.write("Skipped passage '%s': %s\n" % (self.sentence_id, e))
                 self._init_nodes(passage_id)
             else:
                 self.paragraph += 1
@@ -1081,7 +1108,7 @@ class DependencyConverter(FormatConverter):
                         for e, head_index in zip(edges, head_indices)
                         if head_index != terminal.position - 1 and  # avoid self loops
                         not self._omit_edge(e)]  # different implementation for each subclass
-            dep_nodes.append(self.Node(incoming, terminal))
+            dep_nodes.append(self.Node(len(dep_nodes) + 1, incoming, terminal))
         self._link_heads(dep_nodes)
 
         # find cycles and remove them
@@ -1105,26 +1132,31 @@ class ConllConverter(DependencyConverter):
         super(ConllConverter, self).__init__(*args, **kwargs)
 
     @staticmethod
-    def _read_line(line):
+    def _read_line(line, previous_node):
         fields = line.split()
         # id, form, lemma, coarse pos, fine pos, features, head, relation
         position, text, _, tag, _, _, head_position, rel = fields[:8]
-        return DependencyConverter.Node(
-            [DependencyConverter.Edge(int(head_position), rel, False)],
-            DependencyConverter.Terminal(text, tag))
+        edges = []
+        if head_position and head_position != "_":
+            edges.append(DependencyConverter.Edge(int(head_position), rel.rstrip("*"), rel.endswith("*")))
+        if not edges or previous_node is None or previous_node.position != position:
+            return DependencyConverter.Node(position, edges, DependencyConverter.Terminal(text, tag))
+        previous_node.add_edges(edges)
 
     @staticmethod
     def _generate_lines(dep_nodes, test, tree):
         # id, form, lemma, coarse pos, fine pos, features
         for i, dep_node in enumerate(dep_nodes):
             position = i + 1
+            assert position == dep_node.position
             tag = dep_node.terminal.tag
             fields = [position, dep_node.terminal.text, "_", tag, tag, "_"]
             if test:
                 fields += ["_", "_"]   # projective head, projective dependency relation (optional)
                 yield fields
             else:
-                heads = [(e.head_index + 1, e.rel) for e in dep_node.incoming] or \
+                heads = [(e.head_index + 1, e.rel + ("*" if e.remote else ""))
+                         for e in dep_node.incoming] or \
                         [(0, DependencyConverter.ROOT)]
                 if tree:
                     heads = [heads[0]]
@@ -1140,12 +1172,12 @@ class SdpConverter(DependencyConverter):
         super(SdpConverter, self).__init__(*args, **kwargs)
 
     @staticmethod
-    def _read_line(line):
+    def _read_line(line, previous_node):
         fields = line.split()
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
         position, text, _, tag, _, pred, _ = fields[:7]
         # incoming: (head positions, dependency relations, is remote for each one)
-        return DependencyConverter.Node(
+        return DependencyConverter.Node(position,
             [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
              for i, rel in enumerate(fields[7:]) if rel != "_"] or
             [DependencyConverter.Edge(0, DependencyConverter.ROOT, False)],
@@ -1160,6 +1192,7 @@ class SdpConverter(DependencyConverter):
             heads = {e.head_index: e.rel + ("*" if e.remote else "")
                      for e in dep_node.incoming}
             position = i + 1
+            assert position == dep_node.position
             tag = dep_node.terminal.tag
             pred = "+" if i in preds else "-"
             fields = [position, dep_node.terminal.text, "_", tag]
