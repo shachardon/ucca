@@ -790,12 +790,6 @@ class DependencyConverter(FormatConverter):
 
         def __repr__(self):
             return self.terminal.text if self.terminal else DependencyConverter.ROOT
-
-        def __eq__(self, other):
-            return self.position == other.position
-
-        def __hash__(self):
-            return hash(self.position)
     
     class Edge:
         def __init__(self, head_index, rel, remote):
@@ -808,7 +802,7 @@ class DependencyConverter(FormatConverter):
         def link_head(self, heads):
             self.head = heads[self.head_index]
             self.head.outgoing.append(self)
-    
+
         def remove(self):
             self.head.outgoing.remove(self)
             self.head = None
@@ -819,14 +813,6 @@ class DependencyConverter(FormatConverter):
             return (str(self.head_index) if self.head is None else repr(self.head)) + \
                    "-[" + self.rel + ("*" if self.remote else "") + "]->" + \
                    repr(self.dependent)
-
-        def __eq__(self, other):
-            return self.head == other.head and \
-                   self.rel == other.rel and \
-                   self.dependent == other.dependent
-
-        def __hash__(self):
-            return hash((self.head, self.rel, self.dependent))
 
     class Terminal:
         def __init__(self, text, tag):
@@ -854,7 +840,7 @@ class DependencyConverter(FormatConverter):
             for edge in dep_node.incoming:
                 edge.link_head(heads)
 
-    def _omit_edge(self, edge):
+    def _omit_edge(self, edge, tree):
         return False
         
     @staticmethod
@@ -990,7 +976,7 @@ class DependencyConverter(FormatConverter):
         
         self._init_nodes(passage_id)
         # read dependencies and terminals from lines and create nodes
-        dep_node = None
+        previous_node = None
         for line in lines:
             if self.dep_nodes is None:
                 self.dep_nodes = [DependencyConverter.Node()]  # dummy root
@@ -998,8 +984,9 @@ class DependencyConverter(FormatConverter):
             if m:  # comment
                 self.sentence_id = m.group(1)  # comment may optionally contain the sentence ID
             elif line.strip():
-                dep_node = self._read_line(line, dep_node)  # different implementation for each subclass
+                dep_node = self._read_line(line, previous_node)  # different implementation for each subclass
                 if dep_node is not None:
+                    previous_node = dep_node
                     dep_node.terminal.paragraph = self.paragraph  # mark down which paragraph this is in
                     self.dep_nodes.append(dep_node)
             elif split:
@@ -1104,11 +1091,11 @@ class DependencyConverter(FormatConverter):
             edges = list(_find_top_headed_edges(terminal))
             head_indices = [_find_head_terminal(e.parent).position - 1 for e in edges]
             # (head positions, dependency relations, is remote for each one)
-            incoming = [self.Edge(head_index, e.tag, e.attrib.get("remote", False))
+            incoming = {self.Edge(head_index, e.tag, e.attrib.get("remote", False))
                         for e, head_index in zip(edges, head_indices)
                         if head_index != terminal.position - 1 and  # avoid self loops
-                        not self._omit_edge(e)]  # different implementation for each subclass
-            dep_nodes.append(self.Node(len(dep_nodes) + 1, incoming, terminal))
+                        not self._omit_edge(e, tree)}  # different implementation for each subclass
+            dep_nodes.append(self.Node(terminal.position, incoming, terminal))
         self._link_heads(dep_nodes)
 
         # find cycles and remove them
@@ -1163,8 +1150,8 @@ class ConllConverter(DependencyConverter):
                 for head in heads:
                     yield fields + list(head) + ["_", "_"]
 
-    def _omit_edge(self, edge):
-        return edge.tag == EdgeTags.LinkArgument or edge.attrib.get("remote")
+    def _omit_edge(self, edge, tree, linkage=False):
+        return (tree or not linkage) and edge.tag == EdgeTags.LinkArgument or tree and edge.attrib.get("remote")
 
 
 class SdpConverter(DependencyConverter):
@@ -1203,8 +1190,8 @@ class SdpConverter(DependencyConverter):
                 fields += ["-", pred, "_"] + head_preds  # rel for each pred
             yield fields
 
-    def _omit_edge(self, edge):
-        return self.mark_aux and edge.tag.startswith("#")
+    def _omit_edge(self, edge, tree, linkage=False):
+        return (tree or not linkage) and edge.tag == EdgeTags.LinkArgument or self.mark_aux and edge.tag.startswith("#")
 
         
 class ExportConverter(FormatConverter):
