@@ -11,12 +11,13 @@ addons:
     - liblapack-dev
     - gfortran
     - libhdf5-serial-dev
+    - libstdc++6
 before_install:
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy libgcc
   - pip install pytest-pep8
   - pip install -r requirements.txt
   - pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.10.0-cp35-cp35m-linux_x86_64.whl
