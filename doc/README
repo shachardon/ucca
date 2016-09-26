@@ -2,6 +2,7 @@ The UCCA Corpus
 Version 1.1
 29/12/2015
 ===============
+See updated guidelines at https://github.com/omriabnd/UCCA-Documents
 
 This bundle contains 369 passages annotated according to the foundational layer of UCCA. 
 The passages are given as xmls in a format which is described below. The total number of tokens 
@@ -108,7 +109,3 @@ ACKNOWLEDGEMENTS:
 We would like to thank Tomer Eshet for his partnering in developing the UCCA web application,
 and Amit Beka for his help with UCCA's development set and software tools. We would also like
 to thank our four annotators for hard and thorough work.
-
-
-
-
