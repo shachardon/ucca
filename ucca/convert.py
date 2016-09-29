@@ -1030,7 +1030,8 @@ class DependencyConverter(FormatConverter):
         ]
 
         def _find_head_child_edge(unit):
-            """ find the outgoing edge to the head child of this unit
+            """ find the outgoing edge to the head child of this unit.
+            The child of the returned edge is referred to as h(u) in the paper.
             :param unit: unit to find the edges from
             :return the head outgoing edge
             """
@@ -1044,7 +1045,8 @@ class DependencyConverter(FormatConverter):
                 return max(unit.outgoing, key=lambda e: len(e.child.get_terminals()))
 
         def _find_head_terminal(unit):
-            """ find the head terminal of this unit, by recursive descent
+            """ find the head terminal of this unit, by recursive descent.
+            Referred to as h*(u) in the paper.
             :param unit: unit to find the terminal of
             :return the unit itself if it is a terminal, otherwise recursively applied to child
             """
@@ -1053,7 +1055,8 @@ class DependencyConverter(FormatConverter):
             return unit
 
         def _find_top_headed_edges(unit):
-            """ find uppermost edges above here, from a head child to its parent
+            """ find uppermost edges above here, to a head child from its parent.
+            Referred to as N(t) in the paper.
             :param unit: unit to start from
             :return generator of edges
             """
