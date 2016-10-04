@@ -55,7 +55,8 @@ def main():
             print(",".join("%d" % f for f in fields))
             data.append(fields)
     data = np.array(data, dtype=int)
-    np.savetxt(args.outfile, data[data[:, 0].argsort()], fmt="%i", delimiter="\t")
+    if args.outfile:
+        np.savetxt(args.outfile, data[data[:, 0].argsort()], fmt="%i", delimiter="\t")
 
     sys.exit(0)
 

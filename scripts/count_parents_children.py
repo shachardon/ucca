@@ -5,8 +5,6 @@ import glob
 import sys
 from collections import Counter, defaultdict
 
-import matplotlib.pyplot as plt
-
 from ucca.ioutil import file2passage
 
 desc = """Parses XML files in UCCA standard format, and creates a histogram for the number of parents per unit.
@@ -14,6 +12,7 @@ desc = """Parses XML files in UCCA standard format, and creates a histogram for 
 
 
 def plot_histogram(counter, label, plot=None):
+    import matplotlib.pyplot as plt
     plt.figure()
     nums = list(counter.keys())
     counts = list(counter.values())
@@ -35,6 +34,7 @@ def plot_histogram(counter, label, plot=None):
 
 
 def plot_pie(counter, label, plot=None):
+    import matplotlib.pyplot as plt
     plt.figure()
     nums = list(counter.keys())
     counts = list(counter.values())
