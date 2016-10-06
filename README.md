@@ -15,31 +15,29 @@ and `convert` modules under the `ucca` package).
 Running the parser:
 -------------------
 
-Install NLTK and the required modules:
+Install the required modules and NLTK models:
 
-    pip3 install -r requirements.txt
-    python3 -m nltk.downloader averaged_perceptron_tagger punkt
-    python3 setup.py install
+    virtualenv --python=/usr/bin/python3 .
+    . bin/activate  # on bash
+    source bin/activate.csh  # on csh
+    pip install -r requirements.txt
+    python -m nltk.downloader averaged_perceptron_tagger punkt
+    python setup.py install
 
-Download and extract the pre-trained model:
+Download and extract the pre-trained models:
 
-    wget http://www.cs.huji.ac.il/~danielh/ucca/model.tar.gz
-    tar xvzf model.tar.gz
+    wget http://www.cs.huji.ac.il/~danielh/ucca/{sparse,dense,nn}.tgz
+    tar xvzf sparse.tgz
+    tar xvzf dense.tgz
+    tar xvzf nn.tgz
 
-Run the parser on a text file (here named `example.txt`):
+Run the parser on a text file (here named `example.txt`) using either of the models:
 
-    python3 parsing/parse.py example.txt -m ucca-wiki -s
+    python parsing/parse.py example.txt -m models/ucca-sparse -s
+    python parsing/parse.py example.txt -m models/ucca-dense -s
+    python parsing/parse.py example.txt -m models/ucca-nn -s
 
 A file named `example.xml` will be created.
-
-
-Installation (on Linux):
-------------------------
-
-    make dev-install  # creates soft links to the current files
-    make full-install  # copies the package to the user's python search path
-    
-run `make help` for details
 
 
 See [`ucca/README.md`](ucca/README.md) for a list of modules under the `ucca` package.
