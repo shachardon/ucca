@@ -5,7 +5,7 @@ cd $HOME
 git clone https://github.com/clab/dynet
 cd dynet
 hg clone https://bitbucket.org/eigen/eigen
-wget https://raw.githubusercontent.com/bplank/bilstm-aux/master/dynet_py3_patch.diff
+wget https://raw.githubusercontent.com/danielhers/bilstm-aux/master/dynet_py3_patch.diff
 git apply dynet_py3_patch.diff
 mkdir build
 cd build
