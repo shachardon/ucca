@@ -26,7 +26,7 @@ nn)
 tune)
     export W2V_FILE=word_vectors/sskip.100.vectors.txt
     export KERAS_BACKEND=theano
-    python parsing/tune.py doc/toy.xml -t doc/toy.xml || exit 1
+    python parsing/tune.py doc/toy.xml -t doc/toy.xml --dynet-mem=2048 || exit 1
     column -t -s, params.csv
     ;;
 convert)
