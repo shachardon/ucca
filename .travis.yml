@@ -47,6 +47,7 @@ env:
   - TEST_SUITE=sparse
   - TEST_SUITE=dense
   - TEST_SUITE=mlp
+  - TEST_SUITE=bilstm
   - TEST_SUITE=tune
   - TEST_SUITE=convert
 script:

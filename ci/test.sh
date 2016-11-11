@@ -23,6 +23,9 @@ dense)
 mlp)
     python parsing/parse.py -c mlp -WeLMCbs pickle/dev -t pickle/dev -I2
     ;;
+bilstm)
+    python parsing/parse.py -c bilstm -WeLMCbs pickle/dev -t pickle/dev -I2
+    ;;
 tune)
     export W2V_FILE=word_vectors/sskip.100.vectors.txt
     export PARAMS_NUM=10
