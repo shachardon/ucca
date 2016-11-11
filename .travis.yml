@@ -46,7 +46,7 @@ env:
   - TEST_SUITE=unit
   - TEST_SUITE=sparse
   - TEST_SUITE=dense
-  - TEST_SUITE=nn
+  - TEST_SUITE=mlp
   - TEST_SUITE=tune
   - TEST_SUITE=convert
 script:

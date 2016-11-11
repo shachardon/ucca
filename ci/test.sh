@@ -20,8 +20,8 @@ sparse)
 dense)
     python parsing/parse.py -c dense -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev -t pickle/train
     ;;
-nn)
-    python parsing/parse.py -c nn -WeLMCbs pickle/dev -t pickle/train -I10 --layerdim=100 --batchsize 500
+mlp)
+    python parsing/parse.py -c mlp -WeLMCbs pickle/dev -t pickle/train -I10 --layerdim=100 --batchsize 500
     ;;
 tune)
     export W2V_FILE=word_vectors/sskip.100.vectors.txt
