@@ -21,10 +21,10 @@ dense)
     python parsing/parse.py -c dense -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev -t pickle/dev
     ;;
 mlp)
-    python parsing/parse.py -c mlp -WeLMCbs pickle/dev -t pickle/dev
+    python parsing/parse.py -c mlp -WeLMCbs pickle/dev -t pickle/dev --dynet-mem=3072
     ;;
 bilstm)
-    python parsing/parse.py -c bilstm -WeLMCbs pickle/dev -t pickle/dev
+    python parsing/parse.py -c bilstm -WeLMCbs pickle/dev -t pickle/dev --dynet-mem=3072
     ;;
 tune)
     export W2V_FILE=word_vectors/sskip.100.vectors.txt
