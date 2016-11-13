@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 
 import argparse
-import os
 import sys
 
+import os
+from linear.dense_perceptron import DensePerceptron
+from linear.sparse_perceptron import SparsePerceptron
+
 from parsing import config
-from parsing.classifiers.dense_perceptron import DensePerceptron
-from parsing.classifiers.sparse_perceptron import SparsePerceptron
 
 desc = """Reads a model file in pickle format and writes as TSV
 """
