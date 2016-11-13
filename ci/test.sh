@@ -18,13 +18,13 @@ sparse)
     python parsing/parse.py -c sparse -WeLMCbs pickle/dev -t pickle/dev
     ;;
 dense)
-    python parsing/parse.py -c dense -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev -t pickle/dev
+    python parsing/parse.py -c dense -WeLMCbs pickle/dev -t pickle/dev
     ;;
 mlp)
     python parsing/parse.py -c mlp -WeLMCbs pickle/dev -t pickle/dev --dynet-mem=3072
     ;;
 bilstm)
-    python parsing/parse.py -c bilstm -WeLMCbs pickle/dev -t pickle/dev --dynet-mem=3072 --layerdim=100 --layers=1
+    python parsing/parse.py -c bilstm -WeLMCbs pickle/dev -t pickle/dev --dynet-mem=3072 --layerdim=100 --layers=1 --lstmlayerdim=100 --lstmlayers=1 --minibatchsize=50
     ;;
 tune)
     export W2V_FILE=word_vectors/sskip.100.vectors.txt
