@@ -2,7 +2,7 @@
 
 export CXX="g++-4.8" CC="gcc-4.8"
 cd $HOME
-git clone https://github.com/danielhers/dynet -b python3
+git clone https://github.com/clab/dynet
 cd dynet
 hg clone https://bitbucket.org/eigen/eigen
 mkdir build
