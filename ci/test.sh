@@ -15,16 +15,16 @@ unit)
     python parsing/parse.py doc/toy.xml -esvm model_toy_paragraphs || exit 1
     ;;
 sparse)
-    python parsing/parse.py -c sparse -WeLMCbs pickle/dev -t pickle/dev
+    python parsing/parse.py -c sparse -WeLMCbs pickle/dev/*7* -t pickle/train/*7*
     ;;
 dense)
-    python parsing/parse.py -c dense -WeLMCbs pickle/dev -t pickle/dev
+    python parsing/parse.py -c dense -WeLMCbs pickle/dev/*7* -t pickle/train/*7*
     ;;
 mlp)
-    python parsing/parse.py -c mlp -WeLMCbs pickle/dev -t pickle/dev --dynet-mem=3072
+    python parsing/parse.py -c mlp -WeLMCbs pickle/dev/*7* -t pickle/train/*7* --dynet-mem=3072
     ;;
 bilstm)
-    python parsing/parse.py -c bilstm -WeLMCbs pickle/dev -t pickle/dev --dynet-mem=3072 --wordvectors=10 --maxwords=1000 --layerdim=10 --layers=1 --lstmlayerdim=10 --lstmlayers=1 --minibatchsize=50
+    python parsing/parse.py -c bilstm -WeLMCbs pickle/dev/*7* -t pickle/train/*7* --dynet-mem=3072 --wordvectors=10 --maxwords=1000 --layerdim=10 --layers=1 --lstmlayerdim=10 --lstmlayers=1 --minibatchsize=50
     ;;
 tune)
     export W2V_FILE=word_vectors/sskip.100.vectors.txt
