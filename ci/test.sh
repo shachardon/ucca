@@ -15,13 +15,13 @@ unit)
     python parsing/parse.py doc/toy.xml -esvm model_toy_paragraphs || exit 1
     ;;
 sparse)
-    python parsing/parse.py -c sparse -WeLMCbs pickle/dev -t pickle/train
+    python parsing/parse.py -c sparse -WeLMCbs pickle/dev/*7* -t pickle/train/*7*
     ;;
 dense)
-    python parsing/parse.py -c dense -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev -t pickle/train
+    python parsing/parse.py -c dense -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev/*7* -t pickle/train/*7*
     ;;
 nn)
-    python parsing/parse.py -c nn -WeLMCbs pickle/dev -t pickle/train --nbepochs 3 --layerdim=100 --batchsize 500
+    python parsing/parse.py -c nn -WeLMCbs pickle/dev/*7* -t pickle/train/*7* --nbepochs 3 --layerdim=100 --batchsize 500
     ;;
 tune)
     export W2V_FILE=word_vectors/sskip.100.vectors.txt
