@@ -1,6 +1,8 @@
 import argparse
-import os
 from posix import mkdir
+
+import os
+import re
 from shutil import copyfile
 
 desc = """Split a directory of files into "train", "dev" and "test" directories.
@@ -21,8 +23,15 @@ def copy(src, dest, link=False):
         copyfile(src, dest)
 
 
+def numeric(s):
+    try:
+        return int(re.findall("([0-9]+)", s)[-1])
+    except ValueError:
+        return s
+
+
 def split_passages(directory, train=TRAIN_DEFAULT, dev=DEV_DEFAULT, link=False):
-    filenames = sorted(os.listdir(directory))
+    filenames = sorted(os.listdir(directory), key=numeric)
     assert filenames, "No files to split"
     directory = os.path.abspath(directory)
     if not directory.endswith(os.sep):
