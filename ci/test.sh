@@ -24,7 +24,7 @@ mlp)
     python parsing/parse.py -c mlp -WeLMCbs pickle/dev/*7* -t pickle/train/*7* --dynet-mem=3072
     ;;
 bilstm)
-    python parsing/parse.py -c bilstm -WeLMCbs pickle/dev/*7* -t pickle/train/*7* --dynet-mem=3072 --wordvectors=10 --maxwords=1000 --layerdim=10 --layers=1 --lstmlayerdim=10 --lstmlayers=1 --minibatchsize=50
+    python parsing/parse.py -c bilstm -WeLMCbs pickle/dev/*7* -t pickle/train/*7* --dynet-mem=3072 --layers=1 --layerdim=100 --lstmlayers=1 --lstmlayerdim=100
     ;;
 tune)
     export W2V_FILE=word_vectors/sskip.100.vectors.txt
