@@ -676,6 +676,8 @@ def from_text(text, passage_id="1", split=False, *args, **kwargs):
     :return generator of Passage object with only Terminals units.
     """
     del args, kwargs
+    if isinstance(text, str):
+        text = (text,)
     p = None
     l0 = None
     for i, par in enumerate(filter(None, map(str.strip, text))):  # Only non-empty lines
