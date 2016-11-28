@@ -1,5 +1,5 @@
 nltk>=3.2.1
 gensim>=0.13.3
 Theano>=0.8.2
-keras>=1.1.1
+keras>=1.1.2
 h5py>=2.6.0
