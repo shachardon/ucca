@@ -4,7 +4,9 @@ import operator
 import unittest
 import xml.etree.ElementTree as ETree
 
-from ucca import core, layer0, layer1, convert, textutil, diffutil
+import random
+
+from ucca import core, layer0, layer1, convert, textutil, ioutil, diffutil
 
 
 class CoreTests(unittest.TestCase):
@@ -687,6 +689,15 @@ class UtilTests(unittest.TestCase):
     #     diffutil.diff_passages(p, copy)
     #     self.assertTrue(p.equals(copy))
 
+    def test_shuffle_passages(self):
+        """Test lazy-loading passages and shuffling them"""
+        files = ["test_files/standard3.%s" % s for s in ("xml", "conll", "export", "sdp")]
+        passages = ioutil.read_files_and_dirs(files)
+        print("Passages:\n" + "\n".join(str(p.layer(layer1.LAYER_ID).heads[0]) for p in passages))
+        random.shuffle(passages)
+        print("Shuffled passages:\n" + "\n".join(str(p.layer(layer1.LAYER_ID).heads[0]) for p in passages))
+        self.assertEqual(len(files), len(passages))
+
 
 class TestUtil:
     """Utilities for tests."""
@@ -887,7 +898,7 @@ class TestUtil:
 
     @staticmethod
     def create_discontiguous():
-        """Creates a highly-dicontiguous Passage object."""
+        """Creates a highly-discontiguous Passage object."""
         p = core.Passage('1')
         l0 = layer0.Layer0(p)
         l1 = layer1.Layer1(p)
