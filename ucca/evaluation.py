@@ -24,31 +24,17 @@ EXCLUDED = (EdgeTags.Punctuation,
             EdgeTags.LinkRelation,
             EdgeTags.Terminal)
 
-# RELATORS = ["that", "than", "who", "what", "to", "how", "of"]
-
-FLATTEN_CENTERS = False
-
-##############################################################################
-# UTILITY MEdgeTagsHODS
-##############################################################################
-
 
 def flatten_centers(p):
     """
-    If there are Cs inside Cs in layer1, cancel the external C.
+    If there are Cs inside Cs in layer1, remove the external C.
     :param p: Passage object to flatten
     """
     def _center_children(u):
         return [x for x in u.children if x.tag == NodeTags.Foundational and x.ftag == EdgeTags.Center]
 
-    to_ungroup = []
-    for unit in p.layer("1").all:
-        if unit.tag == NodeTags.Foundational and unit.ftag == EdgeTags.Center:
-            parent = unit.fparent
-            if len(_center_children(unit)) == 1 and\
-                    (parent is None or len(_center_children(parent)) == 1):
-                to_ungroup.append(unit)
-
+    to_ungroup = [u for u in p.layer("1").all if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Center and
+                  len(_center_children(u)) == 1 and (u.fparent is None or len(_center_children(u.fparent)) == 1)]
     for unit in to_ungroup:
         ungroup(unit)
 
@@ -58,8 +44,6 @@ def ungroup(unit):
     If the unit has an fparent, removes the unit and adds its children to that parent.
     :param unit: Node object to potentially remove
     """
-    if unit.tag != NodeTags.Foundational:
-        return None
     fparent = unit.fparent
     if fparent is not None:
         if len(unit.parents) > 1:
@@ -68,16 +52,34 @@ def ungroup(unit):
                     if e.attrib.get("remote"):
                         e.parent.add(e.tag, unit.centers[0], edge_attrib=e.attrib)
             else:
-                return None  # don't ungroup if there is more than one parent and no single center
+                return  # don't ungroup if there is more than one parent and no single center
         for e in unit.outgoing:
             fparent.add(e.tag, e.child, edge_attrib=e.attrib)
     unit.destroy()
-    return fparent
 
+
+def move_functions(p1, p2):
+    """
+    Move any common Fs to the root
+    """
+    f1, f2 = [{get_yield(u): u for u in p.layer("1").all
+               if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Function}
+              for p in (p1, p2)]
+    for positions, unit1 in f1.items():
+        unit2 = f2[positions]
+        if unit2 is not None:
+            for (p, unit) in ((p1, unit1), (p2, unit2)):
+                move(unit, p.layer("1").heads[0])
+
+
+def move(unit, new_parent):
+    for parent in unit.parents:
+        parent.remove(unit)
+    new_parent.add(unit.ftag, unit)
+    
 
 def get_text(p, positions):
-    return [p.layer("0").by_position(pos).text for pos in positions
-            if 0 < pos <= len(p.layer("0").all)]
+    return [p.layer("0").by_position(pos).text for pos in positions if 0 < pos <= len(p.layer("0").all)]
 
 
 def to_text(p, terminal_indices):
@@ -162,10 +164,10 @@ def mutual_yields(passage1, passage2, eval_type, separate_remotes=True, verbose=
             errors)
 
 
-def create_passage_yields(p, remote_terminals=False, implicit=False):
+def create_passage_yields(p, remotes=False, implicit=False):
     """
     :param p: passage to find yields of
-    :param remote_terminals: if True, regular table includes remotes
+    :param remotes: if True, regular table includes remotes
     :param implicit: if true, regular table includes the empty yield of implicit nodes
     :returns two dicts:
     1. maps a set of terminal indices (excluding punctuation) to a list of layer1 edges whose yield (excluding remotes
@@ -178,13 +180,15 @@ def create_passage_yields(p, remote_terminals=False, implicit=False):
              (implicit or not e.child.attrib.get("implicit")))
 
     table_reg, table_remote = defaultdict(list), defaultdict(list)
-    for e in edges:
-        pos = frozenset(t.position for t in
-                        e.child.get_terminals(punct=False, remotes=remote_terminals))
-        table = table_remote if e.attrib.get("remote") else table_reg
-        table[pos].append(e)
+    for edge in edges:
+        table = table_remote if edge.attrib.get("remote") else table_reg
+        table[get_yield(edge.child, remotes)].append(edge)
 
     return table_reg, table_remote
+
+
+def get_yield(unit, remotes=False):
+    return frozenset(t.position for t in unit.get_terminals(punct=False, remotes=remotes))
 
 
 def expand_equivalents(tag_set):
@@ -359,10 +363,9 @@ def evaluate(guessed_passage, ref_passage, verbose=True, units=True, fscore=True
     :param errors: whether to print the mistakes
     :return: Scores object
     """
-    if FLATTEN_CENTERS:
-        for passage in (guessed_passage, ref_passage):
-            if passage is not None:
-                flatten_centers(passage)  # flatten Cs inside Cs
+    # for passage in (guessed_passage, ref_passage):
+    #     flatten_centers(passage)  # flatten Cs inside Cs
+    move_functions(guessed_passage, ref_passage)  # move common Fs to be under the root
 
     return Scores((evaluation_type,
                    get_scores(guessed_passage, ref_passage, evaluation_type,
