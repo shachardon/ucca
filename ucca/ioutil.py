@@ -6,7 +6,6 @@ import time
 from xml.etree.ElementTree import ElementTree, tostring
 from xml.etree.ElementTree import ParseError
 
-from parsing.config import Config
 from ucca.convert import from_standard, to_standard, FROM_FORMAT, TO_FORMAT, from_text, split2segments
 from ucca.core import Passage
 from ucca.textutil import indent_xml
@@ -51,12 +50,14 @@ class LazyLoadedPassages(object):
     """
     Iterable interface to Passage objects that loads files on-the-go and can be iterated more than once
     """
-    def __init__(self, files):
+    def __init__(self, files, sentences=False, paragraphs=False):
         self.files = files
+        self.sentences = sentences
+        self.paragraphs = paragraphs
+        self.split = self.sentences or self.paragraphs
         self._files_iter = None
         self._split_iter = None
         self._file_handle = None
-        self._len = None
         self._next_index = None
 
     def __iter__(self):
@@ -77,12 +78,7 @@ class LazyLoadedPassages(object):
             try:
                 file = next(self._files_iter)
             except StopIteration:  # Finished iteration
-                if self._len is None:
-                    self._len = self._next_index
-                else:
-                    assert self._len == self._next_index, "Number of elements changed between iterations: %d != %d" % (
-                        self._len, self._next_index)
-                raise StopIteration
+                raise
             if isinstance(file, Passage):  # Not really a file, but a Passage
                 passage = file
             elif os.path.exists(file):  # A file
@@ -92,13 +88,13 @@ class LazyLoadedPassages(object):
                     base, ext = os.path.splitext(os.path.basename(file))
                     converter = FROM_FORMAT.get(ext.lstrip("."), from_text)
                     self._file_handle = open(file)
-                    self._split_iter = iter(converter(self._file_handle, passage_id=base, split=Config().split))
+                    self._split_iter = iter(converter(self._file_handle, passage_id=base, split=self.split))
             else:
                 print("File not found: %s" % file, file=sys.stderr)
                 time.sleep(1)
                 return next(self)
-            if Config().split and self._split_iter is None:  # If it's not None, it's a converter and it splits alone
-                self._split_iter = iter(split2segments(passage, is_sentences=Config().args.sentences))
+            if self.split and self._split_iter is None:  # If it's not None, it's a converter and it splits alone
+                self._split_iter = iter(split2segments(passage, is_sentences=self.sentences))
         if self._split_iter is not None:  # Either set before or initialized now
             try:
                 passage = next(self._split_iter)
@@ -110,28 +106,34 @@ class LazyLoadedPassages(object):
                 return next(self)
         return passage
 
+    # The following three methods are implemented to support shuffle;
+    # note files are shuffled but there is no shuffling within files, as it would not be efficient.
+    # Note also the inconsistency because these access the files while __iter__ accesses individual passages.
     def __len__(self):
-        if self._len is None:
-            raise ValueError("Must finish first iteration to get len")
-        return self._len
+        return len(self.files)
+
+    def __getitem__(self, i):
+        return self.files[i]
+
+    def __setitem__(self, i, value):
+        self.files[i] = value
 
     def __bool__(self):
         return bool(self.files)
 
-    def shuffle(self):
-        Config().random.shuffle(self.files)  # Does not shuffle within a file - might be a problem
 
-
-def read_files_and_dirs(files_and_dirs):
+def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False):
     """
     :param files_and_dirs: iterable of files and/or directories to look in
+    :param sentences: whether to split to sentences
+    :param paragraphs: whether to split to paragraphs
     :return: list of (lazy-loaded) passages from all files given,
              plus any files directly under any directory given
     """
     files = list(files_and_dirs)
     files += [os.path.join(d, f) for d in files if os.path.isdir(d) for f in os.listdir(d)]
     files = [f for f in files if not os.path.isdir(f)]
-    return LazyLoadedPassages(files)
+    return LazyLoadedPassages(files, sentences, paragraphs)
 
 
 def write_passage(passage, args):
