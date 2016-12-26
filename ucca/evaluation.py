@@ -1,6 +1,7 @@
-#!/usr/bin/env python3
 """
-The evaluation software for UCCA layer 1.
+The evaluation library for UCCA layer 1.
+v1.1
+2016-12-25: move common Fs to root before evaluation
 """
 from collections import Counter, defaultdict
 from operator import attrgetter

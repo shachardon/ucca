@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import argparse
 import glob
@@ -34,8 +34,7 @@ def main():
             ref = file2passage(filename)
             try:
                 guessed = next(converter2(converter1(ref, tree=args.tree), ref.ID))
-                scores.append(evaluate(guessed, ref, fscore=True, verbose=False,
-                                       units=False, errors=False))
+                scores.append(evaluate(guessed, ref, fscore=True, verbose=False, units=False, errors=False))
             except Exception as e:
                 raise ValueError("Error evaluating conversion of %s" % filename, e)
     if len(scores) > 1:
