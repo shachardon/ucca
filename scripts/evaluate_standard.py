@@ -1,6 +1,6 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """
-The evaluation software for UCCA layer 1.
+The evaluation script for UCCA layer 1.
 """
 from argparse import ArgumentParser
 
@@ -30,5 +30,4 @@ if __name__ == "__main__":
     guessed, ref = [file2passage(x) for x in (args.guessed, args.ref)]
 
     if args.units or args.fscore or args.errors:
-        evaluate(guessed, ref,
-                 units=args.units, fscore=args.fscore, errors=args.errors, verbose=True)
+        evaluate(guessed, ref, units=args.units, fscore=args.fscore, errors=args.errors, verbose=True)
