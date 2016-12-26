@@ -95,47 +95,6 @@ def _multiple_children_by_tag(node, tag):
     return [edge.child for edge in list(node) if edge.tag == tag]
 
 
-class PunctNode(core.Node):
-    """Encapsulates punctuation :class:layer0.Terminal objects.
-
-    Attributes:
-        terminals: return the :class:layer0.Terminal objects encapsulated
-            by this Node in a list (at least one, usually not more than 1).
-        start_position:
-        end_position:
-            start/end position of the first/last terminal in the span of
-            the PunctNode.
-
-    """
-
-    @property
-    def terminals(self):
-        return self.children
-
-    def get_terminals(self, punct=True, *args, **kwargs):
-        """Returns a list of all terminals under the span of this PunctNode.
-
-        Args:
-            punct: whether to include punctuation Terminals, defaults to True
-
-        Returns:
-            a list of :class:layer0.Terminal objects
-
-        """
-        return self.children if punct else ()
-
-    @property
-    def start_position(self):
-        return self.children[0].position
-
-    @property
-    def end_position(self):
-        return self.children[-1].position
-
-    def __str__(self):
-        return ' '.join(str(x) for x in self.terminals)
-
-
 class Linkage(core.Node):
     """A Linkage between parallel scenes.
 
@@ -406,6 +365,39 @@ class FoundationalNode(core.Node):
             return None
         else:
             return self.fparent.get_top_scene()
+
+
+class PunctNode(FoundationalNode):
+    """Encapsulates punctuation :class:layer0.Terminal objects.
+
+    Attributes:
+        terminals: return the :class:layer0.Terminal objects encapsulated
+            by this Node in a list (at least one, usually not more than 1).
+        start_position:
+        end_position:
+            start/end position of the first/last terminal in the span of
+            the PunctNode.
+
+    """
+
+    @property
+    def terminals(self):
+        return self.children
+
+    def get_terminals(self, punct=True, *args, **kwargs):
+        """Returns a list of all terminals under the span of this PunctNode.
+
+        Args:
+            punct: whether to include punctuation Terminals, defaults to True
+
+        Returns:
+            a list of :class:layer0.Terminal objects
+
+        """
+        return self.children if punct else ()
+
+    def __str__(self):
+        return self.to_text()
 
 
 class Layer1(core.Layer):
