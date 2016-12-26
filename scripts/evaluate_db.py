@@ -63,7 +63,7 @@ def main():
 
     if (options.guessed is None) or (options.ref is None) or (options.db_filename is None):
         opt_parser.error("missing arguments. type --help for help.")
-    if (options.pid is not None and options.from_xids is not None):
+    if options.pid is not None and options.from_xids is not None:
         opt_parser.error("inconsistent parameters. \
         you can't have both a pid and from_xids paramters.")
 
