@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """
 The evaluation software for UCCA layer 1.
 """
@@ -66,7 +66,7 @@ def move_functions(p1, p2):
                if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Function}
               for p in (p1, p2)]
     for positions, unit1 in f1.items():
-        unit2 = f2[positions]
+        unit2 = f2.get(positions)
         if unit2 is not None:
             for (p, unit) in ((p1, unit1), (p2, unit2)):
                 move(unit, p.layer("1").heads[0])
