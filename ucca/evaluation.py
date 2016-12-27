@@ -80,7 +80,8 @@ def move(unit, new_parent):
     
 
 def get_text(p, positions):
-    return [p.layer("0").by_position(pos).text for pos in positions if 0 < pos <= len(p.layer("0").all)]
+    l0 = p.layer("0")
+    return [l0.by_position(i).text for i in sorted(positions.intersection(range(1, len(l0.all) + 1)))]
 
 
 def to_text(p, terminal_indices):
@@ -96,7 +97,7 @@ def to_text(p, terminal_indices):
     pre_context = get_text(p, range(l[0] - 3, l[0]))
     post_context = get_text(p, range(l[-1] + 1, l[-1] + 3))
     text = ' '.join(pre_context) + ' { ' + ' '.join(words) + ' } ' + ' '.join(post_context)
-    return text.encode("utf-8")
+    return text
 
 
 def create_passage_yields(p, remotes=False, implicit=False):
@@ -281,45 +282,30 @@ class Evaluator(object):
         :param separate_remotes: whether to put remotes in a separate map
         """
         def _find_mutuals(m1, m2):
-            mutual_ys = set()
+            mutual = dict()
             error_counter = Counter()
-
-            for y in m1.keys():
-                if y in m2.keys():
-                    if eval_type == UNLABELED:
-                        mutual_ys.add(y)
+            for y in m1.keys() & m2.keys():
+                if eval_type == UNLABELED:
+                    mutual[y] = ()
+                else:
+                    tags1 = set(e.tag for e in m1[y])
+                    tags2 = set(e.tag for e in m2[y])
+                    if eval_type == WEAK_LABELED:
+                        tags1 = expand_equivalents(tags1)
+                    mutual_tags = tags1 & tags2
+                    if mutual_tags:  # non-empty intersection
+                        mutual[y] = mutual_tags
                     else:
-                        tags1 = set(e.tag for e in m1[y])
-                        tags2 = set(e.tag for e in m2[y])
-                        if eval_type == WEAK_LABELED:
-                            tags1 = expand_equivalents(tags1)
-                        if tags1 & tags2:  # non-empty intersection
-                            mutual_ys.add(y)
-                        else:
-                            error_counter[(str(tags1), str(tags2))] += 1
-                            if not self.verbose:
-                                pass
-                            elif EdgeTags.Elaborator in tags1 and EdgeTags.Center in tags2 or (
-                                 EdgeTags.Center in tags1 and EdgeTags.Elaborator in tags2):
-                                print(EdgeTags.Center + '-' + EdgeTags.Elaborator, to_text(p1, y))
-                            elif EdgeTags.Process in tags1 and EdgeTags.Center in tags2 or (
-                                 EdgeTags.Center in tags1 and {EdgeTags.Process, EdgeTags.State} & tags2):
-                                print(EdgeTags.Process + '|' + EdgeTags.State + '-' + EdgeTags.Center,
-                                      to_text(p1, y))
-                            elif EdgeTags.Participant in tags1 and EdgeTags.Elaborator in tags2 or (
-                                 EdgeTags.Elaborator in tags1 and EdgeTags.Participant in tags2):
-                                print(EdgeTags.Participant + '-' + EdgeTags.Elaborator, to_text(p1, y))
-            return mutual_ys, error_counter
+                        error_counter[(str(tags1), str(tags2))] += 1
+            return mutual, error_counter
 
         map2, map2_remotes = create_passage_yields(p2, not separate_remotes)
 
         self.all2 = set(map2.keys())
         self.all2_remote = set(map2_remotes.keys())
         if p1 is None:
-            self.mutual = set()
-            self.all1 = set()
-            self.mutual_remote = set()
-            self.all1_remote = set()
+            self.mutual = self.mutual_remote = dict()
+            self.all1 = self.all1_remote = set()
             self.error_counter = Counter()
             return
 
@@ -345,26 +331,28 @@ class Evaluator(object):
             print("Evaluation type: (" + eval_type + ")")
         res = None
 
+        mutual_ys = set(self.mutual)
         if self.verbose and self.units and p1 is not None:
             print("==> Mutual Units:")
-            for y in self.mutual:
-                print(get_text(p1, y))
+            for y, tags in self.mutual.items():
+                print(' '.join(sorted(tags) + ['|'] + get_text(p1, y)))
 
             print("==> Only in guessed:")
-            for y in self.all1 - self.mutual:
-                print(get_text(p1, y))
+            for y in self.all1 - mutual_ys:
+                print(' '.join(get_text(p1, y)))
 
             print("==> Only in reference:")
-            for y in self.all2 - self.mutual:
-                print(get_text(p1, y))
+            for y in self.all2 - mutual_ys:
+                print(' '.join(get_text(p1, y)))
 
         if self.fscore:
+            mutual_ys_remote = set(self.mutual_remote)
             res = EvaluatorResults(SummaryStatistics(1 + len(self.mutual),  # Count root as mutual
-                                                     len(self.all1 - self.mutual),
-                                                     len(self.all2 - self.mutual)),
+                                                     len(self.all1 - mutual_ys),
+                                                     len(self.all2 - mutual_ys)),
                                    SummaryStatistics(len(self.mutual_remote),
-                                                     len(self.all1_remote - self.mutual_remote),
-                                                     len(self.all2_remote - self.mutual_remote)))
+                                                     len(self.all1_remote - mutual_ys_remote),
+                                                     len(self.all2_remote - mutual_ys_remote)))
             if self.verbose:
                 res.print()
 
