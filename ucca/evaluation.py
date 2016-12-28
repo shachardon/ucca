@@ -84,22 +84,6 @@ def get_text(p, positions):
     return [l0.by_position(i).text for i in sorted(positions.intersection(range(1, len(l0.all) + 1)))]
 
 
-def to_text(p, terminal_indices):
-    """
-    Returns a text representation of terminals
-    :param p: Passage object to get terminals from
-    :param terminal_indices: indices of terminals to extract the text of
-    """
-    l = sorted(list(terminal_indices))
-    if not l:
-        return ""
-    words = get_text(p, l)
-    pre_context = get_text(p, range(l[0] - 3, l[0]))
-    post_context = get_text(p, range(l[-1] + 1, l[-1] + 3))
-    text = ' '.join(pre_context) + ' { ' + ' '.join(words) + ' } ' + ' '.join(post_context)
-    return text
-
-
 def create_passage_yields(p, remotes=False, implicit=False):
     """
     :param p: passage to find yields of
@@ -118,9 +102,32 @@ def create_passage_yields(p, remotes=False, implicit=False):
     table_reg, table_remote = defaultdict(list), defaultdict(list)
     for edge in edges:
         table = table_remote if edge.attrib.get("remote") else table_reg
-        table[get_yield(edge.child, remotes)].append(edge)
+        table[get_yield(edge.child, remotes)].append(edge.tag)
 
     return table_reg, table_remote
+
+
+def find_mutuals(m1, m2, eval_type):
+    mutual_tags = dict()
+    error_counter = Counter()
+    for y in m1.keys() & m2.keys():
+        if eval_type == UNLABELED:
+            mutual_tags[y] = ()
+        else:
+            tags1 = set(m1[y])
+            tags2 = set(m2[y])
+            if eval_type == WEAK_LABELED:
+                tags1 = expand_equivalents(tags1)
+            intersection = tags1 & tags2
+            if intersection:  # non-empty intersection
+                mutual_tags[y] = intersection
+            else:
+                error_counter[(str(sorted(tags1)), str(sorted(tags2)))] += 1
+    return mutual_tags, error_counter
+
+
+def print_tags_and_text(p1, tags, y):
+    print(",".join(sorted(tags)) + (": " if tags else "") + " ".join(get_text(p1, y)))
 
 
 def get_yield(unit, remotes=False):
@@ -132,7 +139,7 @@ def expand_equivalents(tag_set):
     Returns a set of all the tags in the tag set or those equivalent to them
     :param tag_set: collection of tags (strings) to expand
     """
-    return tag_set | set(t1 for t in tag_set for pair in EQUIV for t1 in pair if t in pair and t != t1)
+    return tag_set.union(t1 for t in tag_set for pair in EQUIV for t1 in pair if t in pair and t != t1)
 
 
 def tag_distribution(unit_list):
@@ -141,6 +148,86 @@ def tag_distribution(unit_list):
     :param unit_list: list of Node objects
     """
     return Counter(u.tag for u in unit_list)
+
+
+class Evaluator(object):
+    def __init__(self, verbose, units, fscore, errors):
+        """
+        :param units: whether to calculate and print the mutual and exclusive units in the passages
+        :param fscore: whether to find and return the scores
+        :param errors: whether to calculate and print the confusion matrix of errors
+        :param verbose: whether to print the scores
+        """
+        self.verbose = verbose
+        self.units = units
+        self.fscore = fscore
+        self.errors = errors
+
+    def get_scores(self, p1, p2, eval_type, separate_remotes=True):
+        """
+        prints the relevant statistics and f-scores. eval_type can be 'unlabeled', 'labeled' or 'weak_labeled'.
+        calculates a set of all the yields such that both passages have a unit with that yield.
+        :param p1: passage to compare
+        :param p2: reference passage object
+        :param eval_type: evaluation type to use, out of EVAL_TYPES
+        1. UNLABELED: it doesn't matter what labels are there.
+        2. LABELED: also requires tag match (if there are multiple units with the same yield, requires one match)
+        3. WEAK_LABELED: also requires weak tag match (if there are multiple units with the same yield, requires one match)
+        :param separate_remotes: whether to put remotes in a separate map
+        :returns EvaluatorResults object if self.fscore is True, otherwise None
+        """
+        map2, map2_remotes = create_passage_yields(p2, not separate_remotes)
+
+        all2 = set(map2.keys())
+        all2_remote = set(map2_remotes.keys())
+        if p1 is None:
+            mutual = mutual_remote = dict()
+            all1 = all1_remote = set()
+            error_counter = Counter()
+        else:
+            map1, map1_remotes = create_passage_yields(p1, not separate_remotes)
+            all1 = set(map1.keys())
+            all1_remote = set(map1_remotes.keys())
+            mutual, error_counter = find_mutuals(map1, map2, eval_type)
+            mutual_remote = None
+            if separate_remotes:
+                mutual_remote, _ = find_mutuals(map1_remotes, map2_remotes, eval_type)
+
+        if self.verbose:
+            print("Evaluation type: (" + eval_type + ")")
+        res = None
+
+        mutual_ys = set(mutual)
+        if self.verbose and self.units and p1 is not None:
+            print("==> Mutual Units:")
+            for y, tags in mutual.items():
+                print_tags_and_text(p1, tags, y)
+
+            print("==> Only in guessed:")
+            for y in all1 - mutual_ys:
+                print_tags_and_text(p1, map1[y], y)
+
+            print("==> Only in reference:")
+            for y in all2 - mutual_ys:
+                print_tags_and_text(p2, map2[y], y)
+
+        if self.fscore:
+            mutual_ys_remote = set(mutual_remote)
+            res = EvaluatorResults(SummaryStatistics(1 + len(mutual),  # Count root as mutual
+                                                     len(all1 - mutual_ys),
+                                                     len(all2 - mutual_ys)),
+                                   SummaryStatistics(len(mutual_remote),
+                                                     len(all1_remote - mutual_ys_remote),
+                                                     len(all2_remote - mutual_ys_remote)))
+            if self.verbose:
+                res.print()
+
+        if self.verbose and self.errors and error_counter:
+            print("\nConfusion Matrix:\n")
+            for error, freq in error_counter.most_common():
+                print(error[0], "\t", error[1], "\t", freq)
+
+        return res
 
 
 class Scores(object):
@@ -253,115 +340,6 @@ class SummaryStatistics(object):
         """
         return SummaryStatistics(*map(sum, [map(attrgetter(attr), stats)
                                             for attr in ("num_matches", "num_only_guessed", "num_only_ref")]))
-
-
-class Evaluator(object):
-    def __init__(self, verbose, units, fscore, errors):
-        """
-        :param units: whether to calculate and print the mutual and exclusive units in the passages
-        :param fscore: whether to find and return the scores
-        :param errors: whether to calculate and print the confusion matrix of errors
-        :param verbose: whether to print the scores
-        """
-        self.verbose = verbose
-        self.units = units
-        self.fscore = fscore
-        self.errors = errors
-        self.mutual = self.all1 = self.all2 = self.mutual_remote = \
-            self.all1_remote = self.all2_remote = self.error_counter = None
-
-    def calculate_yields(self, p1, p2, eval_type, separate_remotes=True):
-        """
-        returns a set of all the yields such that both passages have a unit with that yield.
-        :param p1: passage to compare
-        :param p2: passage to use as reference
-        :param eval_type:
-        1. UNLABELED: it doesn't matter what labels are there.
-        2. LABELED: also requires tag match (if there are multiple units with the same yield, requires one match)
-        3. WEAK_LABELED: also requires weak tag match (if there are multiple units with the same yield, requires one match)
-        :param separate_remotes: whether to put remotes in a separate map
-        """
-        def _find_mutuals(m1, m2):
-            mutual = dict()
-            error_counter = Counter()
-            for y in m1.keys() & m2.keys():
-                if eval_type == UNLABELED:
-                    mutual[y] = ()
-                else:
-                    tags1 = set(e.tag for e in m1[y])
-                    tags2 = set(e.tag for e in m2[y])
-                    if eval_type == WEAK_LABELED:
-                        tags1 = expand_equivalents(tags1)
-                    mutual_tags = tags1 & tags2
-                    if mutual_tags:  # non-empty intersection
-                        mutual[y] = mutual_tags
-                    else:
-                        error_counter[(str(tags1), str(tags2))] += 1
-            return mutual, error_counter
-
-        map2, map2_remotes = create_passage_yields(p2, not separate_remotes)
-
-        self.all2 = set(map2.keys())
-        self.all2_remote = set(map2_remotes.keys())
-        if p1 is None:
-            self.mutual = self.mutual_remote = dict()
-            self.all1 = self.all1_remote = set()
-            self.error_counter = Counter()
-            return
-
-        map1, map1_remotes = create_passage_yields(p1, not separate_remotes)
-        self.all1 = set(map1.keys())
-        self.all1_remote = set(map1_remotes.keys())
-
-        self.mutual, self.error_counter = _find_mutuals(map1, map2)
-        self.mutual_remote = None
-        if separate_remotes:
-            self.mutual_remote, _ = _find_mutuals(map1_remotes, map2_remotes)
-
-    def get_scores(self, p1, p2, eval_type):
-        """
-        prints the relevant statistics and f-scores. eval_type can be 'unlabeled', 'labeled' or 'weak_labeled'.
-        :param p1: passage to compare
-        :param p2: reference passage object
-        :param eval_type: evaluation type to use, out of EVAL_TYPES
-        :returns EvaluatorResults object if self.fscore is True, otherwise None
-        """
-        self.calculate_yields(p1, p2, eval_type)
-        if self.verbose:
-            print("Evaluation type: (" + eval_type + ")")
-        res = None
-
-        mutual_ys = set(self.mutual)
-        if self.verbose and self.units and p1 is not None:
-            print("==> Mutual Units:")
-            for y, tags in self.mutual.items():
-                print(' '.join(sorted(tags) + ['|'] + get_text(p1, y)))
-
-            print("==> Only in guessed:")
-            for y in self.all1 - mutual_ys:
-                print(' '.join(get_text(p1, y)))
-
-            print("==> Only in reference:")
-            for y in self.all2 - mutual_ys:
-                print(' '.join(get_text(p1, y)))
-
-        if self.fscore:
-            mutual_ys_remote = set(self.mutual_remote)
-            res = EvaluatorResults(SummaryStatistics(1 + len(self.mutual),  # Count root as mutual
-                                                     len(self.all1 - mutual_ys),
-                                                     len(self.all2 - mutual_ys)),
-                                   SummaryStatistics(len(self.mutual_remote),
-                                                     len(self.all1_remote - mutual_ys_remote),
-                                                     len(self.all2_remote - mutual_ys_remote)))
-            if self.verbose:
-                res.print()
-
-        if self.verbose and self.errors and self.error_counter:
-            print("\nConfusion Matrix:\n")
-            for error, freq in self.error_counter.most_common():
-                print(error[0], '\t', error[1], '\t', freq)
-
-        return res
 
 
 def evaluate(guessed_passage, ref_passage, verbose=False, units=False, fscore=True, errors=False):
