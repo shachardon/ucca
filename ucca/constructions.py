@@ -1,9 +1,10 @@
 from collections import defaultdict
 from operator import attrgetter
 
-from nltk.tag import pos_tag, map_tag
+from nltk.tag import map_tag
 
 from ucca.layer1 import EdgeTags
+from ucca.tagutil import get_pos_tagger
 
 
 class Construction(object):
@@ -38,11 +39,11 @@ CONSTRUCTIONS = (
 )
 
 
-def extract_units(passage, args=None):
+def extract_units(passage, args=None, tagger=None):
     units = defaultdict(list)
     l1 = passage.layer("1")
     terminals = sorted(l1.heads[0].get_terminals(), key=attrgetter("position"))
-    for (terminal, (token, tag)) in zip(terminals, pos_tag([t.text for t in terminals])):
+    for (terminal, (token, tag)) in zip(terminals, get_pos_tagger(tagger).tag([t.text for t in terminals])):
         coarse_tag = map_tag("en-ptb", "universal", tag)
         p = terminal
         while not hasattr(p, "ftag"):
