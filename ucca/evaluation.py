@@ -142,14 +142,6 @@ def expand_equivalents(tag_set):
     return tag_set.union(t1 for t in tag_set for pair in EQUIV for t1 in pair if t in pair and t != t1)
 
 
-def tag_distribution(unit_list):
-    """
-    Given a list of units, returns a dict that maps the tags of the units to their frequency in the text
-    :param unit_list: list of Node objects
-    """
-    return Counter(u.tag for u in unit_list)
-
-
 class Evaluator(object):
     def __init__(self, verbose, units, fscore, errors):
         """
