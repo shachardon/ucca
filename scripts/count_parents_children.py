@@ -6,6 +6,7 @@ import sys
 from collections import Counter, defaultdict
 
 from ucca.ioutil import file2passage
+from ucca import layer1
 
 desc = """Parses XML files in UCCA standard format, and creates a histogram for the number of parents per unit.
 """
@@ -61,7 +62,7 @@ def main():
         for filename in glob.glob(pattern):
             sys.stderr.write("Reading passage '%s'...\n" % filename)
             passage = file2passage(filename)
-            for node in passage.layer("1").all:
+            for node in passage.layer(layer1.LAYER_ID).all:
                 if node.ID != "1.1":  # Exclude the root node
                     histograms["parents"][clip(node.incoming, 3)] += 1
                     histograms["children"][clip(node.outgoing, 7)] += 1
