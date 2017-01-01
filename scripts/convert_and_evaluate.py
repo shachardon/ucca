@@ -21,6 +21,10 @@ def main():
                            help="input file format")
     argparser.add_argument("-T", "--tree", action="store_true",
                            help="remove multiple parents to get a tree")
+    argparser.add_argument("-s", "--strict", action="store_true",
+                           help="stop immediately if failed to convert or evaluate a file")
+    argparser.add_argument("-v", "--verbose", action="store_true",
+                           help="print evaluation results for each file separately")
     args = argparser.parse_args()
 
     converter1 = convert.TO_FORMAT[args.format]
@@ -34,10 +38,13 @@ def main():
             ref = file2passage(filename)
             try:
                 guessed = next(converter2(converter1(ref, tree=args.tree), ref.ID))
-                scores.append(evaluate(guessed, ref))
+                scores.append(evaluate(guessed, ref, verbose=args.verbose))
             except Exception as e:
-                raise ValueError("Error evaluating conversion of %s" % filename, e)
-    if len(scores) > 1:
+                if args.strict:
+                    raise ValueError("Error evaluating conversion of %s" % filename) from e
+                else:
+                    print("Error evaluating conversion of %s: %s" % (filename, e), file=sys.stderr)
+    if args.verbose and len(scores) > 1:
         print("Aggregated scores:")
     Scores.aggregate(scores).print()
 
