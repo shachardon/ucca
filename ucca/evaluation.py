@@ -87,9 +87,9 @@ def get_text(p, positions):
 
 def create_passage_yields(p, remotes=False, implicit=False):
     """
-    :param p: passage to find yields of
+    :param p: Passage to find yields of
     :param remotes: if True, regular table includes remotes
-    :param implicit: if true, regular table includes the empty yield of implicit nodes
+    :param implicit: if True, regular table includes the empty yield of implicit nodes
     :returns two dicts:
     1. maps a set of terminal indices (excluding punctuation) to a list of layer1 edges whose yield (excluding remotes
        and punctuation) is that set.

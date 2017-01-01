@@ -4,7 +4,7 @@ from operator import attrgetter
 from nltk.tag import map_tag
 
 from ucca.layer1 import EdgeTags
-from ucca import tagutil, layer1
+from ucca import tagutil, layer0, layer1
 
 
 class Construction(object):
@@ -15,25 +15,25 @@ class Construction(object):
         self.categories = categories
         self.tokens = tokens
 
-    def __call__(self, coarse_tag, category, token):
-        return (self.coarse_tags is None or coarse_tag in self.coarse_tags) and \
-               (self.categories is None or category in self.categories) and \
-               (self.tokens is None or token in self.tokens)
+    def __call__(self, coarse_tags, categories, tokens):
+        return (self.coarse_tags is None or self.coarse_tags.issuperset(coarse_tags)) and \
+               (self.categories is None or self.categories.issuperset(categories)) and \
+               (self.tokens is None or self.tokens.issuperset(tokens))
 
     def __str__(self):
         return self.name
 
 
-PREDICATES = (EdgeTags.Process, EdgeTags.State)
+PREDICATE_EDGE_TAGS = {EdgeTags.Process, EdgeTags.State}
 
 
 CONSTRUCTIONS = (
-    Construction("aspectual_verbs", "aspectual verbs", ("VERB",), (EdgeTags.Adverbial,)),
-    Construction("light_verbs", "light verbs", ("VERB",), (EdgeTags.Function,)),
+    Construction("aspectual_verbs", "aspectual verbs", {"VERB"}, {EdgeTags.Adverbial}),
+    Construction("light_verbs", "light verbs", {"VERB"}, {EdgeTags.Function}),
     # Construction("mwe", "multi-word expressions"),
-    Construction("pred_nouns", "predicate nouns", ("NOUN",), PREDICATES),
-    Construction("pred_adjs", "predicate adjectives", ("ADJ",), PREDICATES),
-    Construction("expletive_it", "expletive `it' constructions", categories=(EdgeTags.Function,), tokens="it"),
+    Construction("pred_nouns", "predicate nouns", {"NOUN"}, PREDICATE_EDGE_TAGS),
+    Construction("pred_adjs", "predicate adjectives", {"ADJ"}, PREDICATE_EDGE_TAGS),
+    Construction("expletive_it", "expletive `it' constructions", categories={EdgeTags.Function}, tokens={"it"}),
     # Construction("part_whole", "part-whole constructions"),
     # Construction("classifiers", "classifier constructions"),
 )
@@ -48,25 +48,24 @@ def extract_units(passage, args=None, tagger=None, verbose=False):
     :param verbose: whether to print tagged text
     :return: dict of construction name -> list of corresponding units
     """
+    tagutil.pos_tag(passage, tagger=tagger, verbose=verbose)
     units = defaultdict(list)
-    l1 = passage.layer(layer1.LAYER_ID)
-    for terminal in sorted(l1.heads[0].get_terminals(), key=attrgetter("position")):
-        tag = terminal.extra.get(tagutil.POS_TAG_KEY)
-        if tag is None:
-            tagutil.pos_tag(passage, tagger=tagger, verbose=verbose)
-            try:
-                tag = terminal.extra[tagutil.POS_TAG_KEY]
-            except KeyError as e:
-                raise Exception("Failed getting POS tag for '%s'" % terminal) from e
-        coarse_tag = map_tag("en-ptb", "universal", tag)
-        p = terminal
-        while not hasattr(p, "ftag"):
-            p = p.parents[0]
-        category = p.ftag
+    nodes = list(passage.layer(layer0.LAYER_ID).all)
+    visited = set()
+    while nodes:  # bottom-up traversal
+        node = nodes.pop(0)
+        visited.add(node.ID)
+        nodes += [n for n in node.parents if n.ID not in visited]
+        try:
+            terminals = node.get_terminals()
+        except AttributeError:
+            continue
+        coarse_tags = [map_tag("en-ptb", "universal", t.extra[tagutil.POS_TAG_KEY]) for t in terminals]
+        categories = [e.tag for e in node.incoming]
+        tokens = [t.text.lower() for t in terminals]
         for construction in CONSTRUCTIONS:
-            if (args is None or getattr(args, construction.name)) and \
-                    construction(coarse_tag, category, terminal.text.lower()):
-                units[construction.name].append(terminal)
+            if (args is None or getattr(args, construction.name)) and construction(coarse_tags, categories, tokens):
+                units[construction.name].append(node)
     # edges = (e for n in l1.all for e in n if e.tag)
     # for edge in edges:
     #     if args.mwe:

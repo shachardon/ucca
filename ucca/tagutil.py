@@ -16,7 +16,7 @@ PERCEPTRON = "perceptron"
 STANFORD = "stanford_english_left3words"
 STANFORD_BIDI = "stanford_english_bidirectional"
 
-POS_TAGGERS = (PERCEPTRON, STANFORD)
+POS_TAGGERS = (PERCEPTRON, STANFORD, STANFORD_BIDI)
 
 INSTANCES = {}
 
