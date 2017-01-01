@@ -12,9 +12,10 @@ if __name__ == "__main__":
         argparser.add_argument("--%s" % construction.name.replace("_", "-"),
                                action="store_true", help="extract %s" % construction.description)
     argparser.add_argument("--pos-tagger", choices=POS_TAGGERS, default=POS_TAGGERS[0], help="POS tagger to use")
+    argparser.add_argument("-v", "--verbose", action="store_true", help="print tagged text for each passage")
     args = argparser.parse_args()
     for passage in read_files_and_dirs(args.passages):
-        extracted = extract_units(passage, args, args.pos_tagger)
+        extracted = extract_units(passage, args, args.pos_tagger, verbose=args.verbose)
         if extracted:
             print("%s:" % passage.ID)
             for name, units in extracted.items():

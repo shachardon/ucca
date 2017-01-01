@@ -4,7 +4,7 @@ from operator import attrgetter
 from nltk.tag import map_tag
 
 from ucca.layer1 import EdgeTags
-from ucca.tagutil import get_pos_tagger
+from ucca import tagutil, layer1
 
 
 class Construction(object):
@@ -39,18 +39,33 @@ CONSTRUCTIONS = (
 )
 
 
-def extract_units(passage, args=None, tagger=None):
+def extract_units(passage, args=None, tagger=None, verbose=False):
+    """
+    Find constructions in UCCA passage.
+    :param passage: Passage object to find constructions in
+    :param args: object with an attribute (with value True) for each desired construction, or None for all
+    :param tagger: POS tagger name to use, or None for default
+    :param verbose: whether to print tagged text
+    :return: dict of construction name -> list of corresponding units
+    """
     units = defaultdict(list)
-    l1 = passage.layer("1")
-    terminals = sorted(l1.heads[0].get_terminals(), key=attrgetter("position"))
-    for (terminal, (token, tag)) in zip(terminals, get_pos_tagger(tagger).tag([t.text for t in terminals])):
+    l1 = passage.layer(layer1.LAYER_ID)
+    for terminal in sorted(l1.heads[0].get_terminals(), key=attrgetter("position")):
+        tag = terminal.extra.get(tagutil.POS_TAG_KEY)
+        if tag is None:
+            tagutil.pos_tag(passage, tagger=tagger, verbose=verbose)
+            try:
+                tag = terminal.extra[tagutil.POS_TAG_KEY]
+            except KeyError as e:
+                raise Exception("Failed getting POS tag for '%s'" % terminal) from e
         coarse_tag = map_tag("en-ptb", "universal", tag)
         p = terminal
         while not hasattr(p, "ftag"):
             p = p.parents[0]
         category = p.ftag
         for construction in CONSTRUCTIONS:
-            if (args is None or getattr(args, construction.name)) and construction(coarse_tag, category, token.lower()):
+            if (args is None or getattr(args, construction.name)) and \
+                    construction(coarse_tag, category, terminal.text.lower()):
                 units[construction.name].append(terminal)
     # edges = (e for n in l1.all for e in n if e.tag)
     # for edge in edges:

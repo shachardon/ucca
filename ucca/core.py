@@ -164,7 +164,7 @@ class _AttributeDict:
             other: AttributeDict to compare to
 
         Returns:
-            True iff the dictionaries contains are equal.
+            True iff the dictionaries are equal.
 
         """
         def omit_irrelevant(d):
