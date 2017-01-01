@@ -217,10 +217,7 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
 
         """
         gid = node_elem.get(SiteCfg.Attr.GroupID)
-        if gid is not None:
-            return elem2node.get(gid)
-        else:
-            return SiteUtil.get_node(node_elem, elem2node)
+        return SiteUtil.get_node(node_elem, elem2node) if gid is None else elem2node.get(gid)
 
     def _get_work_elem(node_elem):
         """Given XML element, return either itself or its discontiguos unit."""
@@ -592,14 +589,16 @@ def to_standard(passage):
 
 
 def from_standard(root, extra_funcs=None):
+    def _str2bool(x):
+        return x == "True"
 
     attribute_converters = {
-        'paragraph': (lambda x: int(x)),
-        'paragraph_position': (lambda x: int(x)),
-        'remote': (lambda x: True if x == 'True' else False),
-        'implicit': (lambda x: True if x == 'True' else False),
-        'uncertain': (lambda x: True if x == 'True' else False),
-        'suggest': (lambda x: True if x == 'True' else False),
+        'paragraph': int,
+        'paragraph_position': int,
+        'remote': _str2bool,
+        'implicit': _str2bool,
+        'uncertain': _str2bool,
+        'suggest': _str2bool,
     }
 
     layer_objs = {layer0.LAYER_ID: layer0.Layer0,
