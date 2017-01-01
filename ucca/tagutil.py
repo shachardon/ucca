@@ -49,10 +49,12 @@ def pos_tag(passage, tagger=None, verbose=False):
     :return: list of tagged terminal nodes
     """
     l0 = passage.layer(layer0.LAYER_ID)
-    for _, paragraph in groupby(l0.all, key=attrgetter("paragraph")):
-        terminals = sorted(paragraph, key=attrgetter("position"))
-        tagged = get_pos_tagger(tagger).tag([t.text for t in terminals])
-        for (terminal, (token, tag)) in zip(terminals, tagged):
+    pos_tagger = get_pos_tagger(tagger)
+    paragraphs = [sorted(paragraph, key=attrgetter("position"))
+                  for _, paragraph in groupby(l0.all, key=attrgetter("paragraph"))]
+    tagged = pos_tagger.tag_sents([[t.text for t in p] for p in paragraphs])
+    for paragraph, tagged_paragraph in zip(paragraphs, tagged):
+        for (terminal, (_, tag)) in zip(paragraph, tagged_paragraph):
             terminal.extra[POS_TAG_KEY] = tag
-        if verbose:
-            print(" ".join("%s/%s" % (token, tag) for (token, tag) in tagged))
+    if verbose:
+        print("\n".join(" ".join("%s/%s" % (token, tag) for (token, tag) in p) for p in tagged))
