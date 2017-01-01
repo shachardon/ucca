@@ -40,21 +40,23 @@ def _init_pos_tagger(name):
         raise ValueError("Invalid POS tagger name: %s" % name)
 
 
-def pos_tag(passage, tagger=None, verbose=False):
+def pos_tag(passage, tagger=None, verbose=False, replace=False):
     """
     POS tag the tokens in the given passage
     :param passage: Passage whose layer 0 nodes will be added the "pos_tag" entry in the attrib dict
     :param tagger: POS tagger name to use, or None for default
     :param verbose: whether to print tagged text
+    :param replace: even if given passage is already POS-tagged, replace existing tags with new ones
     :return: list of tagged terminal nodes
     """
     l0 = passage.layer(layer0.LAYER_ID)
-    pos_tagger = get_pos_tagger(tagger)
     paragraphs = [sorted(paragraph, key=attrgetter("position"))
                   for _, paragraph in groupby(l0.all, key=attrgetter("paragraph"))]
-    tagged = pos_tagger.tag_sents([[t.text for t in p] for p in paragraphs])
-    for paragraph, tagged_paragraph in zip(paragraphs, tagged):
-        for (terminal, (_, tag)) in zip(paragraph, tagged_paragraph):
-            terminal.extra[POS_TAG_KEY] = tag
+    if replace or any(POS_TAG_KEY not in t.extra for p in paragraphs for t in p):
+        pos_tagger = get_pos_tagger(tagger)
+        tagged = pos_tagger.tag_sents([[t.text for t in p] for p in paragraphs])
+        for paragraph, tagged_paragraph in zip(paragraphs, tagged):
+            for (terminal, (_, tag)) in zip(paragraph, tagged_paragraph):
+                terminal.extra[POS_TAG_KEY] = tag
     if verbose:
         print("\n".join(" ".join("%s/%s" % (token, tag) for (token, tag) in p) for p in tagged))
