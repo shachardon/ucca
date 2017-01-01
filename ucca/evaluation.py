@@ -6,6 +6,7 @@ v1.1
 from collections import Counter, defaultdict
 from operator import attrgetter
 
+from ucca import layer0, layer1
 from ucca.layer1 import EdgeTags, NodeTags
 
 UNLABELED = "unlabeled"
@@ -34,7 +35,7 @@ def flatten_centers(p):
     def _center_children(u):
         return [x for x in u.children if x.tag == NodeTags.Foundational and x.ftag == EdgeTags.Center]
 
-    to_ungroup = [u for u in p.layer("1").all if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Center and
+    to_ungroup = [u for u in p.layer(layer1.LAYER_ID).all if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Center and
                   len(_center_children(u)) == 1 and (u.fparent is None or len(_center_children(u.fparent)) == 1)]
     for unit in to_ungroup:
         ungroup(unit)
@@ -63,14 +64,14 @@ def move_functions(p1, p2):
     """
     Move any common Fs to the root
     """
-    f1, f2 = [{get_yield(u): u for u in p.layer("1").all
+    f1, f2 = [{get_yield(u): u for u in p.layer(layer1.LAYER_ID).all
                if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Function}
               for p in (p1, p2)]
     for positions, unit1 in f1.items():
         unit2 = f2.get(positions)
         if unit2 is not None:
             for (p, unit) in ((p1, unit1), (p2, unit2)):
-                move(unit, p.layer("1").heads[0])
+                move(unit, p.layer(layer1.LAYER_ID).heads[0])
 
 
 def move(unit, new_parent):
@@ -80,7 +81,7 @@ def move(unit, new_parent):
     
 
 def get_text(p, positions):
-    l0 = p.layer("0")
+    l0 = p.layer(layer0.LAYER_ID)
     return [l0.by_position(i).text for i in sorted(positions.intersection(range(1, len(l0.all) + 1)))]
 
 
@@ -95,7 +96,7 @@ def create_passage_yields(p, remotes=False, implicit=False):
     2. maps a set of terminal indices (excluding punctuation) to a set of remote edges whose yield (excluding remotes
        and punctuation) is that set.
     """
-    l1 = p.layer("1")
+    l1 = p.layer(layer1.LAYER_ID)
     edges = (e for n in l1.all for e in n if e.tag not in EXCLUDED and
              (implicit or not e.child.attrib.get("implicit")))
 

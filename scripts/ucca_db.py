@@ -5,7 +5,7 @@ from xml.etree.ElementTree import fromstring
 
 import psycopg2
 
-from ucca import convert
+from ucca import convert, layer1
 from ucca.layer1 import EdgeTags as ET
 from ucca.layer1 import NodeTags as NT
 
@@ -236,15 +236,15 @@ def get_tasks(db, host, username):
                 except Exception:
                     sys.stderr.write("Skipped.\n")
                     continue
-                num_units = len([x for x in ucca_dag.layer("1").all
+                num_units = len([x for x in ucca_dag.layer(layer1.LAYER_ID).all
                                  if x.tag == NT.Foundational]) - 1
-                for node in ucca_dag.layer("1").all:
+                for node in ucca_dag.layer(layer1.LAYER_ID).all:
                     category_distribution.update([e.tag for e in node
                                                   if e.tag
                                                   not in
                                                   [ET.Punctuation, ET.LinkArgument, ET.LinkRelation, ET.Terminal]])
                 # getting the scene categories
-                scenes = [x for x in ucca_dag.layer("1").all
+                scenes = [x for x in ucca_dag.layer(layer1.LAYER_ID).all
                           if x.tag == NT.Foundational and x.is_scene()]
                 scene_distribution.update([linkage_type(sc) for sc in scenes])
                 sum_scene_length += sum([unit_length(x) for x in scenes])
