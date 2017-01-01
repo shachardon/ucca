@@ -15,9 +15,9 @@ if __name__ == "__main__":
     argparser.add_argument("-v", "--verbose", action="store_true", help="print tagged text for each passage")
     args = argparser.parse_args()
     for passage in read_files_and_dirs(args.passages):
+        print("%s:" % passage.ID)
         extracted = extract_units(passage, args, args.pos_tagger, verbose=args.verbose)
         if extracted:
-            print("%s:" % passage.ID)
             for name, units in extracted.items():
                 print("  %s:" % name)
                 for unit in units:
