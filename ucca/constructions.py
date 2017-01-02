@@ -77,10 +77,10 @@ DEFAULT = OrderedDict((str(c), c) for c in CONSTRUCTIONS if c.default)
 
 
 def add_argument(argparser, default=True):
-    d = DEFAULT if default else [n for n in CONSTRUCTION_BY_NAME if n not in DEFAULT]
-    argparser.add_argument("-c", "--constructions", nargs="+", choices=CONSTRUCTION_BY_NAME, default=d, metavar="x",
-                           help="construction types to include, out of {%s} (default: %s)" %
-                                (",".join(CONSTRUCTION_BY_NAME), ",".join(d)))
+    d = list(DEFAULT.keys()) if default else [n for n in CONSTRUCTION_BY_NAME if n not in DEFAULT]
+    argparser.add_argument("--constructions", nargs="+", choices=CONSTRUCTION_BY_NAME, default=d, metavar="x",
+                           help="construction types to include, out of {%s}" %
+                                ",".join(CONSTRUCTION_BY_NAME.keys()))
 
 
 def extract_edges(passage, constructions=None, tagger=None, verbose=False):
