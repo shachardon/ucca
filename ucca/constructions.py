@@ -22,6 +22,12 @@ class Construction(object):
     def __str__(self):
         return self.name
 
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return self.name == other.name
+
 
 class Candidate(object):
     def __init__(self, edge):
@@ -35,23 +41,23 @@ class Candidate(object):
 
 
 CONSTRUCTIONS = (
-    Construction("primary", "primary edges", True,
+    Construction("primary", "Primary edges", True,
                  lambda c: not c.edge.attrib.get("remote", False)),
-    Construction("remote", "remote edges", True,
+    Construction("remote", "Remote edges", True,
                  lambda c: c.edge.attrib.get("remote", False)),
-    Construction("aspectual_verbs", "aspectual verbs",
+    Construction("aspectual_verbs", "Aspectual verbs",
                  lambda c: c.coarse_tags == {"VERB"} and c.edge.tag == EdgeTags.Adverbial),
-    Construction("light_verbs", "light verbs",
+    Construction("light_verbs", "Light verbs",
                  lambda c: c.coarse_tags == {"VERB"} and c.edge.tag == EdgeTags.Function),
-    # Construction("mwe", "multi-word expressions"),
-    Construction("pred_nouns", "predicate nouns",
+    # Construction("mwe", "Multi-word expressions"),
+    Construction("pred_nouns", "Predicate nouns",
                  lambda c: c.coarse_tags == {"NOUN"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
-    Construction("pred_adjs", "predicate adjectives",
+    Construction("pred_adjs", "Predicate adjectives",
                  lambda c: c.coarse_tags == {"ADJ"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
-    Construction("expletive_it", "expletive `it' constructions",
+    Construction("expletive_it", "Expletive `it' constructions",
                  lambda c: c.tokens == {"it"} and c.edge.tag == EdgeTags.Function),
-    # Construction("part_whole", "part-whole constructions"),
-    # Construction("classifiers", "classifier constructions"),
+    # Construction("part_whole", "Part-whole constructions"),
+    # Construction("classifiers", "Classifier constructions"),
 )
 NAMES = list(map(str, CONSTRUCTIONS))
 DEFAULT = tuple([str(c) for c in CONSTRUCTIONS if c.default])
@@ -71,7 +77,7 @@ def extract_edges(passage, constructions=None, tagger=None, verbose=False):
     :param constructions: list of constructions to include or None for all
     :param tagger: POS tagger name to use, or None for default
     :param verbose: whether to print tagged text
-    :return: dict of construction name -> list of corresponding edges
+    :return: dict of Construction -> list of corresponding edges
     """
     tagutil.pos_tag(passage, tagger=tagger, verbose=verbose)
     extracted = defaultdict(list)
@@ -84,7 +90,7 @@ def extract_edges(passage, constructions=None, tagger=None, verbose=False):
         candidate = Candidate(edge)
         for construction in CONSTRUCTIONS:
             if (constructions is None or construction.name in constructions) and construction.criterion(candidate):
-                extracted[construction.name].append(edge)
+                extracted[construction].append(edge)
     # edges = (e for n in l1.all for e in n if e.tag)
     # for edge in edges:
     #     if args.mwe:

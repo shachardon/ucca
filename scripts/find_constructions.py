@@ -16,8 +16,8 @@ if __name__ == "__main__":
         print("%s:" % passage.ID)
         extracted = constructions.extract_edges(passage, args.constructions, args.pos_tagger, verbose=args.verbose)
         if extracted:
-            for name, edges in extracted.items():
-                print("  %s:" % name)
+            for construction, edges in extracted.items():
+                print("  %s:" % construction)
                 for unit in edges:
                     print("    %s [%s %s]" % (unit, unit.tag, unit.child))
             print()

@@ -36,7 +36,8 @@ def flatten_centers(p):
     def _center_children(u):
         return [x for x in u.children if x.tag == NodeTags.Foundational and x.ftag == EdgeTags.Center]
 
-    to_ungroup = [u for u in p.layer(layer1.LAYER_ID).all if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Center and
+    to_ungroup = [u for u in p.layer(layer1.LAYER_ID).all
+                  if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Center and
                   len(_center_children(u)) == 1 and (u.fparent is None or len(_center_children(u.fparent)) == 1)]
     for unit in to_ungroup:
         ungroup(unit)
@@ -176,15 +177,12 @@ class Evaluator(object):
         """
         map2, map2_remotes = create_passage_yields(p2, not separate_remotes)
 
-        all2 = set(map2.keys())
         all2_remote = set(map2_remotes.keys())
         if p1 is None:
-            mutual = mutual_remote = dict()
-            all1 = all1_remote = set()
+            map1 = mutual = mutual_remote = dict()
             error_counter = Counter()
         else:
             map1, map1_remotes = create_passage_yields(p1, not separate_remotes)
-            all1 = set(map1.keys())
             all1_remote = set(map1_remotes.keys())
             mutual, error_counter = find_mutuals(map1, map2, eval_type)
             mutual_remote = None
@@ -195,20 +193,21 @@ class Evaluator(object):
             print("Evaluation type: (" + eval_type + ")")
         res = None
 
+        only_guessed = {y: tags for y, tags in map1.items() if y not in mutual}
+        only_ref = {y: tags for y, tags in map2.items() if y not in mutual}
         if self.verbose and self.units and p1 is not None:
             print("==> Mutual Units:")
             print_tags_and_text(p1, mutual)
             print("==> Only in guessed:")
-            print_tags_and_text(p1, {y: tags for y, tags in map1.items() if y not in mutual})
+            print_tags_and_text(p1, only_guessed)
             print("==> Only in reference:")
-            print_tags_and_text(p2, {y: tags for y, tags in map2.items() if y not in mutual})
+            print_tags_and_text(p2, only_ref)
 
         if self.fscore:
-            mutual_ys_remote = set(mutual_remote)
-            mutual_ys = set(mutual)
+            mutual_ys_remote = set(mutual_remote.keys())
             res = EvaluatorResults(SummaryStatistics(1 + len(mutual),  # Count root as mutual
-                                                     len(all1 - mutual_ys),
-                                                     len(all2 - mutual_ys)),
+                                                     len(only_guessed),
+                                                     len(only_ref)),
                                    SummaryStatistics(len(mutual_remote),
                                                      len(all1_remote - mutual_ys_remote),
                                                      len(all2_remote - mutual_ys_remote)))
