@@ -61,7 +61,8 @@ def pos_tag(passage, tagger=None, verbose=False, replace=False):
     paragraphs = [sorted(paragraph, key=attrgetter("position"))
                   for _, paragraph in groupby(l0.all, key=attrgetter("paragraph"))]
     tagged = [[(t.text, t.extra.get(POS_TAG_KEY)) for t in p] for p in paragraphs]
-    if replace or passage.extra.get(POS_TAGGER_KEY) != tagger or any(t is None for p in tagged for _, t in p):
+    if replace or tagger is not None and passage.extra.get(POS_TAGGER_KEY) != tagger or \
+            any(t is None for p in tagged for _, t in p):
         pos_tagger = get_pos_tagger(tagger)
         tagged = pos_tagger.tag_sents([[t.text for t in p] for p in paragraphs])
         for paragraph, tagged_paragraph in zip(paragraphs, tagged):
