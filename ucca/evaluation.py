@@ -138,7 +138,7 @@ def get_yield(unit, remotes=False):
 def expand_equivalents(tag_set):
     """
     Returns a set of all the tags in the tag set or those equivalent to them
-    :param tag_set: collection of tags (strings) to expand
+    :param tag_set: set of tags (strings) to expand
     """
     return tag_set.union(t1 for t in tag_set for pair in EQUIV for t1 in pair if t in pair and t != t1)
 
