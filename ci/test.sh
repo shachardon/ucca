@@ -28,7 +28,7 @@ bilstm)
     ;;
 tune)
     export W2V_FILE=word_vectors/sskip.100.vectors.txt
-    export PARAMS_NUM=10
+    export PARAMS_NUM=5
     python parsing/tune.py doc/toy.xml -t doc/toy.xml --dynet-mem=3072 || exit 1
     column -t -s, params.csv
     ;;
@@ -37,7 +37,7 @@ convert)
     ;;
 convert_sentences)
     mkdir -p pickle/sentences
-    python scripts/standard_to_sentences.py pickle/*.pickle -o pickle/sentences -p "ucca_passage" -b || exit 1
+    python scripts/standard_to_sentences.py pickle/*.pickle -o pickle/sentences -b || exit 1
     ci/test_convert_all_sentences.sh || exit 1
     ;;
 esac
