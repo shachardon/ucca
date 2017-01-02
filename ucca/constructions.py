@@ -7,15 +7,17 @@ from ucca.layer1 import EdgeTags
 
 
 class Construction(object):
-    def __init__(self, name, description, criterion):
+    def __init__(self, name, description, criterion, default=False):
         """
         :param name: short name
         :param description: long description
         :param criterion: predicate function to apply to a Candidate, saying if it is an instance of this construction
+        :param default: whether this construction is included in evaluation by default
         """
         self.name = name
         self.description = description
         self.criterion = criterion
+        self.default = default
 
     def __str__(self):
         return self.name
@@ -33,6 +35,10 @@ class Candidate(object):
 
 
 CONSTRUCTIONS = (
+    Construction("primary", "primary edges", True,
+                 lambda c: not c.edge.attrib.get("remote", False)),
+    Construction("remote", "remote edges", True,
+                 lambda c: c.edge.attrib.get("remote", False)),
     Construction("aspectual_verbs", "aspectual verbs",
                  lambda c: c.coarse_tags == {"VERB"} and c.edge.tag == EdgeTags.Adverbial),
     Construction("light_verbs", "light verbs",
@@ -47,13 +53,22 @@ CONSTRUCTIONS = (
     # Construction("part_whole", "part-whole constructions"),
     # Construction("classifiers", "classifier constructions"),
 )
+NAMES = list(map(str, CONSTRUCTIONS))
+DEFAULT = tuple([str(c) for c in CONSTRUCTIONS if c.default])
 
 
-def extract_edges(passage, args=None, tagger=None, verbose=False):
+def add_argument(argparser, default=True):
+    d = DEFAULT if default else [n for n in NAMES if n not in DEFAULT]
+    argparser.add_argument("-c", "--constructions", nargs="+", choices=NAMES, default=d, metavar="x",
+                           help="construction types to include, out of {%s} (default: %s)" %
+                                (",".join(NAMES), ",".join(d)))
+
+
+def extract_edges(passage, constructions=None, tagger=None, verbose=False):
     """
     Find constructions in UCCA passage.
     :param passage: Passage object to find constructions in
-    :param args: object with an attribute (with value True) for each desired construction, or None for all
+    :param constructions: list of constructions to include or None for all
     :param tagger: POS tagger name to use, or None for default
     :param verbose: whether to print tagged text
     :return: dict of construction name -> list of corresponding edges
@@ -68,7 +83,7 @@ def extract_edges(passage, args=None, tagger=None, verbose=False):
         edges += [e for e in edge.parent.incoming if e.parent.ID not in visited_node_ids]
         candidate = Candidate(edge)
         for construction in CONSTRUCTIONS:
-            if (args is None or getattr(args, construction.name)) and construction.criterion(candidate):
+            if (constructions is None or construction.name in constructions) and construction.criterion(candidate):
                 extracted[construction.name].append(edge)
     # edges = (e for n in l1.all for e in n if e.tag)
     # for edge in edges:
