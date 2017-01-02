@@ -7,8 +7,8 @@ from collections import Counter, defaultdict
 from operator import attrgetter
 
 from ucca import layer0, layer1
-from ucca.layer1 import EdgeTags, NodeTags
 from ucca.constructions import DEFAULT
+from ucca.layer1 import EdgeTags, NodeTags
 
 UNLABELED = "unlabeled"
 WEAK_LABELED = "weak_labeled"
@@ -128,8 +128,10 @@ def find_mutuals(m1, m2, eval_type):
     return mutual_tags, error_counter
 
 
-def print_tags_and_text(p1, tags, y):
-    print(",".join(sorted(tags)) + (": " if tags else "") + " ".join(get_text(p1, y)))
+def print_tags_and_text(p, yield_tags):
+    for y, tags in sorted(yield_tags.items(), key=lambda x: min(x[0])):
+        text = " ".join(get_text(p, y))
+        print((",".join(sorted(filter(None, tags))) + ": " + text) if tags else text)
 
 
 def get_yield(unit, remotes=False):
@@ -193,22 +195,17 @@ class Evaluator(object):
             print("Evaluation type: (" + eval_type + ")")
         res = None
 
-        mutual_ys = set(mutual)
         if self.verbose and self.units and p1 is not None:
             print("==> Mutual Units:")
-            for y, tags in mutual.items():
-                print_tags_and_text(p1, tags, y)
-
+            print_tags_and_text(p1, mutual)
             print("==> Only in guessed:")
-            for y in all1 - mutual_ys:
-                print_tags_and_text(p1, map1[y], y)
-
+            print_tags_and_text(p1, {y: tags for y, tags in map1.items() if y not in mutual})
             print("==> Only in reference:")
-            for y in all2 - mutual_ys:
-                print_tags_and_text(p2, map2[y], y)
+            print_tags_and_text(p2, {y: tags for y, tags in map2.items() if y not in mutual})
 
         if self.fscore:
             mutual_ys_remote = set(mutual_remote)
+            mutual_ys = set(mutual)
             res = EvaluatorResults(SummaryStatistics(1 + len(mutual),  # Count root as mutual
                                                      len(all1 - mutual_ys),
                                                      len(all2 - mutual_ys)),
