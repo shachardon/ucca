@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 
-from ucca.constructions import CONSTRUCTIONS, extract_units
+from ucca.constructions import CONSTRUCTIONS, extract_edges
 from ucca.ioutil import read_files_and_dirs
 from ucca.tagutil import POS_TAGGERS
 
@@ -16,10 +16,10 @@ if __name__ == "__main__":
     args = argparser.parse_args()
     for passage in read_files_and_dirs(args.passages):
         print("%s:" % passage.ID)
-        extracted = extract_units(passage, args, args.pos_tagger, verbose=args.verbose)
+        extracted = extract_edges(passage, args, args.pos_tagger, verbose=args.verbose)
         if extracted:
-            for name, units in extracted.items():
+            for name, edges in extracted.items():
                 print("  %s:" % name)
-                for unit in units:
-                    print("    %s: %s" % (unit.ID, unit))
+                for unit in edges:
+                    print("    %s [%s %s]" % (unit, unit.tag, unit.child))
             print()
