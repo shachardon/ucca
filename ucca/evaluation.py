@@ -8,6 +8,7 @@ from operator import attrgetter
 
 from ucca import layer0, layer1
 from ucca.layer1 import EdgeTags, NodeTags
+from ucca.constructions import DEFAULT
 
 UNLABELED = "unlabeled"
 WEAK_LABELED = "weak_labeled"
@@ -144,14 +145,16 @@ def expand_equivalents(tag_set):
 
 
 class Evaluator(object):
-    def __init__(self, verbose, units, fscore, errors):
+    def __init__(self, verbose, constructions, units, fscore, errors):
         """
+        :param verbose: whether to print the scores
+        :param constructions: names of construction types to include in the evaluation
         :param units: whether to calculate and print the mutual and exclusive units in the passages
         :param fscore: whether to find and return the scores
         :param errors: whether to calculate and print the confusion matrix of errors
-        :param verbose: whether to print the scores
         """
         self.verbose = verbose
+        self.constructions = constructions  # TODO use this
         self.units = units
         self.fscore = fscore
         self.errors = errors
@@ -335,11 +338,13 @@ class SummaryStatistics(object):
                                             for attr in ("num_matches", "num_only_guessed", "num_only_ref")]))
 
 
-def evaluate(guessed_passage, ref_passage, verbose=False, units=False, fscore=True, errors=False):
+def evaluate(guessed_passage, ref_passage, verbose=False, constructions=DEFAULT,
+             units=False, fscore=True, errors=False):
     """
     :param guessed_passage: Passage object to evaluate
     :param ref_passage: reference Passage object to compare to
     :param verbose: whether to print the results
+    :param constructions: names of construction types to include in the evaluation
     :param units: whether to evaluate common units
     :param fscore: whether to compute precision, recall and f1 score
     :param errors: whether to print the mistakes
@@ -349,6 +354,6 @@ def evaluate(guessed_passage, ref_passage, verbose=False, units=False, fscore=Tr
     #     flatten_centers(passage)  # flatten Cs inside Cs
     move_functions(guessed_passage, ref_passage)  # move common Fs to be under the root
 
-    evaluator = Evaluator(verbose, units, fscore, errors)
+    evaluator = Evaluator(verbose, constructions, units, fscore, errors)
     return Scores((evaluation_type, evaluator.get_scores(guessed_passage, ref_passage, evaluation_type))
                   for evaluation_type in EVAL_TYPES)
