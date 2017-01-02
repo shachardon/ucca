@@ -1,8 +1,8 @@
-from collections import defaultdict
+from collections import OrderedDict
 
 from nltk.tag import map_tag
 
-from ucca import tagutil, layer0
+from ucca import tagutil, layer1
 from ucca.layer1 import EdgeTags
 
 
@@ -39,12 +39,25 @@ class Candidate(object):
         self.coarse_tags = {map_tag("en-ptb", "universal", t.extra[tagutil.POS_TAG_KEY]) for t in self.terminals}
         self.tokens = {t.text.lower() for t in self.terminals}
 
+    @property
+    def remote(self):
+        return self.edge.attrib.get("remote", False)
 
+    @property
+    def implicit(self):
+        return self.edge.child.attrib.get("implicit", False)
+
+
+EXCLUDED = (EdgeTags.Punctuation,
+            EdgeTags.LinkArgument,
+            EdgeTags.LinkRelation,
+            EdgeTags.Terminal)
+PRIMARY = "primary"
 CONSTRUCTIONS = (
-    Construction("primary", "Primary edges", True,
-                 lambda c: not c.edge.attrib.get("remote", False)),
-    Construction("remote", "Remote edges", True,
-                 lambda c: c.edge.attrib.get("remote", False)),
+    Construction(PRIMARY, "Regular edges",
+                 lambda c: not c.remote and not c.implicit and c.edge.tag not in EXCLUDED, default=True),
+    Construction("remote", "Remote edges",
+                 lambda c: c.remote and not c.implicit and c.edge.tag not in EXCLUDED, default=True),
     Construction("aspectual_verbs", "Aspectual verbs",
                  lambda c: c.coarse_tags == {"VERB"} and c.edge.tag == EdgeTags.Adverbial),
     Construction("light_verbs", "Light verbs",
@@ -59,15 +72,15 @@ CONSTRUCTIONS = (
     # Construction("part_whole", "Part-whole constructions"),
     # Construction("classifiers", "Classifier constructions"),
 )
-NAMES = list(map(str, CONSTRUCTIONS))
-DEFAULT = tuple([str(c) for c in CONSTRUCTIONS if c.default])
+CONSTRUCTION_BY_NAME = OrderedDict((c.name, c) for c in CONSTRUCTIONS)
+DEFAULT = OrderedDict((str(c), c) for c in CONSTRUCTIONS if c.default)
 
 
 def add_argument(argparser, default=True):
-    d = DEFAULT if default else [n for n in NAMES if n not in DEFAULT]
-    argparser.add_argument("-c", "--constructions", nargs="+", choices=NAMES, default=d, metavar="x",
+    d = DEFAULT if default else [n for n in CONSTRUCTION_BY_NAME if n not in DEFAULT]
+    argparser.add_argument("-c", "--constructions", nargs="+", choices=CONSTRUCTION_BY_NAME, default=d, metavar="x",
                            help="construction types to include, out of {%s} (default: %s)" %
-                                (",".join(NAMES), ",".join(d)))
+                                (",".join(CONSTRUCTION_BY_NAME), ",".join(d)))
 
 
 def extract_edges(passage, constructions=None, tagger=None, verbose=False):
@@ -79,18 +92,18 @@ def extract_edges(passage, constructions=None, tagger=None, verbose=False):
     :param verbose: whether to print tagged text
     :return: dict of Construction -> list of corresponding edges
     """
+    if constructions is None:
+        constructions = CONSTRUCTIONS
+    else:
+        constructions = [c if isinstance(c, Construction) else CONSTRUCTION_BY_NAME[c] for c in constructions]
     tagutil.pos_tag(passage, tagger=tagger, verbose=verbose)
-    extracted = defaultdict(list)
-    edges = [e for n in passage.layer(layer0.LAYER_ID).all for e in n.incoming]
-    visited_node_ids = set()
-    while edges:  # bottom-up traversal
-        edge = edges.pop(0)
-        visited_node_ids.add(edge.parent.ID)
-        edges += [e for e in edge.parent.incoming if e.parent.ID not in visited_node_ids]
-        candidate = Candidate(edge)
-        for construction in CONSTRUCTIONS:
-            if (constructions is None or construction.name in constructions) and construction.criterion(candidate):
-                extracted[construction].append(edge)
+    extracted = OrderedDict((c, []) for c in constructions)
+    for node in passage.layer(layer1.LAYER_ID).all:
+        for edge in node:
+            candidate = Candidate(edge)
+            for construction in constructions:
+                if construction.criterion(candidate):
+                    extracted[construction].append(edge)
     # edges = (e for n in l1.all for e in n if e.tag)
     # for edge in edges:
     #     if args.mwe:
