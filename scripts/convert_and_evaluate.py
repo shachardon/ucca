@@ -34,7 +34,10 @@ def main():
         filenames = glob.glob(pattern)
         if not filenames:
             raise IOError("Not found: " + pattern)
+        l = max(map(len, filenames))
         for filename in filenames:
+            sys.stdout.write("\rConverting %-*s" % (l, filename))
+            sys.stdout.flush()
             ref = file2passage(filename)
             try:
                 guessed = next(converter2(converter1(ref, tree=args.tree), ref.ID))
@@ -44,6 +47,7 @@ def main():
                     raise ValueError("Error evaluating conversion of %s" % filename) from e
                 else:
                     print("Error evaluating conversion of %s: %s" % (filename, e), file=sys.stderr)
+    print()
     if args.verbose and len(scores) > 1:
         print("Aggregated scores:")
     Scores.aggregate(scores).print()

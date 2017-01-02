@@ -36,4 +36,4 @@ env:
   - TEST_SUITE=tune
   - TEST_SUITE=convert
 script:
-  - travis_wait 120 ci/test.sh
+  - ci/test.sh
