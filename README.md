@@ -21,7 +21,7 @@ Install the required modules and NLTK models:
     . bin/activate  # on bash
     source bin/activate.csh  # on csh
     pip install -r requirements.txt
-    python -m nltk.downloader averaged_perceptron_tagger punkt
+    python -m nltk.downloader averaged_perceptron_tagger universal_tagset punkt
     python setup.py install
 
 Download and extract the pre-trained models:
