@@ -1,6 +1,6 @@
 <root annotationID="0" passageID="504">
   <attributes />
-  <extra pos_tagger="stanford_english_left3words" />
+  <extra pos_tagger="stanford_english_bidirectional" />
   <layer layerID="0">
     <attributes />
     <node ID="0.1" type="Word">
