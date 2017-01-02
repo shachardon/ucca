@@ -3,11 +3,11 @@ The evaluation library for UCCA layer 1.
 v1.1
 2016-12-25: move common Fs to root before evaluation
 """
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, OrderedDict
 from operator import attrgetter
 
 from ucca import layer0, layer1
-from ucca.constructions import DEFAULT
+from ucca.constructions import extract_edges, PRIMARY, DEFAULT, CONSTRUCTION_BY_NAME
 from ucca.layer1 import EdgeTags, NodeTags
 
 UNLABELED = "unlabeled"
@@ -21,11 +21,6 @@ EQUIV = ((EdgeTags.Process, EdgeTags.State),
          (EdgeTags.ParallelScene, EdgeTags.Center),
          (EdgeTags.Connector, EdgeTags.Linker),
          (EdgeTags.Function, EdgeTags.Relator))
-
-EXCLUDED = (EdgeTags.Punctuation,
-            EdgeTags.LinkArgument,
-            EdgeTags.LinkRelation,
-            EdgeTags.Terminal)
 
 
 def flatten_centers(p):
@@ -87,27 +82,22 @@ def get_text(p, positions):
     return [l0.by_position(i).text for i in sorted(positions.intersection(range(1, len(l0.all) + 1)))]
 
 
-def create_passage_yields(p, remotes=False, implicit=False):
+def create_passage_yields(p, constructions=None, tagger=None, verbose=False):
     """
-    :param p: Passage to find yields of
-    :param remotes: if True, regular table includes remotes
-    :param implicit: if True, regular table includes the empty yield of implicit nodes
-    :returns two dicts:
-    1. maps a set of terminal indices (excluding punctuation) to a list of layer1 edges whose yield (excluding remotes
-       and punctuation) is that set.
-    2. maps a set of terminal indices (excluding punctuation) to a set of remote edges whose yield (excluding remotes
-       and punctuation) is that set.
+    :returns dict: Construction ->
+                   dict: set of terminal indices (excluding punctuation) ->
+                         list of edges of the Construction whose yield (excluding remotes and punctuation) is that set
     """
-    l1 = p.layer(layer1.LAYER_ID)
-    edges = (e for n in l1.all for e in n if e.tag not in EXCLUDED and
-             (implicit or not e.child.attrib.get("implicit")))
+    yield_tags = OrderedDict()
+    for construction, edges in extract_edges(p, constructions=constructions, tagger=tagger, verbose=verbose).items():
+        yield_tags[construction] = {}
+        for edge in edges:
+            yield_tags[construction].setdefault(get_yield(edge.child), []).append(edge.tag)
+    return yield_tags
 
-    table_reg, table_remote = defaultdict(list), defaultdict(list)
-    for edge in edges:
-        table = table_remote if edge.attrib.get("remote") else table_reg
-        table[get_yield(edge.child, remotes)].append(edge.tag)
 
-    return table_reg, table_remote
+def get_yield(unit):
+    return frozenset(t.position for t in unit.get_terminals(punct=False))
 
 
 def find_mutuals(m1, m2, eval_type):
@@ -135,10 +125,6 @@ def print_tags_and_text(p, yield_tags):
         print((",".join(sorted(filter(None, tags))) + ": " + text) if tags else text)
 
 
-def get_yield(unit, remotes=False):
-    return frozenset(t.position for t in unit.get_terminals(punct=False, remotes=remotes))
-
-
 def expand_equivalents(tag_set):
     """
     Returns a set of all the tags in the tag set or those equivalent to them
@@ -157,12 +143,12 @@ class Evaluator(object):
         :param errors: whether to calculate and print the confusion matrix of errors
         """
         self.verbose = verbose
-        self.constructions = constructions  # TODO use this
+        self.constructions = [CONSTRUCTION_BY_NAME[n] for n in constructions]
         self.units = units
         self.fscore = fscore
         self.errors = errors
 
-    def get_scores(self, p1, p2, eval_type, separate_remotes=True):
+    def get_scores(self, p1, p2, eval_type):
         """
         prints the relevant statistics and f-scores. eval_type can be 'unlabeled', 'labeled' or 'weak_labeled'.
         calculates a set of all the yields such that both passages have a unit with that yield.
@@ -172,51 +158,40 @@ class Evaluator(object):
         1. UNLABELED: it doesn't matter what labels are there.
         2. LABELED: also requires tag match (if there are multiple units with the same yield, requires one match)
         3. WEAK_LABELED: also requires weak tag match (if there are multiple units with the same yield, requires one match)
-        :param separate_remotes: whether to put remotes in a separate map
         :returns EvaluatorResults object if self.fscore is True, otherwise None
         """
-        map2, map2_remotes = create_passage_yields(p2, not separate_remotes)
-
-        all2_remote = set(map2_remotes.keys())
-        if p1 is None:
-            map1 = mutual = mutual_remote = dict()
-            error_counter = Counter()
-        else:
-            map1, map1_remotes = create_passage_yields(p1, not separate_remotes)
-            all1_remote = set(map1_remotes.keys())
-            mutual, error_counter = find_mutuals(map1, map2, eval_type)
-            mutual_remote = None
-            if separate_remotes:
-                mutual_remote, _ = find_mutuals(map1_remotes, map2_remotes, eval_type)
+        maps = [defaultdict(dict), create_passage_yields(p2, self.constructions)]
+        mutual = defaultdict(dict)
+        error_counters = defaultdict(Counter)
+        if p1 is not None:
+            maps[0] = create_passage_yields(p1, self.constructions)
+            for construction, yield_tags1 in maps[0].items():
+                yield_tags2 = maps[1][construction]
+                mutual[construction], error_counters[construction] = find_mutuals(yield_tags1, yield_tags2, eval_type)
 
         if self.verbose:
             print("Evaluation type: (" + eval_type + ")")
-        res = None
 
-        only_guessed = {y: tags for y, tags in map1.items() if y not in mutual}
-        only_ref = {y: tags for y, tags in map2.items() if y not in mutual}
+        only = [{c: {y: tags for y, tags in yt.items() if y not in mutual[c]} for c, yt in m.items()} for m in maps]
         if self.verbose and self.units and p1 is not None:
             print("==> Mutual Units:")
-            print_tags_and_text(p1, mutual)
+            print_tags_and_text(p1, mutual[PRIMARY])
             print("==> Only in guessed:")
-            print_tags_and_text(p1, only_guessed)
+            print_tags_and_text(p1, only[0][PRIMARY])
             print("==> Only in reference:")
-            print_tags_and_text(p2, only_ref)
+            print_tags_and_text(p2, only[1][PRIMARY])
 
+        res = None
         if self.fscore:
-            mutual_ys_remote = set(mutual_remote.keys())
-            res = EvaluatorResults(SummaryStatistics(1 + len(mutual),  # Count root as mutual
-                                                     len(only_guessed),
-                                                     len(only_ref)),
-                                   SummaryStatistics(len(mutual_remote),
-                                                     len(all1_remote - mutual_ys_remote),
-                                                     len(all2_remote - mutual_ys_remote)))
+            # TODO Count root as mutual? (+1)
+            res = EvaluatorResults((c, SummaryStatistics(len(mutual[c]), len(only[0][c]), len(only[1][c])))
+                                   for c in self.constructions)
             if self.verbose:
                 res.print()
 
-        if self.verbose and self.errors and error_counter:
+        if self.verbose and self.errors and error_counters:
             print("\nConfusion Matrix:\n")
-            for error, freq in error_counter.most_common():
+            for error, freq in error_counters[PRIMARY].most_common():
                 print(error[0], "\t", error[1], "\t", freq)
 
         return res
@@ -225,17 +200,17 @@ class Evaluator(object):
 class Scores(object):
     def __init__(self, evaluator_results):
         """
-        :param evaluator_results: dictionary of eval_type -> EvaluatorResults
+        :param evaluator_results: dict: eval_type -> EvaluatorResults
         """
         self.evaluators = dict(evaluator_results)
 
     def average_f1(self, mode=LABELED):
         """
-        Calculate the average F1 score across regular/remote edges
+        Calculate the average F1 score across primary and remote edges
         :param mode: LABELED, UNLABELED or WEAK_LABELED
         :return: a single number, the average F1
         """
-        return float(self.evaluators[mode].aggregate_all().f1)
+        return float(self.evaluators[mode].aggregate_default().f1)
 
     @staticmethod
     def aggregate(scores):
@@ -244,16 +219,7 @@ class Scores(object):
         :param scores: iterable of Scores
         :return: new Scores with aggregated scores
         """
-        return Scores((t, EvaluatorResults.aggregate(s.evaluators[t] for s in scores))
-                      for t in EVAL_TYPES)
-
-    def aggregate_all(self):
-        """
-        Aggregate all SummaryStatistics in this Scores instance
-        :return: SummaryStatistics representing aggregation over all instances
-        """
-        return SummaryStatistics.aggregate(s for e in self.evaluators.values()
-                                           for s in (e.regular, e.remotes))
+        return Scores((t, EvaluatorResults.aggregate(s.evaluators[t] for s in scores)) for t in EVAL_TYPES)
 
     def print(self):
         for eval_type in EVAL_TYPES:
@@ -262,28 +228,24 @@ class Scores(object):
 
     def fields(self):
         e = self.evaluators[LABELED]
-        return ["%.3f" % float(getattr(x, y)) for x in (e.regular, e.remotes) for y in ("p", "r", "f1")]
+        return ["%.3f" % float(getattr(x, y)) for x in e.results.values() for y in ("p", "r", "f1")]
 
     @staticmethod
-    def field_titles():
-        return ["%s_labeled_%s" % (x, y) for x in ("regular", "remote") for y in ("precision", "recall", "f1")]
+    def field_titles(constructions=DEFAULT):
+        return ["%s_labeled_%s" % (x, y) for x in constructions for y in ("precision", "recall", "f1")]
 
 
 class EvaluatorResults(object):
-    def __init__(self, regular, remotes):
+    def __init__(self, results):
         """
-        :param regular: SummaryStatistics for regular edges
-        :param remotes: SummaryStatistics for remote edges
+        :param results: dict: Construction -> SummaryStatistics
         """
-        self.regular = regular
-        self.remotes = remotes
+        self.results = OrderedDict(results)
 
     def print(self):
-        print("\nRegular Edges:")
-        self.regular.print()
-
-        print("\nRemote Edges:")
-        self.remotes.print()
+        for construction, stats in self.results.items():
+            print("\n%s:" % construction.description)
+            stats.print()
         print()
 
     @classmethod
@@ -292,16 +254,18 @@ class EvaluatorResults(object):
         :param results: iterable of EvaluatorResults
         :return: new EvaluatorResults with aggregates scores
         """
-        regular, remotes = zip(*[(r.regular, r.remotes) for r in results])
-        return EvaluatorResults(SummaryStatistics.aggregate(regular),
-                                SummaryStatistics.aggregate(remotes))
+        collected = OrderedDict()
+        for evaluator_results in results:
+            for c, r in evaluator_results.results.items():
+                collected.setdefault(c, []).append(r)
+        return EvaluatorResults((c, SummaryStatistics.aggregate(r)) for c, r in collected.items())
 
-    def aggregate_all(self):
+    def aggregate_default(self):
         """
-        Aggregate all SummaryStatistics in this EvaluatorResults instance
-        :return: SummaryStatistics object representing aggregation over all instances
+        Aggregate primary and remote SummaryStatistics in this EvaluatorResults instance
+        :return: SummaryStatistics object representing aggregation over primary and remote
         """
-        return SummaryStatistics.aggregate((self.regular, self.remotes))
+        return SummaryStatistics.aggregate([self.results[c] for c in DEFAULT.values()])
 
 
 class SummaryStatistics(object):
