@@ -311,8 +311,8 @@ def evaluate(guessed_passage, ref_passage, verbose=False, constructions=DEFAULT,
     :param errors: whether to print the mistakes
     :return: Scores object
     """
-    # for passage in (guessed_passage, ref_passage):
-    #     flatten_centers(passage)  # flatten Cs inside Cs
+    for passage in (guessed_passage, ref_passage):
+        flatten_centers(passage)  # flatten Cs inside Cs
     move_functions(guessed_passage, ref_passage)  # move common Fs to be under the root
 
     evaluator = Evaluator(verbose, constructions, units, fscore, errors)
