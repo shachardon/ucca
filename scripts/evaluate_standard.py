@@ -9,14 +9,10 @@ from ucca.ioutil import file2passage
 from ucca import constructions
 
 
-################
-# MAIN         #
-################
-
 if __name__ == "__main__":
-    argparser = ArgumentParser(description="Compare two UCCA passages.")
-    argparser.add_argument("guessed", help="xml/pickle file name for the guessed annotation")
-    argparser.add_argument("ref", help="xml/pickle file name for the reference annotation")
+    argparser = ArgumentParser(description="Compare two UCCA passages or two directories containing passage files.")
+    argparser.add_argument("guessed", help="xml/pickle file name for the guessed annotation, or directory of files")
+    argparser.add_argument("ref", help="xml/pickle file name for the reference annotation, or directory of files")
     argparser.add_argument("-u", "--units", action="store_true",
                            help="the units the annotations have in common, and those each has separately")
     argparser.add_argument("-f", "--fscore", action="store_true",

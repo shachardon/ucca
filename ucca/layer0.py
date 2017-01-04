@@ -110,7 +110,7 @@ class Terminal(core.Node):
                 and self.para_pos == other.para_pos)
 
     def __hash__(self):
-        """Hashes the Terminals aacording to its ID and text."""
+        """Hashes the Terminals according to its ID and text."""
         return hash(self.ID + str(self.text))
 
     def __str__(self):
@@ -118,8 +118,11 @@ class Terminal(core.Node):
 
     # Terminal are immutable (except the extra dictionary which is
     # just a temporary playground) and have no children, so enforce it
-    add = None
-    remove = None
+    def add(self):
+        raise NotImplementedError()
+
+    def remove(self):
+        raise NotImplementedError()
 
 
 class Layer0(core.Layer):

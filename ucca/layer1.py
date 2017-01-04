@@ -424,6 +424,10 @@ class Layer1(core.Layer):
     def top_linkages(self):
         return self._linkages[:]
 
+    @property
+    def top_node(self):
+        return self._head_fnode
+
     def next_id(self):
         """Returns the next available ID string for this layer."""
         n = len(self._all) + 1
