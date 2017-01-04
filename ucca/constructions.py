@@ -54,9 +54,8 @@ EXCLUDED = (EdgeTags.Punctuation,
             EdgeTags.LinkArgument,
             EdgeTags.LinkRelation,
             EdgeTags.Terminal)
-PRIMARY = "primary"
 CONSTRUCTIONS = (
-    Construction(PRIMARY, "Regular edges",
+    Construction("primary", "Regular edges",
                  lambda c: not c.remote and not c.implicit and c.edge.tag not in EXCLUDED, default=True),
     Construction("remote", "Remote edges",
                  lambda c: c.remote and not c.implicit and c.edge.tag not in EXCLUDED, default=True),
@@ -74,6 +73,7 @@ CONSTRUCTIONS = (
     # Construction("part_whole", "Part-whole constructions"),
     # Construction("classifiers", "Classifier constructions"),
 )
+PRIMARY = CONSTRUCTIONS[0]
 CONSTRUCTION_BY_NAME = OrderedDict((c.name, c) for c in CONSTRUCTIONS)
 DEFAULT = OrderedDict((str(c), c) for c in CONSTRUCTIONS if c.default)
 
