@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 from nltk.tag import map_tag
 
-from ucca import tagutil, layer1
+from ucca import tagutil, layer0, layer1
 from ucca.layer1 import EdgeTags
 
 
@@ -30,12 +30,14 @@ class Construction(object):
 
 
 class Candidate(object):
-    def __init__(self, edge):
+    def __init__(self, edge, reference=None):
         self.edge = edge
         try:
             self.terminals = edge.child.get_terminals()
         except AttributeError:
             self.terminals = ()
+        if reference is not None:
+            self.terminals = [reference.by_id(t.ID) for t in self.terminals]
         self.coarse_tags = {map_tag("en-ptb", "universal", t.extra[tagutil.POS_TAG_KEY]) for t in self.terminals}
         self.tokens = {t.text.lower() for t in self.terminals}
 
@@ -83,11 +85,16 @@ def add_argument(argparser, default=True):
                                 ",".join(CONSTRUCTION_BY_NAME.keys()))
 
 
-def extract_edges(passage, constructions=None, tagger=None, verbose=False):
+def terminal_ids(passage):
+    return {t.ID for t in passage.layer(layer0.LAYER_ID).all}
+
+
+def extract_edges(passage, constructions=None, reference=None, tagger=None, verbose=False):
     """
     Find constructions in UCCA passage.
     :param passage: Passage object to find constructions in
     :param constructions: list of constructions to include or None for all
+    :param reference: Passage object to get POS tags from (default: `passage')
     :param tagger: POS tagger name to use, or None for default
     :param verbose: whether to print tagged text
     :return: dict of Construction -> list of corresponding edges
@@ -96,11 +103,14 @@ def extract_edges(passage, constructions=None, tagger=None, verbose=False):
         constructions = CONSTRUCTIONS
     else:
         constructions = [c if isinstance(c, Construction) else CONSTRUCTION_BY_NAME[c] for c in constructions]
+    if reference is not None:
+        assert terminal_ids(passage) == terminal_ids(reference),\
+            "Reference passage terminals do not match: %s" % reference.ID
     tagutil.pos_tag(passage, tagger=tagger, verbose=verbose)
     extracted = OrderedDict((c, []) for c in constructions)
     for node in passage.layer(layer1.LAYER_ID).all:
         for edge in node:
-            candidate = Candidate(edge)
+            candidate = Candidate(edge, reference=reference)
             for construction in constructions:
                 if construction.criterion(candidate):
                     extracted[construction].append(edge)

@@ -82,14 +82,15 @@ def get_text(p, positions):
     return [l0.by_position(i).text for i in sorted(positions.intersection(range(1, len(l0.all) + 1)))]
 
 
-def create_passage_yields(p, constructions=None, tagger=None, verbose=False):
+def create_passage_yields(p, constructions=None, reference=None, tagger=None, verbose=False):
     """
     :returns dict: Construction ->
                    dict: set of terminal indices (excluding punctuation) ->
                          list of edges of the Construction whose yield (excluding remotes and punctuation) is that set
     """
     yield_tags = OrderedDict()
-    for construction, edges in extract_edges(p, constructions=constructions, tagger=tagger, verbose=verbose).items():
+    for construction, edges in extract_edges(
+            p, constructions=constructions, reference=reference, tagger=tagger, verbose=verbose).items():
         yield_tags[construction] = {}
         for edge in edges:
             yield_tags[construction].setdefault(get_yield(edge.child), []).append(edge.tag)
@@ -164,7 +165,7 @@ class Evaluator(object):
         mutual = defaultdict(dict)
         error_counters = defaultdict(Counter)
         if p1 is not None:
-            maps[0] = create_passage_yields(p1, self.constructions)
+            maps[0] = create_passage_yields(p1, self.constructions, reference=p2)
             for construction, yield_tags1 in maps[0].items():
                 yield_tags2 = maps[1][construction]
                 mutual[construction], error_counters[construction] = find_mutuals(yield_tags1, yield_tags2, eval_type)
