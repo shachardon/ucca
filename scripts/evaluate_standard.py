@@ -4,6 +4,8 @@ The evaluation script for UCCA layer 1.
 """
 from argparse import ArgumentParser
 
+import sys
+
 from ucca import evaluation, constructions, ioutil
 
 
@@ -29,20 +31,31 @@ if __name__ == "__main__":
     if len(guessed) != len(ref):
         raise ValueError("Number of passages to compare does not match: %d != %d" % (len(guessed), len(ref)))
     if len(guessed) > 1:
-        guessed_by_id = {p.ID: p for p in guessed}
+        guessed_by_id = {}
+        for g in guessed:
+            sys.stdout.write("\rReading %s..." % g.ID)
+            sys.stdout.flush()
+            guessed_by_id[g.ID] = g
+        ids = [p.ID for p in ref]
         try:
-            guessed = [guessed_by_id[p.ID] for p in ref]
+            guessed = [guessed_by_id[i] for i in ids]
         except KeyError as e:
             raise ValueError("Passage IDs do not match") from e
-    results = [evaluation.evaluate(g, r,
-                                   constructions=args.constructions,
-                                   units=args.units,
-                                   fscore=args.fscore,
-                                   errors=args.errors,
-                                   verbose=args.verbose or len(guessed) == 1)
-               for g, r in zip(guessed, ref)]
+    results = []
+    for g, r in zip(guessed, ref):
+        if len(guessed) > 1:
+            sys.stdout.write("\rEvaluating %s:" % g.ID)
+            sys.stdout.flush()
+        if args.verbose:
+            print()
+        scores = evaluation.evaluate(g, r, constructions=args.constructions, units=args.units, fscore=args.fscore,
+                                     errors=args.errors, verbose=args.verbose or len(guessed) == 1)
+        if args.verbose:
+            print("Average labeled F1 score: %.3f\n" % scores.average_f1())
+        results.append(scores)
     scores = evaluation.Scores.aggregate(results)
-    print("\nAverage labeled F1 score: %.3f" % scores.average_f1())
     if len(results) > 1:
-        print("Aggregated scores:")
+        if args.verbose:
+            print("Aggregated scores:")
         scores.print()
+        print("Average labeled F1 score: %.3f" % scores.average_f1())
