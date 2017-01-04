@@ -34,9 +34,8 @@ def main():
         filenames = glob.glob(pattern)
         if not filenames:
             raise IOError("Not found: " + pattern)
-        l = max(map(len, filenames))
         for filename in filenames:
-            sys.stdout.write("\rConverting %-*s" % (l, filename))
+            sys.stdout.write("\rConverting %s" % filename)
             sys.stdout.flush()
             ref = file2passage(filename)
             try:
