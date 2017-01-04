@@ -26,36 +26,17 @@ EQUIV = ((EdgeTags.Process, EdgeTags.State),
 
 def flatten_centers(p):
     """
-    If there are Cs inside Cs in layer1, remove the external C.
-    :param p: Passage object to flatten
+    Whenever there are Cs inside Cs, remove the external C.
     """
-    def _center_children(u):
-        return [x for x in u.children if x.tag == NodeTags.Foundational and x.ftag == EdgeTags.Center]
-
-    to_ungroup = [u for u in p.layer(layer1.LAYER_ID).all
-                  if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Center and
-                  len(_center_children(u)) == 1 and (u.fparent is None or len(_center_children(u.fparent)) == 1)]
-    for unit in to_ungroup:
-        ungroup(unit)
-
-
-def ungroup(unit):
-    """
-    If the unit has an fparent, removes the unit and adds its children to that parent.
-    :param unit: Node object to potentially remove
-    """
-    fparent = unit.fparent
-    if fparent is not None:
-        if len(unit.parents) > 1:
-            if len(unit.centers) == 1:  # if there is only one child, assign that child as the parent's child
-                for e in unit.incoming:
-                    if e.attrib.get("remote"):
-                        e.parent.add(e.tag, unit.centers[0], edge_attrib=e.attrib)
-            else:
-                return  # don't ungroup if there is more than one parent and no single center
-        for e in unit.outgoing:
-            fparent.add(e.tag, e.child, edge_attrib=e.attrib)
-    unit.destroy()
+    for unit in p.layer(layer1.LAYER_ID).all:
+        if unit.tag == NodeTags.Foundational and unit.ftag == EdgeTags.Center and \
+                                len(unit.centers) == len(unit.fparent.centers) == 1:
+            for e in unit.incoming:
+                if e.attrib.get("remote"):
+                    e.parent.add(e.tag, unit.centers[0], edge_attrib=e.attrib)
+            for e in unit.outgoing:
+                unit.fparent.add(e.tag, e.child, edge_attrib=e.attrib)
+            unit.destroy()
 
 
 def move_functions(p1, p2):
@@ -63,20 +44,13 @@ def move_functions(p1, p2):
     Move any common Fs to the root
     """
     f1, f2 = [{get_yield(u): u for u in p.layer(layer1.LAYER_ID).all
-               if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Function}
-              for p in (p1, p2)]
-    for positions, unit1 in f1.items():
-        unit2 = f2.get(positions)
-        if unit2 is not None:
-            for (p, unit) in ((p1, unit1), (p2, unit2)):
-                move(unit, p.layer(layer1.LAYER_ID).heads[0])
+               if u.tag == NodeTags.Foundational and u.ftag == EdgeTags.Function} for p in (p1, p2)]
+    for positions in f1.keys() & f2.keys():
+        for (p, unit) in ((p1, f1[positions]), (p2, f2[positions])):
+            for parent in unit.parents:
+                parent.remove(unit)
+                p.layer(layer1.LAYER_ID).top_node.add(unit.ftag, unit)
 
-
-def move(unit, new_parent):
-    for parent in unit.parents:
-        parent.remove(unit)
-    new_parent.add(unit.ftag, unit)
-    
 
 def get_text(p, positions):
     l0 = p.layer(layer0.LAYER_ID)
