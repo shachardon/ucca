@@ -1,5 +1,5 @@
 nltk>=3.2.2
-gensim>=0.13.4
+gensim>=0.13.4.1
 Theano>=0.8.2
 keras>=1.2.0
 h5py>=2.6.0
