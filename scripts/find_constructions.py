@@ -14,10 +14,12 @@ if __name__ == "__main__":
     args = argparser.parse_args()
     for passage in read_files_and_dirs(args.passages):
         print("%s:" % passage.ID)
-        extracted = constructions.extract_edges(passage, args.constructions, args.pos_tagger, verbose=args.verbose)
+        extracted = constructions.extract_edges(passage, constructions=args.constructions, tagger=args.pos_tagger,
+                                                verbose=args.verbose)
         if extracted:
             for construction, edges in extracted.items():
-                print("  %s:" % construction)
-                for unit in edges:
-                    print("    %s [%s %s]" % (unit, unit.tag, unit.child))
+                if edges:
+                    print("  %s:" % construction.description)
+                    for edge in edges:
+                        print("    %s [%s %s]" % (edge, edge.tag, edge.child))
             print()
