@@ -63,7 +63,10 @@ CONSTRUCTIONS = (
                  lambda c: c.coarse_tags == {"VERB"} and c.edge.tag == EdgeTags.Adverbial),
     Construction("light_verbs", "Light verbs",
                  lambda c: c.coarse_tags == {"VERB"} and c.edge.tag == EdgeTags.Function),
-    # Construction("mwe", "Multi-word expressions"),
+    # Construction("mwe", "Multi-word expressions",
+    #              lambda c: not c.remote and c.edge.child.tag == NodeTags.Foundational and (
+    #                  len(c.edge.child.terminals) > 1 or
+    #                  {e.tag for e in c.edge.child} == {EdgeTags.Center, EdgeTags.Function})),
     Construction("pred_nouns", "Predicate nouns",
                  lambda c: c.coarse_tags == {"NOUN"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
     Construction("pred_adjs", "Predicate adjectives",

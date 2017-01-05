@@ -159,7 +159,6 @@ class Evaluator(object):
 
         res = None
         if self.fscore:
-            # TODO Count root as mutual? (+1)
             res = EvaluatorResults((c, SummaryStatistics(len(mutual[c]), len(only[0][c]), len(only[1][c])))
                                    for c in self.constructions)
             if self.verbose:
