@@ -15,21 +15,20 @@ unit)
     python parsing/parse.py doc/toy.xml -esvm model_toy_paragraphs || exit 1
     ;;
 sparse)
-    python parsing/parse.py -c sparse --pos-tagger=stanford_english_bidirectional -WeLMCb pickle/dev/*7* -t pickle/train/*7*
+    python parsing/parse.py -c sparse --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7*
     ;;
 dense)
-    python parsing/parse.py -c dense --pos-tagger=stanford_english_bidirectional -WeLMCb pickle/dev/*7* -t pickle/train/*7*
+    python parsing/parse.py -c dense --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7*
     ;;
 mlp)
-    python parsing/parse.py -c mlp --pos-tagger=stanford_english_bidirectional -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=3072
+    python parsing/parse.py -c mlp --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=1024 --layers=1 --layerdim=100
     ;;
 bilstm)
-    python parsing/parse.py -c bilstm --pos-tagger=stanford_english_bidirectional -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=3072 --lstmlayers=1 --lstmlayerdim=100
+    python parsing/parse.py -c bilstm --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=1024 --lstmlayers=1 --lstmlayerdim=100
     ;;
 tune)
-    export W2V_FILE=word_vectors/sskip.100.vectors.txt
     export PARAMS_NUM=5
-    python parsing/tune.py doc/toy.xml -t doc/toy.xml --dynet-mem=3072 || exit 1
+    python parsing/tune.py doc/toy.xml -t doc/toy.xml --maxwordsexternal=5000 --dynet-mem=1024 || exit 1
     column -t -s, params.csv
     ;;
 convert)
