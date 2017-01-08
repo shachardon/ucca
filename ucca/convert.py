@@ -13,14 +13,11 @@ The possible other formats are:
 
 import operator
 import re
-import string
 import sys
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
 from collections import defaultdict
 from itertools import islice
-
-from nltk.tokenize import word_tokenize
 
 from ucca import textutil, core, layer0, layer1
 from ucca.layer1 import EdgeTags
@@ -652,19 +649,6 @@ def from_standard(root, extra_funcs=None):
     return passage
 
 
-UNICODE_ESCAPE_PATTERN = re.compile(r"\\u\d+")  # unicode escape sequences are punctuation
-ACCENTED_LETTERS = "áâæàåãäçéêèëíîìïñóôòøõöœúûùüÿÁÂÆÀÅÃÄÇÉÊÈËÍÎÌÏÑÓÔØÕÖŒßÚÛÙÜŸ"  # are not punctuation
-
-
-def is_punctuation_char(c):
-    return c in string.punctuation or c not in string.printable and c not in ACCENTED_LETTERS
-
-
-def is_punctuation(token):
-    return all(map(is_punctuation_char, token)) or \
-           UNICODE_ESCAPE_PATTERN.match(token)
-
-
 def from_text(text, passage_id="1", split=False, *args, **kwargs):
     """Converts from tokenized strings to a Passage object.
 
@@ -684,9 +668,9 @@ def from_text(text, passage_id="1", split=False, *args, **kwargs):
             p = core.Passage(passage_id + ("_%d" % i if split else ""))
             l0 = layer0.Layer0(p)
             layer1.Layer1(p)
-        for token in word_tokenize(par):
+        for lex in textutil.get_nlp().tokenizer(par):
             # i is paragraph index, but it starts with 0, so we need to add +1
-            l0.add_terminal(text=token, punct=is_punctuation(token),
+            l0.add_terminal(text=lex.orth_, punct=lex.is_punct,
                             paragraph=1 if split else i + 1)
         if split:
             yield p

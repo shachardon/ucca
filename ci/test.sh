@@ -15,19 +15,19 @@ unit)
     python parsing/parse.py doc/toy.xml -esvm model_toy_paragraphs || exit 1
     ;;
 sparse)
-    python parsing/parse.py -c sparse --pos-tagger=stanford_english_bidirectional -WeLMCbs pickle/dev/*7* -t pickle/train/*7*
+    python parsing/parse.py -c sparse --maxwordsexternal=5000 -WeLMCbs pickle/dev/*7* -t pickle/train/*7*
     ;;
 dense)
-    python parsing/parse.py -c dense --pos-tagger=stanford_english_bidirectional -w word_vectors/sskip.100.vectors.txt -WeLMCbs pickle/dev/*7* -t pickle/train/*7*
+    python parsing/parse.py -c dense --maxwordsexternal=5000 -WeLMCbs pickle/dev/*7* -t pickle/train/*7*
     ;;
 nn)
-    python parsing/parse.py -c nn --pos-tagger=stanford_english_bidirectional -WeLMCbs pickle/dev/*7* -t pickle/train/*7* --nbepochs 3 --layerdim=100 --batchsize 500
+    python parsing/parse.py -c nn --maxwordsexternal=5000 -WeLMCbs pickle/dev/*7* -t pickle/train/*7* --nbepochs 3 --layerdim=100 --batchsize 500
     ;;
 tune)
-    export W2V_FILE=word_vectors/sskip.100.vectors.txt
     export KERAS_BACKEND=theano
     export PARAMS_NUM=5
-    python parsing/tune.py doc/toy.xml -t doc/toy.xml || exit 1
+    python parsing/tune.py doc/toy.xml -t doc/toy.xml --maxwordsexternal=5000 || exit 1
+    column -t -s, params.csv
     ;;
 convert)
     ci/test_convert_all.sh

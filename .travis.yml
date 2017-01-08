@@ -20,7 +20,7 @@ before_install:
   - pip install pytest-pep8
   - pip install -r requirements.txt
   - pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.10.0-cp35-cp35m-linux_x86_64.whl
-  - python -m nltk.downloader averaged_perceptron_tagger universal_tagset punkt
+  - python -m spacy.en.download all > spacy.log
 install:
   - python setup.py install
 before_script:

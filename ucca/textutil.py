@@ -1,5 +1,55 @@
 """Utility functions for UCCA package."""
+from itertools import groupby
+from operator import attrgetter
+
+import spacy
+
 from ucca import layer0, layer1
+
+
+def nlp(*args, **kwargs):
+    return get_nlp()(*args, **kwargs)
+
+
+def get_nlp():
+    if nlp.instance is None:
+        nlp.instance = spacy.load("en", parser=False, entity=False, matcher=False)
+    return nlp.instance
+nlp.instance = None
+
+
+def get_word_vectors(dim=None, size=None):
+    vocab = get_nlp().vocab
+    if dim is not None and dim != vocab.vectors_length:
+        vocab.resize_vectors(dim)
+    return {l.orth_: l.vector for l in vocab if l.has_vector and (size is None or l.rank < size)}
+
+
+TAG_KEY = "tag"
+POS_KEY = "pos"
+
+
+def pos_tag(passage, verbose=False, replace=False):
+    """
+    POS tag the tokens in the given passage
+    :param passage: Passage whose layer 0 nodes will be added the "tag" and "pos" entries in the extra dict
+    :param verbose: whether to print tagged text
+    :param replace: even if given passage is already POS-tagged, replace existing tags with new ones
+    :return: list of tagged terminal nodes
+    """
+    l0 = passage.layer(layer0.LAYER_ID)
+    paragraphs = [sorted(p, key=attrgetter("position")) for _, p in groupby(l0.all, key=attrgetter("paragraph"))]
+    tagged = [[(t.text, t.extra.get(TAG_KEY), t.extra.get(POS_KEY)) for t in p] for p in paragraphs]
+    if replace or any(tag is None or pos is None for p in tagged for _, tag, pos in p):
+        tagged = [[(l.orth_, l.tag, l.pos) for l in get_nlp().tokenizer.tokens_from_list(
+            [t.text for t in p])] for p in paragraphs]
+        for paragraph, tagged_paragraph in zip(paragraphs, tagged):
+            for terminal, (_, tag, pos) in zip(paragraph, tagged_paragraph):
+                terminal.extra[TAG_KEY] = tag
+                terminal.extra[POS_KEY] = pos
+    if verbose:
+        print("\n".join(" ".join("%s/%s" % (token, tag) for (token, tag, _) in p) for p in tagged))
+
 
 SENTENCE_END_MARKS = ('.', '?', '!')
 

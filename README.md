@@ -15,13 +15,13 @@ and `convert` modules under the `ucca` package).
 Running the parser:
 -------------------
 
-Install the required modules and NLTK models:
+Install the required modules and spaCy models:
 
     virtualenv --python=/usr/bin/python3 .
     . bin/activate  # on bash
     source bin/activate.csh  # on csh
     pip install -r requirements.txt
-    python -m nltk.downloader averaged_perceptron_tagger universal_tagset punkt
+    python -m spacy.en.download all
     python setup.py install
 
 Download and extract the pre-trained models:

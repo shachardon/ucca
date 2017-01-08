@@ -57,7 +57,7 @@ def get_text(p, positions):
     return [l0.by_position(i).text for i in sorted(positions.intersection(range(1, len(l0.all) + 1)))]
 
 
-def create_passage_yields(p, constructions=None, reference=None, tagger=None, verbose=False):
+def create_passage_yields(p, constructions=None, reference=None, verbose=False):
     """
     :returns dict: Construction ->
                    dict: set of terminal indices (excluding punctuation) ->
@@ -65,7 +65,7 @@ def create_passage_yields(p, constructions=None, reference=None, tagger=None, ve
     """
     yield_tags = OrderedDict()
     for construction, edges in extract_edges(
-            p, constructions=constructions, reference=reference, tagger=tagger, verbose=verbose).items():
+            p, constructions=constructions, reference=reference, verbose=verbose).items():
         yield_tags[construction] = {}
         for edge in edges:
             yield_tags[construction].setdefault(get_yield(edge.child), []).append(edge.tag)

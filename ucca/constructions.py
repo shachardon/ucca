@@ -1,8 +1,6 @@
 from collections import OrderedDict
 
-from nltk.tag import map_tag
-
-from ucca import tagutil, layer0, layer1
+from ucca import textutil, layer0, layer1
 from ucca.layer1 import EdgeTags
 
 
@@ -38,7 +36,7 @@ class Candidate(object):
             self.terminals = ()
         if reference is not None:
             self.terminals = [reference.by_id(t.ID) for t in self.terminals]
-        self.coarse_tags = {map_tag("en-ptb", "universal", t.extra[tagutil.POS_TAG_KEY]) for t in self.terminals}
+        self.coarse_tags = {t.extra[textutil.POS_KEY] for t in self.terminals}
         self.tokens = {t.text.lower() for t in self.terminals}
 
     @property
@@ -92,13 +90,12 @@ def terminal_ids(passage):
     return {t.ID for t in passage.layer(layer0.LAYER_ID).all}
 
 
-def extract_edges(passage, constructions=None, reference=None, tagger=None, verbose=False):
+def extract_edges(passage, constructions=None, reference=None, verbose=False):
     """
     Find constructions in UCCA passage.
     :param passage: Passage object to find constructions in
     :param constructions: list of constructions to include or None for all
     :param reference: Passage object to get POS tags from (default: `passage')
-    :param tagger: POS tagger name to use, or None for default
     :param verbose: whether to print tagged text
     :return: dict of Construction -> list of corresponding edges
     """
@@ -109,7 +106,7 @@ def extract_edges(passage, constructions=None, reference=None, tagger=None, verb
     if reference is not None:
         assert terminal_ids(passage) == terminal_ids(reference),\
             "Reference passage terminals do not match: %s" % reference.ID
-    tagutil.pos_tag(passage, tagger=tagger, verbose=verbose)
+    textutil.pos_tag(passage, verbose=verbose)
     extracted = OrderedDict((c, []) for c in constructions)
     for node in passage.layer(layer1.LAYER_ID).all:
         for edge in node:
