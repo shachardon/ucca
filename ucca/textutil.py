@@ -13,7 +13,7 @@ def nlp(*args, **kwargs):
 
 def get_nlp():
     if nlp.instance is None:
-        nlp.instance = spacy.load("en", parser=False, entity=False, matcher=False)
+        nlp.instance = spacy.load("en", entity=False, matcher=False)
     return nlp.instance
 nlp.instance = None
 
@@ -25,37 +25,40 @@ def get_word_vectors(dim=None, size=None):
     return {l.orth_: l.vector for l in vocab if l.has_vector and (size is None or l.rank < size)}
 
 
-def get_tagged(tokens):
+def get_annotated(tokens):
     doc = get_nlp().tokenizer.tokens_from_list(tokens)
     get_nlp().tagger(doc)
+    get_nlp().parser(doc)
     return doc
 
 
-TAG_KEY = "tag"
-POS_KEY = "pos"
-DEP_KEY = "dep"
-HEAD_KEY = "head"
+TAG_KEY = "tag"  # fine-grained POS tag
+POS_KEY = "pos"  # coarse-grained POS tag
+DEP_KEY = "dep"  # dependency relation to syntactic head
+HEAD_KEY = "head"  # integer position of syntactic head within paragraph
+ANNOTATION_KEYS = (TAG_KEY, POS_KEY, DEP_KEY, HEAD_KEY)
 
 
-def pos_tag(passage, verbose=False, replace=False):
+def annotate(passage, verbose=False, replace=False):
     """
-    POS tag the tokens in the given passage
-    :param passage: Passage whose layer 0 nodes will be added the "tag" and "pos" entries in the extra dict
-    :param verbose: whether to print tagged text
-    :param replace: even if given passage is already POS-tagged, replace existing tags with new ones
-    :return: list of tagged terminal nodes
+    POS tag the tokens in the given passage and parse with a dependency parser
+    :param passage: Passage whose layer 0 nodes will be added these entries in the extra dict: tag, pos, dep, head
+    :param verbose: whether to print annotated text
+    :param replace: even if given passage is already annotated, replace with new annotation
+    :return: list of annotated terminal nodes
     """
     l0 = passage.layer(layer0.LAYER_ID)
     paragraphs = [sorted(p, key=attrgetter("position")) for _, p in groupby(l0.all, key=attrgetter("paragraph"))]
-    tagged = [[(t.text, t.extra.get(TAG_KEY), t.extra.get(POS_KEY)) for t in p] for p in paragraphs]
-    if replace or any(tag is None or pos is None for p in tagged for _, tag, pos in p):
-        tagged = [[(l.orth_, l.tag_, l.pos_) for l in get_tagged([t.text for t in p])] for p in paragraphs]
-        for paragraph, tagged_paragraph in zip(paragraphs, tagged):
-            for terminal, (_, tag, pos) in zip(paragraph, tagged_paragraph):
-                terminal.extra[TAG_KEY] = tag
-                terminal.extra[POS_KEY] = pos
+    if replace or any(k not in t.extra for p in paragraphs for t in p for k in ANNOTATION_KEYS):
+        for p in paragraphs:
+            annotated = get_annotated([t.text for t in p])
+            for terminal, lex in zip(p, annotated):
+                terminal.extra[TAG_KEY] = lex.tag_
+                terminal.extra[POS_KEY] = lex.pos_
+                terminal.extra[DEP_KEY] = lex.dep_
+                terminal.extra[HEAD_KEY] = str(lex.head.i + 1)
     if verbose:
-        print("\n".join(" ".join("%s/%s" % (token, tag) for (token, tag, _) in p) for p in tagged))
+        print("\n".join(" ".join("%s/%s" % (t.text, t.extra[TAG_KEY]) for t in p) for p in paragraphs))
 
 
 SENTENCE_END_MARKS = ('.', '?', '!')
