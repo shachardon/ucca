@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from ucca import textutil, layer0, layer1
-from ucca.layer1 import EdgeTags
+from ucca.layer1 import EdgeTags, NodeTags
 
 
 class Construction(object):
@@ -53,19 +53,27 @@ EXCLUDED = (EdgeTags.Punctuation,
             EdgeTags.LinkArgument,
             EdgeTags.LinkRelation,
             EdgeTags.Terminal)
+
+
+def is_primary(c):
+    return not c.remote and not c.implicit and c.edge.tag not in EXCLUDED
+
+
+def is_remote(c):
+    return c.remote and not c.implicit and c.edge.tag not in EXCLUDED
+
+
 CONSTRUCTIONS = (
-    Construction("primary", "Regular edges",
-                 lambda c: not c.remote and not c.implicit and c.edge.tag not in EXCLUDED, default=True),
-    Construction("remote", "Remote edges",
-                 lambda c: c.remote and not c.implicit and c.edge.tag not in EXCLUDED, default=True),
+    Construction("primary", "Regular edges", is_primary, default=True),
+    Construction("remote", "Remote edges", is_remote, default=True),
     Construction("aspectual_verbs", "Aspectual verbs",
                  lambda c: c.pos == {"VERB"} and c.edge.tag == EdgeTags.Adverbial),
     Construction("light_verbs", "Light verbs",
                  lambda c: c.pos == {"VERB"} and c.edge.tag == EdgeTags.Function),
-    # Construction("mwe", "Multi-word expressions",
-    #              lambda c: not c.remote and c.edge.child.tag == NodeTags.Foundational and (
-    #                  len(c.edge.child.terminals) > 1 or
-    #                  {e.tag for e in c.edge.child} == {EdgeTags.Center, EdgeTags.Function})),
+    Construction("mwe", "Multi-word expressions",
+                 lambda c: is_primary(c) and c.edge.child.tag == NodeTags.Foundational and (
+                     len(c.edge.child.terminals) > 1 or not {"aux", "auxpass"} | c.dep and
+                     {e.tag for e in c.edge.child} == {EdgeTags.Center, EdgeTags.Function})),
     Construction("pred_nouns", "Predicate nouns",
                  lambda c: c.pos == {"NOUN"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
     Construction("pred_adjs", "Predicate adjectives",
