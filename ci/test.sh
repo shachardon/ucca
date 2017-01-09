@@ -21,7 +21,7 @@ dense)
     python parsing/parse.py -c dense --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7*
     ;;
 mlp)
-    python parsing/parse.py -c mlp --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=1024 --layers=1 --layerdim=100
+    python parsing/parse.py -c mlp --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=1024 --layerdim=100 --updatewordvectors
     ;;
 bilstm)
     python parsing/parse.py -c bilstm --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=1024 --lstmlayers=1 --lstmlayerdim=100
