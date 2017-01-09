@@ -25,8 +25,16 @@ def get_word_vectors(dim=None, size=None):
     return {l.orth_: l.vector for l in vocab if l.has_vector and (size is None or l.rank < size)}
 
 
+def get_tagged(tokens):
+    doc = get_nlp().tokenizer.tokens_from_list(tokens)
+    get_nlp().tagger(doc)
+    return doc
+
+
 TAG_KEY = "tag"
 POS_KEY = "pos"
+DEP_KEY = "dep"
+HEAD_KEY = "head"
 
 
 def pos_tag(passage, verbose=False, replace=False):
@@ -41,8 +49,7 @@ def pos_tag(passage, verbose=False, replace=False):
     paragraphs = [sorted(p, key=attrgetter("position")) for _, p in groupby(l0.all, key=attrgetter("paragraph"))]
     tagged = [[(t.text, t.extra.get(TAG_KEY), t.extra.get(POS_KEY)) for t in p] for p in paragraphs]
     if replace or any(tag is None or pos is None for p in tagged for _, tag, pos in p):
-        tagged = [[(l.orth_, l.tag, l.pos) for l in get_nlp().tokenizer.tokens_from_list(
-            [t.text for t in p])] for p in paragraphs]
+        tagged = [[(l.orth_, l.tag_, l.pos_) for l in get_tagged([t.text for t in p])] for p in paragraphs]
         for paragraph, tagged_paragraph in zip(paragraphs, tagged):
             for terminal, (_, tag, pos) in zip(paragraph, tagged_paragraph):
                 terminal.extra[TAG_KEY] = tag
