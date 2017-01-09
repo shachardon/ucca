@@ -44,7 +44,7 @@ if __name__ == "__main__":
     results = []
     for g, r in zip(guessed, ref):
         if len(guessed) > 1:
-            sys.stdout.write("\rEvaluating %s:" % g.ID)
+            sys.stdout.write("\rEvaluating %s%s" % (g.ID, ":" if args.verbose else "..."))
             sys.stdout.flush()
         if args.verbose:
             print()
@@ -57,5 +57,7 @@ if __name__ == "__main__":
     if len(results) > 1:
         if args.verbose:
             print("Aggregated scores:")
+        else:
+            print(end="\r")
         scores.print()
         print("Average labeled F1 score: %.3f" % scores.average_f1())
