@@ -58,7 +58,8 @@ def annotate(passage, verbose=False, replace=False):
                 terminal.extra[DEP_KEY] = lex.dep_
                 terminal.extra[HEAD_KEY] = str(lex.head.i + 1)
     if verbose:
-        print("\n".join(" ".join("%s/%s" % (t.text, t.extra[TAG_KEY]) for t in p) for p in paragraphs))
+        print("\n".join(" ".join("%s/%s/%s" % (t.text, t.extra[TAG_KEY], t.extra[DEP_KEY]) for t in p)
+                        for p in paragraphs))
 
 
 SENTENCE_END_MARKS = ('.', '?', '!')
