@@ -17,9 +17,8 @@ before_install:
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy libgcc
-  - pip install pytest-pep8
+  - pip install pytest-pep8 tensorflow
   - pip install -r requirements.txt
-  - pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.12.1-cp35-cp35m-linux_x86_64.whl
   - python -m spacy.en.download all > spacy.log
 install:
   - python setup.py install
