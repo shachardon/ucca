@@ -32,9 +32,8 @@ before_install:
 install:
   - python setup.py install
 before_script:
-  - mkdir pickle word_vectors
+  - mkdir pickle
   - curl -L http://www.cs.huji.ac.il/~danielh/ucca/ucca_corpus_pickle.tgz | tar xz -C pickle
-  - curl -L http://www.cs.huji.ac.il/~danielh/ucca/w2v.tgz | tar xz -C word_vectors
   - python scripts/split_corpus.py pickle -t 4282 -d 454 -l
 env:
   - TEST_SUITE=unit
