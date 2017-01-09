@@ -36,7 +36,8 @@ class Candidate(object):
             self.terminals = ()
         if reference is not None:
             self.terminals = [reference.by_id(t.ID) for t in self.terminals]
-        self.coarse_tags = {t.extra[textutil.POS_KEY] for t in self.terminals}
+        self.pos = {t.extra[textutil.POS_KEY] for t in self.terminals}
+        self.dep = {t.extra[textutil.DEP_KEY] for t in self.terminals}
         self.tokens = {t.text.lower() for t in self.terminals}
 
     @property
@@ -58,17 +59,17 @@ CONSTRUCTIONS = (
     Construction("remote", "Remote edges",
                  lambda c: c.remote and not c.implicit and c.edge.tag not in EXCLUDED, default=True),
     Construction("aspectual_verbs", "Aspectual verbs",
-                 lambda c: c.coarse_tags == {"VERB"} and c.edge.tag == EdgeTags.Adverbial),
+                 lambda c: c.pos == {"VERB"} and c.edge.tag == EdgeTags.Adverbial),
     Construction("light_verbs", "Light verbs",
-                 lambda c: c.coarse_tags == {"VERB"} and c.edge.tag == EdgeTags.Function),
+                 lambda c: c.pos == {"VERB"} and c.edge.tag == EdgeTags.Function),
     # Construction("mwe", "Multi-word expressions",
     #              lambda c: not c.remote and c.edge.child.tag == NodeTags.Foundational and (
     #                  len(c.edge.child.terminals) > 1 or
     #                  {e.tag for e in c.edge.child} == {EdgeTags.Center, EdgeTags.Function})),
     Construction("pred_nouns", "Predicate nouns",
-                 lambda c: c.coarse_tags == {"NOUN"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
+                 lambda c: c.pos == {"NOUN"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
     Construction("pred_adjs", "Predicate adjectives",
-                 lambda c: c.coarse_tags == {"ADJ"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
+                 lambda c: c.pos == {"ADJ"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
     Construction("expletive_it", "Expletive `it' constructions",
                  lambda c: c.tokens == {"it"} and c.edge.tag == EdgeTags.Function),
     # Construction("part_whole", "Part-whole constructions"),
