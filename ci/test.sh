@@ -21,14 +21,14 @@ dense)
     python parsing/parse.py -c dense --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7*
     ;;
 mlp)
-    python parsing/parse.py -c mlp --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=1024 --layerdim=100 --updatewordvectors
+    python parsing/parse.py -c mlp --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=3072
     ;;
 bilstm)
-    python parsing/parse.py -c bilstm --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=1024 --lstmlayers=1 --lstmlayerdim=100
+    python parsing/parse.py -c bilstm --maxwordsexternal=5000 -WeLMCb pickle/dev/*7* -t pickle/train/*7* --dynet-mem=3072
     ;;
 tune)
     export PARAMS_NUM=5
-    python parsing/tune.py doc/toy.xml -t doc/toy.xml --maxwordsexternal=5000 --dynet-mem=1024 || exit 1
+    python parsing/tune.py doc/toy.xml -t doc/toy.xml --maxwordsexternal=5000 --dynet-mem=3072 || exit 1
     column -t -s, params.csv
     ;;
 convert)
