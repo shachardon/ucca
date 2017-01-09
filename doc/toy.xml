@@ -1,47 +1,46 @@
 <root annotationID="0" passageID="504">
   <attributes />
-  <extra pos_tagger="stanford_english_bidirectional" />
   <layer layerID="0">
     <attributes />
     <node ID="0.1" type="Word">
       <attributes paragraph="1" paragraph_position="1" text="After" />
-      <extra pos_tag="IN" />
+      <extra pos="ADP" tag="IN" />
     </node>
     <node ID="0.2" type="Word">
       <attributes paragraph="1" paragraph_position="2" text="graduation" />
-      <extra pos_tag="NN" />
+      <extra pos="NOUN" tag="NN" />
     </node>
     <node ID="0.3" type="Punctuation">
       <attributes paragraph="1" paragraph_position="3" text="," />
-      <extra pos_tag="," />
+      <extra pos="PUNCT" tag="," />
     </node>
     <node ID="0.4" type="Word">
       <attributes paragraph="1" paragraph_position="4" text="Mary" />
-      <extra pos_tag="NNP" />
+      <extra pos="PROPN" tag="NNP" />
     </node>
     <node ID="0.5" type="Word">
       <attributes paragraph="1" paragraph_position="5" text="moved" />
-      <extra pos_tag="VBD" />
+      <extra pos="VERB" tag="VBD" />
     </node>
     <node ID="0.6" type="Word">
       <attributes paragraph="1" paragraph_position="6" text="to" />
-      <extra pos_tag="TO" />
+      <extra pos="ADP" tag="IN" />
     </node>
     <node ID="0.7" type="Word">
       <attributes paragraph="1" paragraph_position="7" text="New" />
-      <extra pos_tag="NNP" />
+      <extra pos="PROPN" tag="NNP" />
     </node>
     <node ID="0.8" type="Word">
       <attributes paragraph="1" paragraph_position="8" text="York" />
-      <extra pos_tag="NNP" />
+      <extra pos="PROPN" tag="NNP" />
     </node>
     <node ID="0.9" type="Word">
       <attributes paragraph="1" paragraph_position="9" text="City" />
-      <extra pos_tag="NNP" />
+      <extra pos="PROPN" tag="NNP" />
     </node>
     <node ID="0.10" type="Punctuation">
       <attributes paragraph="1" paragraph_position="10" text="." />
-      <extra pos_tag="." />
+      <extra pos="PUNCT" tag="." />
     </node>
   </layer>
   <layer layerID="1">
