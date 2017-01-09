@@ -8,7 +8,7 @@ from collections import Counter, defaultdict, OrderedDict
 from operator import attrgetter
 
 from ucca import layer0, layer1
-from ucca.constructions import extract_edges, PRIMARY, DEFAULT, CONSTRUCTION_BY_NAME
+from ucca.constructions import extract_edges, get_by_names, PRIMARY, DEFAULT
 from ucca.layer1 import EdgeTags, NodeTags
 
 UNLABELED = "unlabeled"
@@ -119,7 +119,7 @@ class Evaluator(object):
         :param errors: whether to calculate and print the confusion matrix of errors
         """
         self.verbose = verbose
-        self.constructions = [CONSTRUCTION_BY_NAME[n] for n in constructions]
+        self.constructions = get_by_names(constructions)
         self.units = units
         self.fscore = fscore
         self.errors = errors

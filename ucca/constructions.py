@@ -90,9 +90,14 @@ DEFAULT = OrderedDict((str(c), c) for c in CONSTRUCTIONS if c.default)
 
 def add_argument(argparser, default=True):
     d = list(DEFAULT.keys()) if default else [n for n in CONSTRUCTION_BY_NAME if n not in DEFAULT]
-    argparser.add_argument("--constructions", nargs="+", choices=CONSTRUCTION_BY_NAME, default=d, metavar="x",
+    argparser.add_argument("--constructions", nargs="*", choices=CONSTRUCTION_BY_NAME, default=d, metavar="x",
                            help="construction types to include, out of {%s}" %
                                 ",".join(CONSTRUCTION_BY_NAME.keys()))
+
+
+def get_by_names(constructions):
+    return [c if isinstance(c, Construction) else CONSTRUCTION_BY_NAME[c] for c in constructions] \
+        if constructions else CONSTRUCTIONS
 
 
 def terminal_ids(passage):
@@ -108,10 +113,7 @@ def extract_edges(passage, constructions=None, reference=None, verbose=False):
     :param verbose: whether to print tagged text
     :return: dict of Construction -> list of corresponding edges
     """
-    if constructions is None:
-        constructions = CONSTRUCTIONS
-    else:
-        constructions = [c if isinstance(c, Construction) else CONSTRUCTION_BY_NAME[c] for c in constructions]
+    constructions = get_by_names(constructions)
     if reference is not None:
         assert terminal_ids(passage) == terminal_ids(reference),\
             "Reference passage terminals do not match: %s" % reference.ID
