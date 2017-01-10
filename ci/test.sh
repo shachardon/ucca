@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+export KERAS_BACKEND=theano
 case "$TEST_SUITE" in
 unit)
     # unit tests
@@ -24,7 +25,6 @@ nn)
     python parsing/parse.py -c nn --maxwordsexternal=5000 -WeLMCbs pickle/dev/*7* -t pickle/train/*7* --nbepochs 3 --layerdim=100 --batchsize 500
     ;;
 tune)
-    export KERAS_BACKEND=theano
     export PARAMS_NUM=5
     python parsing/tune.py doc/toy.xml -t doc/toy.xml --maxwordsexternal=5000 || exit 1
     column -t -s, params.csv

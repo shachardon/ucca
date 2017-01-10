@@ -17,7 +17,7 @@ before_install:
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy libgcc
-  - pip install pytest-pep8 tensorflow
+  - pip install pytest-pep8
   - pip install -r requirements.txt
   - python -m spacy.en.download all > spacy.log
 install:
