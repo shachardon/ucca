@@ -27,8 +27,10 @@ def get_word_vectors(dim=None, size=None):
 
 def get_annotated(tokens):
     doc = get_nlp().tokenizer.tokens_from_list(tokens)
-    get_nlp().tagger(doc)
-    get_nlp().parser(doc)
+    if nlp.instance.tagger is not None:
+        nlp.instance.tagger(doc)
+        if nlp.instance.parser is not None:
+            nlp.instance.parser(doc)
     return doc
 
 
