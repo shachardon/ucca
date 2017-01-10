@@ -73,7 +73,10 @@ def create_passage_yields(p, constructions=None, reference=None, verbose=False):
 
 
 def get_yield(unit):
-    return frozenset(t.position for t in unit.get_terminals(punct=False))
+    try:
+        return frozenset(t.position for t in unit.get_terminals(punct=False))
+    except ValueError:
+        return frozenset()
 
 
 def find_mutuals(m1, m2, eval_type):
