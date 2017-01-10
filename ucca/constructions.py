@@ -30,15 +30,17 @@ class Construction(object):
 class Candidate(object):
     def __init__(self, edge, reference=None):
         self.edge = edge
-        try:
-            self.terminals = edge.child.get_terminals()
-        except AttributeError:
-            self.terminals = ()
-        if reference is not None:
-            self.terminals = [reference.by_id(t.ID) for t in self.terminals]
-        self.pos = {t.extra[textutil.POS_KEY] for t in self.terminals}
-        self.dep = {t.extra[textutil.DEP_KEY] for t in self.terminals}
-        self.tokens = {t.text.lower() for t in self.terminals}
+        self.reference = reference
+        self._terminals = self._pos = self._dep = self._tokens = None
+
+    def _init_terminals(self):
+        if self._terminals is None:
+            try:
+                self._terminals = self.edge.child.get_terminals()
+            except (AttributeError, ValueError):
+                self._terminals = ()
+            if self.reference is not None:
+                self._terminals = [self.reference.by_id(t.ID) for t in self._terminals]
 
     @property
     def remote(self):
@@ -47,6 +49,27 @@ class Candidate(object):
     @property
     def implicit(self):
         return self.edge.child.attrib.get("implicit", False)
+
+    @property
+    def pos(self):
+        if self._pos is None:
+            self._init_terminals()
+            self._pos = {t.extra[textutil.POS_KEY] for t in self._terminals}
+        return self._pos
+
+    @property
+    def dep(self):
+        if self._dep is None:
+            self._init_terminals()
+            self._dep = {t.extra[textutil.DEP_KEY] for t in self._terminals}
+        return self._dep
+
+    @property
+    def tokens(self):
+        if self._tokens is None:
+            self._init_terminals()
+            self._tokens = {t.text.lower() for t in self._terminals}
+        return self._tokens
 
 
 EXCLUDED = (EdgeTags.Punctuation,
