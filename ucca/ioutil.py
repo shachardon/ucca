@@ -87,7 +87,7 @@ class LazyLoadedPassages(object):
                     if attempts == 0:
                         print("File not found: %s" % file, file=sys.stderr)
                         return next(self)
-                    print("Failed reading %s, trying %d more times..." % file, file=sys.stderr)
+                    print("Failed reading %s, trying %d more times..." % (file, attempts), file=sys.stderr)
                     time.sleep(5)
                     attempts -= 1
                 try:
