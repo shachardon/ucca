@@ -277,8 +277,10 @@ class SummaryStatistics(object):
 
 
 def evaluate(guessed_passage, ref_passage, verbose=False, constructions=DEFAULT,
-             units=False, fscore=True, errors=False):
+             units=False, fscore=True, errors=False, normalize=True):
     """
+    Compare two passages and return requested diagnostics and scores, possibly printing them too.
+    NOTE: since normalize=True by default, this method is destructive: it modifies the given passages before evaluation.
     :param guessed_passage: Passage object to evaluate
     :param ref_passage: reference Passage object to compare to
     :param verbose: whether to print the results
@@ -286,11 +288,13 @@ def evaluate(guessed_passage, ref_passage, verbose=False, constructions=DEFAULT,
     :param units: whether to evaluate common units
     :param fscore: whether to compute precision, recall and f1 score
     :param errors: whether to print the mistakes
+    :param normalize: flatten centers and move common functions to root before evaluation - modifies passages
     :return: Scores object
     """
-    for passage in (guessed_passage, ref_passage):
-        flatten_centers(passage)  # flatten Cs inside Cs
-    move_functions(guessed_passage, ref_passage)  # move common Fs to be under the root
+    if normalize:
+        for passage in (guessed_passage, ref_passage):
+            flatten_centers(passage)  # flatten Cs inside Cs
+        move_functions(guessed_passage, ref_passage)  # move common Fs to be under the root
 
     evaluator = Evaluator(verbose, constructions, units, fscore, errors)
     return Scores((evaluation_type, evaluator.get_scores(guessed_passage, ref_passage, evaluation_type))
