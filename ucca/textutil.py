@@ -1,5 +1,5 @@
 """Utility functions for UCCA package."""
-from itertools import groupby
+from itertools import groupby, islice
 from operator import attrgetter
 
 import spacy
@@ -18,11 +18,24 @@ def get_nlp():
 nlp.instance = None
 
 
-def get_word_vectors(dim=None, size=None):
+def get_word_vectors(dim=None, size=None, filename=None):
     vocab = get_nlp().vocab
-    if dim is not None and dim != vocab.vectors_length:
+    if filename is not None:
+        print("Loading word vectors from '%s'..." % filename)
+        try:
+            with open(filename) as f:
+                first_line = f.readline().split()
+                if len(first_line) == 2 and all(s.isdigit() for s in first_line):
+                    vocab.resize_vectors(int(first_line[1]))
+                else:
+                    f.seek(0)  # First line is already a vector and not a header, so let load_vectors read it
+                vocab.load_vectors(f)
+        except OSError as e:
+            raise IOError("Failed loading word vectors from '%s'" % filename) from e
+    elif dim is not None and dim != vocab.vectors_length:
         vocab.resize_vectors(dim)
-    return {l.orth_: l.vector for l in vocab if l.has_vector and (size is None or l.rank < size)}
+    vectors = dict(islice(((l.orth_, l.vector) for l in vocab if l.has_vector), size))
+    return vectors, vocab.vectors_length
 
 
 def get_annotated(tokens):
