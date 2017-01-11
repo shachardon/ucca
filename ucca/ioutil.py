@@ -81,7 +81,15 @@ class LazyLoadedPassages(object):
                 raise
             if isinstance(file, Passage):  # Not really a file, but a Passage
                 passage = file
-            elif os.path.exists(file):  # A file
+            else:  # A file
+                attempts = 3
+                while not os.path.exists(file):
+                    if attempts == 0:
+                        print("File not found: %s" % file, file=sys.stderr)
+                        return next(self)
+                    print("Failed reading %s, trying %d more times..." % file, file=sys.stderr)
+                    time.sleep(5)
+                    attempts -= 1
                 try:
                     passage = file2passage(file)  # XML or binary format
                 except (IOError, ParseError):  # Failed to read as passage file
@@ -89,10 +97,6 @@ class LazyLoadedPassages(object):
                     converter = FROM_FORMAT.get(ext.lstrip("."), from_text)
                     self._file_handle = open(file)
                     self._split_iter = iter(converter(self._file_handle, passage_id=base, split=self.split))
-            else:
-                print("File not found: %s" % file, file=sys.stderr)
-                time.sleep(1)
-                return next(self)
             if self.split and self._split_iter is None:  # If it's not None, it's a converter and it splits alone
                 self._split_iter = iter(split2segments(passage, is_sentences=self.sentences))
         if self._split_iter is not None:  # Either set before or initialized now
