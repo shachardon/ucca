@@ -31,7 +31,7 @@ class Candidate(object):
     def __init__(self, edge, reference=None):
         self.edge = edge
         self.reference = reference
-        self._terminals = self._pos = self._dep = self._tokens = None
+        self._terminals = self._pos = self._dep = self._heads = self._tokens = None
 
     def _init_terminals(self):
         if self._terminals is None:
@@ -63,6 +63,14 @@ class Candidate(object):
             self._init_terminals()
             self._dep = {t.extra[textutil.DEP_KEY] for t in self._terminals}
         return self._dep
+
+    @property
+    def heads(self):
+        if self._heads is None:
+            self._init_terminals()
+            positions = {t.para_pos for t in self._terminals}
+            self._heads = {t for t in self._terminals if int(t.extra[textutil.HEAD_KEY]) not in positions}
+        return self._heads
 
     @property
     def tokens(self):
@@ -102,8 +110,14 @@ CONSTRUCTIONS = (
                  lambda c: c.pos == {"ADJ"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
     Construction("expletives", "Expletives",
                  lambda c: c.tokens <= {"it", "there"} and c.edge.tag == EdgeTags.Function),
-    # Construction("part_whole", "Part-whole constructions"),
-    # Construction("classifiers", "Classifier constructions"),
+    # Construction("part_whole", "Part-whole constructions",
+    #              lambda c: is_primary(c) and c.edge.child.tag == NodeTags.Foundational and (
+    #                  len(c.edge.child.centers) > 1 and
+    #                  not c.heads & {t for n in c.edge.child.centers for t in n.get_terminals()})),
+    # Construction("classifiers", "Classifier constructions",
+    #              lambda c: is_primary(c) and c.edge.child.tag == NodeTags.Foundational and (
+    #                  len(c.edge.child.centers) > 1 and c.dep & {"appos"} and
+    #                  not c.heads & {t for n in c.edge.child.centers for t in n.get_terminals()})),
 )
 PRIMARY = CONSTRUCTIONS[0]
 CONSTRUCTION_BY_NAME = OrderedDict((c.name, c) for c in CONSTRUCTIONS)
