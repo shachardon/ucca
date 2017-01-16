@@ -61,4 +61,7 @@ if __name__ == "__main__":
         else:
             print(end="\r")
         scores.print()
-        print("Average labeled F1 score: %.3f" % scores.average_f1())
+        try:
+            print("Average labeled F1 score: %.3f" % scores.average_f1())
+        except KeyError:
+            pass  # did not calculate labeled F1 on primary and remote
