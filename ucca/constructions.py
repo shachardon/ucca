@@ -101,8 +101,8 @@ CONSTRUCTIONS = (
                  lambda c: c.pos == {"NOUN"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
     Construction("pred_adjs", "Predicate adjectives",
                  lambda c: c.pos == {"ADJ"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
-    Construction("expletive_it", "Expletive `it' constructions",
-                 lambda c: c.tokens == {"it"} and c.edge.tag == EdgeTags.Function),
+    Construction("expletives", "Expletives",
+                 lambda c: c.tokens <= {"it", "there"} and c.edge.tag == EdgeTags.Function),
     # Construction("part_whole", "Part-whole constructions"),
     # Construction("classifiers", "Classifier constructions"),
 )
