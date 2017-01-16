@@ -50,7 +50,7 @@ def get_annotated(tokens):
 TAG_KEY = "tag"  # fine-grained POS tag
 POS_KEY = "pos"  # coarse-grained POS tag
 DEP_KEY = "dep"  # dependency relation to syntactic head
-HEAD_KEY = "head"  # integer position of syntactic head within paragraph
+HEAD_KEY = "head"  # integer position of syntactic head within paragraph (para_pos)
 ANNOTATION_KEYS = (TAG_KEY, POS_KEY, DEP_KEY, HEAD_KEY)
 
 
