@@ -3,6 +3,7 @@ The evaluation library for UCCA layer 1.
 v1.2
 2016-12-25: move common Fs to root before evaluation
 2017-01-04: flatten centers, do not add 1 (for root) to mutual
+2017-01-16: fix bug in moving common Fs
 """
 from collections import Counter, defaultdict, OrderedDict
 from operator import attrgetter
@@ -48,8 +49,9 @@ def move_functions(p1, p2):
     for positions in f1.keys() & f2.keys():
         for (p, unit) in ((p1, f1[positions]), (p2, f2[positions])):
             for parent in unit.parents:
+                tag = unit.ftag
                 parent.remove(unit)
-                p.layer(layer1.LAYER_ID).top_node.add(unit.ftag, unit)
+                p.layer(layer1.LAYER_ID).top_node.add(tag, unit)
 
 
 def get_text(p, positions):
