@@ -21,6 +21,8 @@ if __name__ == "__main__":
                            help="prints the error distribution according to its frequency")
     argparser.add_argument("-v", "--verbose", action="store_true",
                            help="prints the results for every single pair (always true if there is only one pair)")
+    argparser.add_argument("--no-normalize", dest="normalize", action="store_false",
+                           help="do not normalize passages before evaluation")
     constructions.add_argument(argparser)
     args = argparser.parse_args()
 
@@ -48,7 +50,7 @@ if __name__ == "__main__":
             sys.stdout.flush()
         print()
         scores = evaluation.evaluate(g, r, constructions=args.constructions, units=args.units, fscore=args.fscore,
-                                     errors=args.errors, verbose=args.verbose or len(guessed) == 1)
+                                     errors=args.errors, verbose=args.verbose or len(guessed) == 1, normalize=args.normalize)
         if args.verbose:
             print("Average labeled F1 score: %.3f\n" % scores.average_f1())
         results.append(scores)
