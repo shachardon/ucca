@@ -94,9 +94,8 @@ CONSTRUCTIONS = (
     Construction("light_verbs", "Light verbs",
                  lambda c: c.pos == {"VERB"} and c.edge.tag == EdgeTags.Function),
     Construction("mwe", "Multi-word expressions",
-                 lambda c: is_primary(c) and c.edge.child.tag == NodeTags.Foundational and (
-                     len(c.edge.child.terminals) > 1 or not {"aux", "auxpass"} | c.dep and
-                     {e.tag for e in c.edge.child} == {EdgeTags.Center, EdgeTags.Function})),
+                 lambda c: is_primary(c) and c.edge.child.tag == NodeTags.Foundational and len(
+                     c.edge.child.terminals) > 1),  # inseparable unit
     Construction("pred_nouns", "Predicate nouns",
                  lambda c: c.pos == {"NOUN"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
     Construction("pred_adjs", "Predicate adjectives",
