@@ -30,6 +30,7 @@ class Construction(object):
 class Candidate(object):
     def __init__(self, edge, reference=None):
         self.edge = edge
+        self.out_tags = {e.tag for e in edge.child}
         self.reference = reference
         self._terminals = self._pos = self._dep = self._heads = self._tokens = None
 
@@ -79,6 +80,17 @@ class Candidate(object):
             self._tokens = {t.text.lower() for t in self._terminals}
         return self._tokens
 
+    def is_primary(self):
+        return not self.remote and not self.implicit and self.edge.tag not in EXCLUDED
+
+    def is_remote(self):
+        return self.remote and not self.implicit and self.edge.tag not in EXCLUDED
+
+    def is_predicate(self):
+        return self.edge.tag in {EdgeTags.Process, EdgeTags.State} and \
+            self.out_tags <= {EdgeTags.Center, EdgeTags.Function} and \
+            "to" not in self.tokens
+
 
 EXCLUDED = (EdgeTags.Punctuation,
             EdgeTags.LinkArgument,
@@ -86,28 +98,20 @@ EXCLUDED = (EdgeTags.Punctuation,
             EdgeTags.Terminal)
 
 
-def is_primary(c):
-    return not c.remote and not c.implicit and c.edge.tag not in EXCLUDED
-
-
-def is_remote(c):
-    return c.remote and not c.implicit and c.edge.tag not in EXCLUDED
-
-
 CONSTRUCTIONS = (
-    Construction("primary", "Regular edges", is_primary, default=True),
-    Construction("remote", "Remote edges", is_remote, default=True),
+    Construction("primary", "Regular edges", Candidate.is_primary, default=True),
+    Construction("remote", "Remote edges", Candidate.is_remote, default=True),
     Construction("aspectual_verbs", "Aspectual verbs",
                  lambda c: c.pos == {"VERB"} and c.edge.tag == EdgeTags.Adverbial),
     Construction("light_verbs", "Light verbs",
                  lambda c: c.pos == {"VERB"} and c.edge.tag == EdgeTags.Function),
     Construction("mwe", "Multi-word expressions",
-                 lambda c: is_primary(c) and c.edge.child.tag == NodeTags.Foundational and len(
+                 lambda c: c.is_primary() and c.edge.child.tag == NodeTags.Foundational and len(
                      c.edge.child.terminals) > 1),  # inseparable unit
     Construction("pred_nouns", "Predicate nouns",
-                 lambda c: c.pos == {"NOUN"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
+                 lambda c: "ADJ" not in c.pos and "NOUN" in c.pos and c.is_predicate()),
     Construction("pred_adjs", "Predicate adjectives",
-                 lambda c: c.pos == {"ADJ"} and c.edge.tag in {EdgeTags.Process, EdgeTags.State}),
+                 lambda c: "ADJ" in c.pos and "NOUN" not in c.pos and c.is_predicate()),
     Construction("expletives", "Expletives",
                  lambda c: c.tokens <= {"it", "there"} and c.edge.tag == EdgeTags.Function),
     # Construction("part_whole", "Part-whole constructions",
