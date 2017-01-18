@@ -16,17 +16,17 @@ unit)
     python parsing/parse.py doc/toy.xml -esm model_toy_paragraphs -v || exit 1
     ;;
 sparse)
-    python parsing/parse.py -c sparse --maxwordsexternal=5000 -WeLMCbs pickle/dev/*0.pickle -t pickle/train/*0.pickle
+    python parsing/parse.py -c sparse --max-words-external=5000 -Webs pickle/dev/*0.pickle -t pickle/train/*0.pickle
     ;;
 dense)
-    python parsing/parse.py -c dense --maxwordsexternal=5000 -WeLMCbs pickle/dev/*0.pickle -t pickle/train/*0.pickle
+    python parsing/parse.py -c dense --max-words-external=5000 -Webs pickle/dev/*0.pickle -t pickle/train/*0.pickle
     ;;
 nn)
-    python parsing/parse.py -c nn --maxwordsexternal=5000 -WeLMCbs pickle/dev/*0.pickle -t pickle/train/*0.pickle --nbepochs 3 --layerdim=100 --batchsize 500
+    python parsing/parse.py -c nn --max-words-external=5000 -Webs pickle/dev/*0.pickle -t pickle/train/*0.pickle --epochs 3 --layer-dim=100 --batch-size 500
     ;;
 tune)
     export PARAMS_NUM=5
-    python parsing/tune.py doc/toy.xml -t doc/toy.xml --maxwordsexternal=5000 || exit 1
+    python parsing/tune.py doc/toy.xml -t doc/toy.xml --max-words-external=5000 || exit 1
     column -t -s, params.csv
     ;;
 convert)

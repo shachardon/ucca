@@ -33,9 +33,9 @@ Download and extract the pre-trained models:
 
 Run the parser on a text file (here named `example.txt`) using either of the models:
 
-    python parsing/parse.py -sCLM example.txt -c sparse -m models/ucca-sparse
-    python parsing/parse.py -sCLM example.txt -c dense -m models/ucca-dense
-    python parsing/parse.py -sCLM example.txt -c nn -m models/ucca-nn
+    python parsing/parse.py example.txt -c sparse -m models/ucca-sparse
+    python parsing/parse.py example.txt -c dense -m models/ucca-dense
+    python parsing/parse.py example.txt -c nn -m models/ucca-nn
 
 A file named `example.xml` will be created.
 
