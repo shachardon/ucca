@@ -10,9 +10,12 @@ if __name__ == "__main__":
     argparser.add_argument("-v", "--verbose", action="store_true", help="print tagged text for each passage")
     args = argparser.parse_args()
     for passage in read_files_and_dirs(args.passages):
-        print("%s:" % passage.ID)
+        if args.verbose:
+            print("%s:" % passage.ID)
         extracted = constructions.extract_edges(passage, constructions=args.constructions, verbose=args.verbose)
-        if extracted:
+        if any(extracted.values()):
+            if not args.verbose:
+                print("%s:" % passage.ID)
             for construction, edges in extracted.items():
                 if edges:
                     print("  %s:" % construction.description)
