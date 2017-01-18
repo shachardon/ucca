@@ -88,7 +88,7 @@ class Candidate(object):
 
     def is_predicate(self):
         return self.edge.tag in {EdgeTags.Process, EdgeTags.State} and \
-            self.out_tags <= {EdgeTags.Center, EdgeTags.Function} and \
+            self.out_tags <= {EdgeTags.Center, EdgeTags.Function, EdgeTags.Terminal} and \
             "to" not in self.tokens
 
 
