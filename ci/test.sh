@@ -15,20 +15,20 @@ unit)
     python parsing/parse.py doc/toy.xml -esm model_toy_paragraphs -v || exit 1
     ;;
 sparse)
-    python parsing/parse.py -c sparse --maxwordsexternal=5000 -WeLMCb pickle/dev/*0.pickle -t pickle/train/*0.pickle
+    python parsing/parse.py -c sparse --max-words-external=5000 -Web pickle/dev/*0.pickle -t pickle/train/*0.pickle
     ;;
 dense)
-    python parsing/parse.py -c dense --maxwordsexternal=5000 -WeLMCb pickle/dev/*0.pickle -t pickle/train/*0.pickle
+    python parsing/parse.py -c dense --max-words-external=5000 -Web pickle/dev/*0.pickle -t pickle/train/*0.pickle
     ;;
 mlp)
-    python parsing/parse.py -c mlp --maxwordsexternal=5000 --layerdim=100 -WeLMCb pickle/dev/*0.pickle -t pickle/train/*0.pickle --dynet-mem=1500
+    python parsing/parse.py -c mlp --max-words-external=5000 --layer-dim=100 -Web pickle/dev/*0.pickle -t pickle/train/*0.pickle --dynet-mem=1500
     ;;
 bilstm)
-    python parsing/parse.py -c bilstm --maxwordsexternal=5000 --layerdim=100 -WeLMCb pickle/dev/*0.pickle -t pickle/train/*0.pickle --dynet-mem=1500
+    python parsing/parse.py -c bilstm --max-words-external=5000 --layer-dim=100 -Web pickle/dev/*0.pickle -t pickle/train/*0.pickle --dynet-mem=1500
     ;;
 tune)
     export PARAMS_NUM=5
-    python parsing/tune.py doc/toy.xml -t doc/toy.xml --maxwordsexternal=5000 --dynet-mem=1500 || exit 1
+    python parsing/tune.py doc/toy.xml -t doc/toy.xml --max-words-external=5000 --dynet-mem=1500 || exit 1
     column -t -s, params.csv
     ;;
 convert)
