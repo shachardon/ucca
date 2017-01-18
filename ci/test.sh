@@ -26,7 +26,9 @@ nn)
     ;;
 tune)
     export PARAMS_NUM=5
-    python parsing/tune.py doc/toy.xml -t doc/toy.xml --max-words-external=5000 || exit 1
+    while :; do
+      python parsing/tune.py doc/toy.xml -t doc/toy.xml --max-words-external=5000 && break
+    done
     column -t -s, params.csv
     ;;
 convert)
