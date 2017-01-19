@@ -124,7 +124,8 @@ class Evaluator(object):
         :param errors: whether to calculate and print the confusion matrix of errors
         """
         self.verbose = verbose
-        self.constructions = get_by_names(constructions)
+        self.constructions = list(DEFAULT.values()) + [c for c in get_by_names(constructions)
+                                                       if c not in DEFAULT.values()]
         self.units = units
         self.fscore = fscore
         self.errors = errors
@@ -245,7 +246,11 @@ class EvaluatorResults(object):
         Aggregate primary and remote SummaryStatistics in this EvaluatorResults instance
         :return: SummaryStatistics object representing aggregation over primary and remote
         """
-        return SummaryStatistics.aggregate([self.results[c] for c in DEFAULT.values()])
+        try:
+            return SummaryStatistics.aggregate([self.results[c] for c in DEFAULT.values()])
+        except KeyError as e:
+            raise ValueError("Default constructions missing from evaluation results: " +
+                             ", ".join(map(str, self.results.keys()))) from e
 
 
 class SummaryStatistics(object):
