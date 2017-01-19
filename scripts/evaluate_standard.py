@@ -2,9 +2,8 @@
 """
 The evaluation script for UCCA layer 1.
 """
-from argparse import ArgumentParser
-
 import sys
+from argparse import ArgumentParser
 
 from ucca import evaluation, constructions, ioutil
 
@@ -23,6 +22,8 @@ if __name__ == "__main__":
                            help="prints the results for every single pair (always true if there is only one pair)")
     argparser.add_argument("--no-normalize", dest="normalize", action="store_false",
                            help="do not normalize passages before evaluation")
+    argparser.add_argument("--out-file", help="file to write results for each evaluated passage to, in CSV format")
+    argparser.add_argument("--summary-file", help="file to write aggregated results to, in CSV format")
     constructions.add_argument(argparser)
     args = argparser.parse_args()
 
@@ -50,19 +51,29 @@ if __name__ == "__main__":
             sys.stdout.flush()
         if args.verbose:
             print()
-        scores = evaluation.evaluate(g, r, constructions=args.constructions, units=args.units, fscore=args.fscore,
-                                     errors=args.errors, verbose=args.verbose or len(guessed) == 1, normalize=args.normalize)
+        result = evaluation.evaluate(g, r, constructions=args.constructions, units=args.units, fscore=args.fscore,
+                                     errors=args.errors, verbose=args.verbose or len(guessed) == 1,
+                                     normalize=args.normalize)
         if args.verbose:
-            print("Average labeled F1 score: %.3f\n" % scores.average_f1())
-        results.append(scores)
-    scores = evaluation.Scores.aggregate(results)
+            print("Average labeled F1 score: %.3f\n" % result.average_f1())
+        results.append(result)
+    summary = evaluation.Scores.aggregate(results)
     if len(results) > 1:
         if args.verbose:
             print("Aggregated scores:")
         else:
             print(end="\r")
-        scores.print()
+            summary.print()
         try:
-            print("Average labeled F1 score: %.3f" % scores.average_f1())
+            print("Average labeled F1 score: %.3f" % summary.average_f1())
         except KeyError:
             pass  # did not calculate labeled F1 on primary and remote
+    if args.out_file:
+        with open(args.out_file, "w") as f:
+            print(",".join(evaluation.Scores.field_titles(args.constructions)), file=f)
+            for result in results:
+                print(",".join(result.fields()), file=f)
+    if args.summary_file:
+        with open(args.summary_file, "w") as f:
+            print(",".join(evaluation.Scores.field_titles(args.constructions)), file=f)
+            print(",".join(summary.fields()), file=f)
