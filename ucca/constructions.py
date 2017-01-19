@@ -24,7 +24,7 @@ class Construction(object):
         return hash(self.name)
 
     def __eq__(self, other):
-        return self.name == other.name
+        return self.name == (other.name if isinstance(other, Construction) else other)
 
 
 class Candidate(object):
@@ -124,7 +124,11 @@ CONSTRUCTIONS = (
     #                  not c.heads & {t for n in c.edge.child.centers for t in n.get_terminals()})),
 )
 PRIMARY = CONSTRUCTIONS[0]
-CONSTRUCTION_BY_NAME = OrderedDict((c.name, c) for c in CONSTRUCTIONS)
+EDGE_TYPES_NAME = "edge_types"
+EDGE_TYPES = OrderedDict((v, Construction(v, k, lambda c, tag=v: c.edge.tag == tag))
+                         for k, v in sorted(EdgeTags.__dict__.items()) if not k.startswith("_"))
+CONSTRUCTION_BY_NAME = OrderedDict([(c.name, c) for c in CONSTRUCTIONS] +
+                                   [(EDGE_TYPES_NAME, EDGE_TYPES)] + list(EDGE_TYPES.items()))
 DEFAULT = OrderedDict((str(c), c) for c in CONSTRUCTIONS if c.default)
 
 
@@ -135,9 +139,15 @@ def add_argument(argparser, default=True):
                                 ",".join(CONSTRUCTION_BY_NAME.keys()))
 
 
-def get_by_names(constructions):
-    return [c if isinstance(c, Construction) else CONSTRUCTION_BY_NAME[c] for c in constructions] \
-        if constructions else CONSTRUCTIONS
+def get_by_name(name):
+    return name if isinstance(name, Construction) else EDGE_TYPES.get(name) or CONSTRUCTION_BY_NAME[name]
+
+
+def get_by_names(names):
+    constructions = [get_by_name(c) for c in names if c != EDGE_TYPES_NAME]
+    if EDGE_TYPES_NAME in names:
+        constructions += list(EDGE_TYPES.values())
+    return constructions or CONSTRUCTIONS
 
 
 def terminal_ids(passage):
