@@ -211,6 +211,9 @@ class Scores(object):
         e = self.evaluators[LABELED]
         return ["%.3f" % float(getattr(x, y)) for x in e.results.values() for y in ("p", "r", "f1")]
 
+    def titles(self):
+        return self.field_titles(self.evaluators[LABELED].results.keys())
+
     @staticmethod
     def field_titles(constructions=DEFAULT):
         return ["%s_labeled_%s" % (x, y) for x in constructions for y in ("precision", "recall", "f1")]
