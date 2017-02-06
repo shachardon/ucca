@@ -596,6 +596,7 @@ def from_standard(root, extra_funcs=None):
         'implicit': _str2bool,
         'uncertain': _str2bool,
         'suggest': _str2bool,
+        None: str,
     }
 
     layer_objs = {layer0.LAYER_ID: layer0.Layer0,
@@ -1152,11 +1153,10 @@ class SdpConverter(DependencyConverter):
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
         position, text, _, tag, _, pred, _ = fields[:7]
         # incoming: (head positions, dependency relations, is remote for each one)
-        return DependencyConverter.Node(position,
-            [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
-             for i, rel in enumerate(fields[7:]) if rel != "_"] or
-            [DependencyConverter.Edge(0, DependencyConverter.ROOT, False)],
-            DependencyConverter.Terminal(text, tag), is_head=(pred == "+"))
+        return DependencyConverter.Node(position, [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
+                                                   for i, rel in enumerate(fields[7:]) if rel != "_"] or
+                                        [DependencyConverter.Edge(0, DependencyConverter.ROOT, False)],
+                                        DependencyConverter.Terminal(text, tag), is_head=(pred == "+"))
 
     @staticmethod
     def _generate_lines(dep_nodes, test, tree):
@@ -1332,6 +1332,7 @@ class ExportConverter(FormatConverter):
             if test:  # do not print non-terminal nodes
                 break
             nodes = next_nodes
+        node_to_id = dict(node_to_id)
         for fields in entries:  # correct from source standard ID to generated node IDs
             for i in range(4, len(fields), 2):
                 fields[i] = node_to_id.get(fields[i], 0)
@@ -1421,7 +1422,7 @@ def to_export(passage, test=False, tree=False, *args, **kwargs):
 
 
 def from_xml(f, passage_id=None, split=False, *args, **kwargs):
-    del args, kwargs
+    del passage_id, args, kwargs
     p = from_standard(ET.ElementTree().parse(f))
     return split2sentences(p) if split else p
 
@@ -1541,7 +1542,7 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
     while queue:
         node, other_node = queue.pop()
         if node.tag == layer1.NodeTags.Linkage:
-            if include is None or include.issuperset(node.children):
+            if include is None or set(include).issuperset(node.children):
                 linkages.append(node)
             continue
         if other_node is None:

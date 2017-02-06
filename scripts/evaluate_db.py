@@ -6,14 +6,10 @@ The evaluation software for UCCA layer 1.
 # import sys, collections, pdb
 # from ucca import layer0
 # from ucca import layer1
-from ucca import convert
-# from ucca.core import Passage, Node
-# from xml.etree.ElementTree import ElementTree, tostring, fromstring
-
-# from collections import Counter
-
 from optparse import OptionParser
+
 import ucca_db
+from ucca import convert
 from ucca.evaluation import evaluate
 
 
@@ -55,6 +51,7 @@ def cmd_line_parser():
                           according to its frequency")
     return opt_parser
 
+
 def main():
     opt_parser = cmd_line_parser()
     (options, args) = opt_parser.parse_args()
@@ -74,10 +71,11 @@ def main():
         xmls = ucca_db.get_xml_trees(options.db_filename, options.host,
                                      options.pid, keys)
 
-    guessed,ref = [convert.from_site(x) for x in xmls]
+    guessed, ref = [convert.from_site(x) for x in xmls]
     if options.units or options.fscore or options.errors:
         evaluate(guessed, ref,
                  units=options.units, fscore=options.fscore, errors=options.errors, verbose=True)
+
 
 if __name__ == '__main__':
     main()

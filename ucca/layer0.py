@@ -81,6 +81,7 @@ class Terminal(core.Node):
             a list of :class:layer0.Terminal objects
 
         """
+        del punct, args, kwargs
         return [] if self.punct else [self]
 
     def equals(self, other, *, ordered=False, **kwargs):
@@ -135,7 +136,7 @@ class Layer0(core.Layer):
     """
 
     def __init__(self, root, attrib=None):
-        return super().__init__(ID=LAYER_ID, root=root, attrib=attrib)
+        super().__init__(ID=LAYER_ID, root=root, attrib=attrib)
 
     @property
     def words(self):
