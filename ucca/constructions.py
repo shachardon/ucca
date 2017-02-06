@@ -41,6 +41,7 @@ class Candidate(object):
             except (AttributeError, ValueError):
                 self._terminals = ()
             if self.reference is not None:
+                # noinspection PyTypeChecker
                 self._terminals = [self.reference.by_id(t.ID) for t in self._terminals]
 
     @property

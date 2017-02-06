@@ -243,7 +243,7 @@ class FoundationalNode(core.Node):
         """Returns the Edge of the fparent, or None."""
         for edge in self.incoming:
             if (edge.parent.layer.ID == LAYER_ID and
-                    edge.parent.tag == NodeTags.Foundational and
+                        edge.parent.tag == NodeTags.Foundational and
                     not edge.attrib.get('remote')):
                 return edge
         return None
@@ -273,7 +273,7 @@ class FoundationalNode(core.Node):
         terms = []
         for edge in list(self):
             if edge.attrib.get('remote') and not remotes or \
-                    edge.tag == EdgeTags.Punctuation and not punct:
+                                    edge.tag == EdgeTags.Punctuation and not punct:
                 continue
             elif edge.tag == EdgeTags.Terminal:
                 if edge.child.layer.ID != layer0.LAYER_ID:
@@ -330,11 +330,13 @@ class FoundationalNode(core.Node):
         return self.state is not None or self.process is not None
 
     def __str__(self):
-        start = lambda x: (x.position if x.layer.ID == layer0.LAYER_ID else
-                           x.start_position)
-        end = lambda x: (x.position if x.layer.ID == layer0.LAYER_ID else
-                         x.end_position)
-        sorted_edges = sorted(list(self), key=lambda edge: start(edge.child))
+        def start(x):
+            return x.position if x.layer.ID == layer0.LAYER_ID else x.start_position
+
+        def end(x):
+            return x.position if x.layer.ID == layer0.LAYER_ID else x.end_position
+
+        sorted_edges = sorted(list(self), key=lambda e: start(e.child))
         output = ''
         for i, edge in enumerate(sorted_edges):
             node = edge.child
@@ -351,9 +353,9 @@ class FoundationalNode(core.Node):
                     output += "[{} IMPLICIT] ".format(edge_tag)
                 else:
                     output += "[{} {}] ".format(edge_tag, str(node))
-            if (start(node) != -1 and not edge.attrib.get('remote') and
-                    i + 1 < len(sorted_edges) and
-                    end(node) + 1 < start(sorted_edges[i + 1].child)):
+            if start(node) != -1 and not edge.attrib.get('remote') and \
+                    i + 1 < len(sorted_edges) and \
+                    end(node) + 1 < start(sorted_edges[i + 1].child):
                 output += "... "  # adding '...' if discontiguous
         return output
 

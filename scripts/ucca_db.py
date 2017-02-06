@@ -12,6 +12,7 @@ from ucca.layer1 import NodeTags as NT
 UNK_LINKAGE_TYPE = 'UNK'
 PLACE_HOLDER = "%s"
 
+
 ##############################################################################
 # Returns the most recent xmls from db with a passage id pid and usernames
 # (a list). The xmls are ordered in the same way as the list usernames.
@@ -60,6 +61,7 @@ def get_xml_trees(db, host, pid, usernames, graceful=False):
             xmls.append(fromstring(raw_xml[0]))
     return xmls
 
+
 def get_by_xid(db, host, xid, graceful=False):
     """Returns the passages that correspond to the xid
 
@@ -78,6 +80,7 @@ def get_by_xid(db, host, xid, graceful=False):
     elif raw_xml:
         return fromstring(raw_xml[0])
 
+
 def get_by_xids(db, host, xids, graceful=False):
     """Returns the passages that correspond to iterable xids
 
@@ -85,7 +88,7 @@ def get_by_xids(db, host, xids, graceful=False):
         graceful: True if no excpetions are to be raised
         excpetion raised if xid does no exist
     """
-    cur = get_cursor(db, host)
+    _ = get_cursor(db, host)
     xmls = [get_by_xid(db, host, xid, graceful) for xid in xids]
     return xmls
 
@@ -115,17 +118,17 @@ def write_to_db(db, host, xml, new_pid, new_prid, username,
         graceful: True if no excpetions are to be raised
         excpetion raised if a user does no exist
     """
-    print ("warning this function was not tested and better" +
-           " API specification (parameters what is written) is needed")
+    print("warning this function was not tested and better" +
+          " API specification (parameters what is written) is needed")
     con = get_connection()
     cur_uid = get_uid(db, host, username, operator, graceful)
     now = datetime.datetime.now()
     con.execute("INSERT INTO xmls VALUES (NULL, " +
-                (PLACE_HOLDER + ', ')*5 + "0, " +
+                (PLACE_HOLDER + ', ') * 5 + "0, " +
                 PLACE_HOLDER + ")", (xml, new_pid, prid, cur_uid, '', now))
 
 
-def print_most_recent_xids(db, host, username, n = 10):
+def print_most_recent_xids(db, host, username, n=10):
     """print the most recent xids of the given username."""
     cur_uid = get_uid(db, host, username)
     cur = get_cursor(db, host)
@@ -134,15 +137,16 @@ def print_most_recent_xids(db, host, username, n = 10):
     print(username)
     print("=============")
     for xid in get_most_recent_xids(db, host, username, n):
-        print (xid)
+        print(xid)
 
-def get_most_recent_xids(db, host, username, n = 10):
+
+def get_most_recent_xids(db, host, username, n=10):
     """Returns the n most recent xids of the given username."""
     cur_uid = get_uid(db, host, username)
     cur = get_cursor(db, host)
     cur.execute("SELECT id, paid FROM xmls WHERE uid=" + PLACE_HOLDER +
                 " ORDER BY ts DESC", (cur_uid,))
-    r = [cur.fetchone() for i in range(n)]
+    r = [cur.fetchone() for _ in range(n)]
     return r
 
 
@@ -231,6 +235,7 @@ def get_tasks(db, host, username):
             r = cur.fetchone()
             if r:
                 xid = r[0]
+                # noinspection PyBroadException
                 try:
                     ucca_dag = convert.from_site(fromstring(r[1]))
                 except Exception:
@@ -250,7 +255,7 @@ def get_tasks(db, host, username):
                 sum_scene_length += sum([unit_length(x) for x in scenes])
 
         output_submitted.append((paid, source, xid,
-                                num_tokens, num_units, len(scenes),
-                                1.0 * sum_scene_length / len(scenes)))
+                                 num_tokens, num_units, len(scenes),
+                                 1.0 * sum_scene_length / len(scenes)))
 
     return output_submitted, category_distribution, scene_distribution

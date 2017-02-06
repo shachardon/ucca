@@ -881,6 +881,7 @@ class Passage:
         """
         if not self._attrib.equals(other._attrib):
             return False
+        # noinspection PyTypeChecker
         if len(self.layers) != len(other.layers):
             return False  # can be removed, here for performance gain
         try:

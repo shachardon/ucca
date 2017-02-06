@@ -8,7 +8,7 @@ import numpy as np
 
 from ucca import layer0, layer1
 from ucca.ioutil import file2passage
-from ucca.layer1 import NodeTags, EdgeTags
+from ucca.layer1 import NodeTags
 from ucca.textutil import break2sentences
 
 desc = """Prints statistics on UCCA passages

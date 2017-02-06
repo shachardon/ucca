@@ -22,14 +22,14 @@ or using filename of a site-formatted XML file.
 
 
 def site2passage(filename):
-    "Opens a file and returns its parsed Passage object"
+    """Opens a file and returns its parsed Passage object"""
     with open(filename) as f:
         etree = ElementTree().parse(f)
     return ucca.convert.from_site(etree)
 
 
 def db2passage(handle, pid, user):
-    "Gets the annotation of user to pid from the DB handle - returns a passage"
+    """Gets the annotation of user to pid from the DB handle - returns a passage"""
     handle.execute("SELECT id FROM users WHERE username=?", (user,))
     uid = handle.fetchone()[0]
     handle.execute("SELECT xml FROM xmls WHERE paid=? AND uid=? " +

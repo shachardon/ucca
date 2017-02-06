@@ -139,7 +139,8 @@ class Evaluator(object):
         :param eval_type: evaluation type to use, out of EVAL_TYPES
         1. UNLABELED: it doesn't matter what labels are there.
         2. LABELED: also requires tag match (if there are multiple units with the same yield, requires one match)
-        3. WEAK_LABELED: also requires weak tag match (if there are multiple units with the same yield, requires one match)
+        3. WEAK_LABELED: also requires weak tag match (if there are multiple units with the same yield,
+                         requires one match)
         :returns EvaluatorResults object if self.fscore is True, otherwise None
         """
         maps = [defaultdict(dict), create_passage_yields(p2, self.constructions)]

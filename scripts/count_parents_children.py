@@ -52,9 +52,9 @@ def main():
     argparser = argparse.ArgumentParser(description=desc)
     argparser.add_argument('filenames', nargs='+', help="file names to analyze")
     argparser.add_argument('-o', '--outfile', default="data/counts_",
-                        help="output file prefix for histogram")
+                           help="output file prefix for histogram")
     argparser.add_argument('-p', '--plot', default="data/plot_",
-                        help="output file prefix for plot image file")
+                           help="output file prefix for plot image file")
     args = argparser.parse_args()
 
     histograms = defaultdict(Counter)
@@ -72,6 +72,7 @@ def main():
         handle.writelines(["%s\t%d\n" % (num, count) for num, count in counter.items()])
         if handle is not sys.stdout:
             handle.close()
+        # noinspection PyBroadException
         try:
             plot_histogram(counter, label, plot=args.plot)
             plot_pie(counter, label, plot=args.plot)

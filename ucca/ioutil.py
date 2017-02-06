@@ -101,6 +101,7 @@ class LazyLoadedPassages(object):
                 self._split_iter = iter(split2segments(passage, is_sentences=self.sentences))
         if self._split_iter is not None:  # Either set before or initialized now
             try:
+                # noinspection PyTypeChecker
                 passage = next(self._split_iter)
             except StopIteration:  # Finished this converter
                 self._split_iter = None
