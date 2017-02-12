@@ -2,8 +2,6 @@
 from itertools import groupby, islice
 from operator import attrgetter
 
-import spacy
-
 from ucca import layer0, layer1
 
 
@@ -13,6 +11,7 @@ def nlp(*args, **kwargs):
 
 def get_nlp():
     if nlp.instance is None:
+        import spacy
         nlp.instance = spacy.load("en", entity=False, matcher=False)
     return nlp.instance
 nlp.instance = None
