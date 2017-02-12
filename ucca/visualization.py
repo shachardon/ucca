@@ -1,21 +1,26 @@
 import operator
+import warnings
 from collections import defaultdict
 
+import matplotlib.cbook
 import networkx as nx
 
 from ucca import layer0, layer1
+
+warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def draw(passage):
     G = nx.DiGraph()
     terminals = sorted(passage.layer(layer0.LAYER_ID).all, key=operator.attrgetter("position"))
-    G.add_nodes_from([(n.ID, {"text": n.text, "color": "none"}) for n in terminals])
+    G.add_nodes_from([(n.ID, {"t": n.text, "c": "white"}) for n in terminals])
     G.add_nodes_from([n.ID for n in passage.layer(layer1.LAYER_ID).all])
-    G.add_edges_from([(n.ID, e.child.ID, {"label": e.tag}) for layer in passage.layers for n in layer.all for e in n])
+    G.add_edges_from([(n.ID, e.child.ID, {"l": e.tag}) for layer in passage.layers for n in layer.all for e in n])
     pos = topological_layout(passage)
-    nx.draw(G, pos, arrows=False, linewidths=0, node_color=[d.get("color", "black") for n, d in G.nodes(data=True)])
-    nx.draw_networkx_edge_labels(G, pos, edge_labels={(u, v): d["label"] for u, v, d in G.edges(data=True)})
-    nx.draw_networkx_labels(G, pos, labels={n: d.get("text", "") for n, d in G.nodes(data=True)})
+    nx.draw(G, pos, arrows=False, linewidths=0, node_color=[d.get("c", "black") for n, d in G.nodes(data=True)])
+    nx.draw_networkx_edge_labels(G, pos, edge_labels={(u, v): d["l"] for u, v, d in G.edges(data=True)}, font_size=8)
+    nx.draw_networkx_labels(G, pos, labels={n: d.get("t", "") for n, d in G.nodes(data=True)}, font_size=10)
 
 
 def topological_layout(passage):
