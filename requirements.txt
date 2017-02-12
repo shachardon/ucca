@@ -1,4 +1,4 @@
 spacy>=1.6.0
 Theano>=0.8.2
-keras>=1.2.1
+keras>=1.2.2
 h5py>=2.6.0
