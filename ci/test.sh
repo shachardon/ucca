@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-export KERAS_BACKEND=theano
 case "$TEST_SUITE" in
 unit)
     # unit tests
