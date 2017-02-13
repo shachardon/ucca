@@ -5,13 +5,20 @@ python:
   - "3.5"
 addons:
   apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    - boost-latest
     packages:
-    - libatlas-dev
-    - libatlas-base-dev
-    - liblapack-dev
-    - gfortran
-    - libhdf5-serial-dev
     - libstdc++6
+    - gcc-4.8
+    - g++-4.8
+    - cmake
+    - mercurial
+    - libboost-filesystem1.55-dev
+    - libboost-program-options1.55-dev
+    - libboost-serialization1.55-dev
+    - libboost-test1.55-dev
+    - libboost-regex1.55-dev
 before_install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
   - bash miniconda.sh -b -p $HOME/miniconda
@@ -20,6 +27,8 @@ before_install:
   - pip install pytest-pep8
   - pip install -r requirements.txt
   - python -m spacy.en.download all > spacy.log
+  - ci/install-dynet.sh
+  - export LD_LIBRARY_PATH="$HOME/dynet:$LD_LIBRARY_PATH"
 install:
   - python setup.py install
 before_script:
@@ -30,7 +39,8 @@ env:
   - TEST_SUITE=unit
   - TEST_SUITE=sparse
   - TEST_SUITE=dense
-  - TEST_SUITE=nn
+  - TEST_SUITE=mlp
+  - TEST_SUITE=bilstm
   - TEST_SUITE=tune
   - TEST_SUITE=convert
 script:

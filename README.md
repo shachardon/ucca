@@ -26,16 +26,18 @@ Install the required modules and spaCy models:
 
 Download and extract the pre-trained models:
 
-    wget http://www.cs.huji.ac.il/~danielh/ucca/{sparse,dense,nn}.tgz
+    wget http://www.cs.huji.ac.il/~danielh/ucca/{sparse,dense,mlp,bilstm}.tgz
     tar xvzf sparse.tgz
     tar xvzf dense.tgz
-    tar xvzf nn.tgz
+    tar xvzf mlp.tgz
+    tar xvzf bilstm.tgz
 
 Run the parser on a text file (here named `example.txt`) using either of the models:
 
     python parsing/parse.py example.txt -c sparse -m models/ucca-sparse
     python parsing/parse.py example.txt -c dense -m models/ucca-dense
-    python parsing/parse.py example.txt -c nn -m models/ucca-nn
+    python parsing/parse.py example.txt -c mlp -m models/ucca-mlp
+    python parsing/parse.py example.txt -c bilstm -m models/ucca-bilstm
 
 A file named `example.xml` will be created.
 
