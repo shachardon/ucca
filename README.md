@@ -1,52 +1,22 @@
 Universal Conceptual Cognitive Annotation [![Build Status](https://travis-ci.org/danielhers/ucca.svg?branch=master)](https://travis-ci.org/danielhers/ucca)
 ============================
-UCCA is a novel linguistic framework for semantic annotation, whose details
+UCCA is a linguistic framework for semantic annotation, whose details
 are available at [the following paper][1]:
 
     Universal Conceptual Cognitive Annotation (UCCA)
     Omri Abend and Ari Rappoport, ACL 2013
 
-This Python3-only package provides an API to the UCCA annotation and tools to
+This Python 3 package provides an API to the UCCA annotation and tools to
 manipulate and process it. Its main features are conversion between different
 representations of UCCA annotations, and rich objects for all of the linguistic
 relations which appear in the theoretical framework (see `core`, `layer0`, `layer1`
 and `convert` modules under the `ucca` package).
-
-Running the parser:
--------------------
-
-Install the required modules and spaCy models:
-
-    virtualenv --python=/usr/bin/python3 .
-    . bin/activate  # on bash
-    source bin/activate.csh  # on csh
-    pip install -r requirements.txt
-    python -m spacy.en.download all
-    python setup.py install
-
-Download and extract the pre-trained models:
-
-    wget http://www.cs.huji.ac.il/~danielh/ucca/{sparse,dense,mlp,bilstm}.tgz
-    tar xvzf sparse.tgz
-    tar xvzf dense.tgz
-    tar xvzf mlp.tgz
-    tar xvzf bilstm.tgz
-
-Run the parser on a text file (here named `example.txt`) using either of the models:
-
-    python parsing/parse.py example.txt -c sparse -m models/ucca-sparse
-    python parsing/parse.py example.txt -c dense -m models/ucca-dense
-    python parsing/parse.py example.txt -c mlp -m models/ucca-mlp
-    python parsing/parse.py example.txt -c bilstm -m models/ucca-bilstm
-
-A file named `example.xml` will be created.
 
 
 See [`ucca/README.md`](ucca/README.md) for a list of modules under the `ucca` package.
 
 The `scripts` package contains various utilities for processing passage files.
 
-The `parsing` package contains code for a full UCCA parser, currently under construction.
 
 Authors
 ------
