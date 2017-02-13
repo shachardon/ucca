@@ -1,17 +1,2 @@
-cscope.*
-tags
-*~
-.*.swp
 __pycache__*
 *.pyc
-*.orig
-*.tmp
-*.out
-.ropeproject
-/regression-*
-/toy/ucca_passage*
-/results_latest.csv
-/private
-/server
-/.project
-/.pydevproject
