@@ -1348,7 +1348,7 @@ def from_conll(lines, passage_id, split=False, *args, **kwargs):
     :param passage_id: ID to set for passage
     :param split: split each sentence to its own passage?
 
-    :return a Passage object.
+    :return generator of Passage objects
     """
     del args, kwargs
     return ConllConverter().from_format(lines, passage_id, split)
@@ -1375,7 +1375,7 @@ def from_sdp(lines, passage_id, split=False, mark_aux=False, *args, **kwargs):
     :param split: split each sentence to its own passage?
     :param mark_aux: add a preceding # for labels of auxiliary edges added
 
-    :return a Passage object.
+    :return generator of Passage objects
     """
     del args, kwargs
     return SdpConverter(mark_aux=mark_aux).from_format(lines, passage_id, split)
@@ -1402,7 +1402,7 @@ def from_export(lines, passage_id=None, split=False, *args, **kwargs):
     :param passage_id: ID to set for passage, overriding the ID from the file
     :param split: split each sentence to its own passage?
 
-    :return generator of Passage objects.
+    :return generator of Passage objects
     """
     del args, kwargs
     return ExportConverter().from_format(lines, passage_id, split)
