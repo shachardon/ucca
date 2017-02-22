@@ -1431,7 +1431,6 @@ CONVERTERS = {
     "conll":  (from_conll,  to_conll),
     "sdp":    (from_sdp,    to_sdp),
     "export": (from_export, to_export),
-    "txt":    (from_text,   to_text),
     "xml":    (from_xml,    None),
 }
 FROM_FORMAT = {f: c[0] for f, c in CONVERTERS.items() if c[0] is not None}
