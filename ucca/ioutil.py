@@ -50,11 +50,12 @@ class LazyLoadedPassages(object):
     """
     Iterable interface to Passage objects that loads files on-the-go and can be iterated more than once
     """
-    def __init__(self, files, sentences=False, paragraphs=False):
+    def __init__(self, files, sentences=False, paragraphs=False, default_format=None):
         self.files = files
         self.sentences = sentences
         self.paragraphs = paragraphs
         self.split = self.sentences or self.paragraphs
+        self.format = default_format
         self._files_iter = None
         self._split_iter = None
         self._file_handle = None
@@ -94,7 +95,7 @@ class LazyLoadedPassages(object):
                     passage = file2passage(file)  # XML or binary format
                 except (IOError, ParseError):  # Failed to read as passage file
                     base, ext = os.path.splitext(os.path.basename(file))
-                    converter = FROM_FORMAT.get(ext.lstrip("."), from_text)
+                    converter = FROM_FORMAT.get(ext.lstrip("."), from_text if self.format is None else self.format)
                     self._file_handle = open(file)
                     self._split_iter = iter(converter(self._file_handle, passage_id=base, split=self.split))
             if self.split and self._split_iter is None:  # If it's not None, it's a converter and it splits alone
@@ -127,18 +128,19 @@ class LazyLoadedPassages(object):
         return bool(self.files)
 
 
-def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False):
+def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, default_format=None):
     """
     :param files_and_dirs: iterable of files and/or directories to look in
     :param sentences: whether to split to sentences
     :param paragraphs: whether to split to paragraphs
+    :param default_format: format to use if not clear from the file extension
     :return: list of (lazy-loaded) passages from all files given,
              plus any files directly under any directory given
     """
     files = list(files_and_dirs)
     files += [os.path.join(d, f) for d in files if os.path.isdir(d) for f in os.listdir(d)]
     files = [f for f in files if not os.path.isdir(f)]
-    return LazyLoadedPassages(files, sentences, paragraphs)
+    return LazyLoadedPassages(files, sentences, paragraphs, default_format)
 
 
 def write_passage(passage, args):
