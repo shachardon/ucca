@@ -287,13 +287,14 @@ class SummaryStatistics(object):
                                             for attr in ("num_matches", "num_only_guessed", "num_only_ref")]))
 
 
-def evaluate(guessed_passage, ref_passage, verbose=False, constructions=DEFAULT,
+def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
              units=False, fscore=True, errors=False, normalize=True):
     """
     Compare two passages and return requested diagnostics and scores, possibly printing them too.
     NOTE: since normalize=True by default, this method is destructive: it modifies the given passages before evaluation.
-    :param guessed_passage: Passage object to evaluate
-    :param ref_passage: reference Passage object to compare to
+    :param guessed: Passage object to evaluate
+    :param ref: reference Passage object to compare to
+    :param converter: optional function to apply to passages before evaluation
     :param verbose: whether to print the results
     :param constructions: names of construction types to include in the evaluation
     :param units: whether to evaluate common units
@@ -302,11 +303,14 @@ def evaluate(guessed_passage, ref_passage, verbose=False, constructions=DEFAULT,
     :param normalize: flatten centers and move common functions to root before evaluation - modifies passages
     :return: Scores object
     """
+    if converter is not None:
+        guessed = converter(guessed)
+        ref = converter(ref)
     if normalize:
-        for passage in (guessed_passage, ref_passage):
+        for passage in (guessed, ref):
             flatten_centers(passage)  # flatten Cs inside Cs
-        move_functions(guessed_passage, ref_passage)  # move common Fs to be under the root
+        move_functions(guessed, ref)  # move common Fs to be under the root
 
     evaluator = Evaluator(verbose, constructions, units, fscore, errors)
-    return Scores((evaluation_type, evaluator.get_scores(guessed_passage, ref_passage, evaluation_type))
+    return Scores((evaluation_type, evaluator.get_scores(guessed, ref, evaluation_type))
                   for evaluation_type in EVAL_TYPES)
