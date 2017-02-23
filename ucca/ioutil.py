@@ -143,14 +143,14 @@ def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, defau
     return LazyLoadedPassages(files, sentences, paragraphs, default_converter)
 
 
-def write_passage(passage, args, default_converter=None):
-    suffix = args.format or ("pickle" if args.binary else "xml")
-    outfile = args.outdir + os.path.sep + args.prefix + passage.ID + "." + suffix
+def write_passage(passage, output_format, binary, outdir, prefix, default_converter=None):
+    suffix = output_format or ("pickle" if binary else "xml")
+    outfile = outdir + os.path.sep + prefix + passage.ID + "." + suffix
     print("Writing passage '%s'..." % outfile)
-    if args.format is None:
-        passage2file(passage, outfile, binary=args.binary)
+    if output_format is None:
+        passage2file(passage, outfile, binary=binary)
     else:
-        converter = TO_FORMAT.get(args.format, default_converter or to_text)
+        converter = TO_FORMAT.get(output_format, default_converter or to_text)
         output = "\n".join(line for line in converter(passage))
         with open(outfile, "w") as f:
             f.write(output + "\n")
