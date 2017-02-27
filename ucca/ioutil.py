@@ -147,7 +147,7 @@ def write_passage(passage, output_format, binary, outdir, prefix, default_conver
     suffix = output_format or ("pickle" if binary else "xml")
     outfile = outdir + os.path.sep + prefix + passage.ID + "." + suffix
     print("Writing passage '%s'..." % outfile)
-    if output_format is None:
+    if output_format is None or output_format in ("pickle", "xml"):
         passage2file(passage, outfile, binary=binary)
     else:
         converter = TO_FORMAT.get(output_format, default_converter or to_text)
