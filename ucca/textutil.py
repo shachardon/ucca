@@ -50,7 +50,8 @@ TAG_KEY = "tag"  # fine-grained POS tag
 POS_KEY = "pos"  # coarse-grained POS tag
 DEP_KEY = "dep"  # dependency relation to syntactic head
 HEAD_KEY = "head"  # integer position of syntactic head within paragraph (para_pos)
-ANNOTATION_KEYS = (TAG_KEY, POS_KEY, DEP_KEY, HEAD_KEY)
+LEMMA_KEY = "lemma"
+ANNOTATION_KEYS = (TAG_KEY, POS_KEY, DEP_KEY, HEAD_KEY, LEMMA_KEY)
 
 
 def annotate(passage, verbose=False, replace=False):
@@ -71,6 +72,7 @@ def annotate(passage, verbose=False, replace=False):
                 terminal.extra[POS_KEY] = lex.pos_
                 terminal.extra[DEP_KEY] = lex.dep_
                 terminal.extra[HEAD_KEY] = str(lex.head.i + 1)
+                terminal.extra[LEMMA_KEY] = lex.lemma_
     if verbose:
         print("\n".join(" ".join("%s/%s/%s" % (t.text, t.extra[TAG_KEY], t.extra[DEP_KEY]) for t in p)
                         for p in paragraphs))
