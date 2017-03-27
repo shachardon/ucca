@@ -33,8 +33,8 @@ def get_word_vectors(dim=None, size=None, filename=None):
             raise IOError("Failed loading word vectors from '%s'" % filename) from e
     elif dim is not None and dim != vocab.vectors_length:
         vocab.resize_vectors(dim)
-    vectors = dict(islice(((l.orth_, l.vector) for l in vocab if l.has_vector), size))
-    return vectors, vocab.vectors_length
+    lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
+    return {l.orth_: l.vector for l in lexemes}, vocab.vectors_length
 
 
 def get_annotated(tokens):
