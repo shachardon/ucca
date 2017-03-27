@@ -650,29 +650,31 @@ def from_standard(root, extra_funcs=None):
     return passage
 
 
-def from_text(text, passage_id="1", split=False, *args, **kwargs):
+def from_text(text, passage_id="1", split=False, tokenized=False, *args, **kwargs):
     """Converts from tokenized strings to a Passage object.
 
     :param text: a sequence of strings, where each one will be a new paragraph.
     :param passage_id: ID to set for passage
     :param split: split each paragraph to its own passage
+    :param tokenized: whether the text is already given as a pre-tokenized list
 
     :return generator of Passage object with only Terminals units.
     """
     del args, kwargs
-    if isinstance(text, str):
+    if tokenized or isinstance(text, str):
         text = (text,)
+    tokenizer = textutil.get_nlp().tokenizer
+    if tokenized:
+        tokenizer = tokenizer.tokens_from_list
     p = None
     l0 = None
-    for i, par in enumerate(filter(None, map(str.strip, text))):  # Only non-empty lines
+    for i, par in enumerate(filter(None, text)):  # Only non-empty lines
         if p is None:
             p = core.Passage(passage_id + ("_%d" % i if split else ""))
             l0 = layer0.Layer0(p)
             layer1.Layer1(p)
-        for lex in textutil.get_nlp().tokenizer(par):
-            # i is paragraph index, but it starts with 0, so we need to add +1
-            l0.add_terminal(text=lex.orth_, punct=lex.is_punct,
-                            paragraph=1 if split else i + 1)
+        for lex in tokenizer(par):  # i is paragraph index, but it starts with 0, so we need to add +1
+            l0.add_terminal(text=lex.orth_, punct=lex.is_punct, paragraph=1 if split else i + 1)
         if split:
             yield p
             p = None
