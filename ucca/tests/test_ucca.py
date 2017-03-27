@@ -551,8 +551,8 @@ class ConversionTests(unittest.TestCase):
         pos = 0
         for i, par in enumerate(sample):
             for text in par.split():
-                self.assertTrue(terms[pos].text == text and
-                                terms[pos].paragraph == i + 1)
+                self.assertEqual(terms[pos].text, text)
+                self.assertEqual(terms[pos].paragraph, i + 1)
                 pos += 1
 
     def test_to_text(self):

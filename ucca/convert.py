@@ -673,7 +673,8 @@ def from_text(text, passage_id="1", split=False, tokenized=False, *args, **kwarg
             p = core.Passage(passage_id + ("_%d" % i if split else ""))
             l0 = layer0.Layer0(p)
             layer1.Layer1(p)
-        for lex in tokenizer(par):  # i is paragraph index, but it starts with 0, so we need to add +1
+        for lex in tokenizer(par.strip() if isinstance(par, str) else par):
+            # i is paragraph index, but it starts with 0, so we need to add +1
             l0.add_terminal(text=lex.orth_, punct=lex.is_punct, paragraph=1 if split else i + 1)
         if split:
             yield p
