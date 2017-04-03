@@ -40,7 +40,7 @@ def diff_passages(true_passage, pred_passage):
             node_lines = []
             if not pred_node._attrib.equals(true_node._attrib):
                 node_lines.append("  Attributes mismatch: %s, %s" %
-                                  (true_node._attrib, pred_node._attrib))
+                                  (sorted(true_node._attrib.items()), sorted(pred_node._attrib.items())))
             if pred_edges:
                 node_lines.append("  Mistake edges: %s" % ", ".join(pred_edges))
             if true_edges:
