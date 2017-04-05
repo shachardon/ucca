@@ -1,10 +1,17 @@
 Universal Conceptual Cognitive Annotation [![Build Status](https://travis-ci.org/danielhers/ucca.svg?branch=master)](https://travis-ci.org/danielhers/ucca)
 ============================
 UCCA is a linguistic framework for semantic annotation, whose details
-are available at [the following paper][1]:
+are available at [the following paper](http://www.cs.huji.ac.il/~oabend/papers/ucca_acl.pdf):
 
-    Universal Conceptual Cognitive Annotation (UCCA)
-    Omri Abend and Ari Rappoport, ACL 2013
+    @inproceedings{abend2013universal,
+      author={Abend, Omri  and  Rappoport, Ari},
+      title={{U}niversal {C}onceptual {C}ognitive {A}nnotation ({UCCA})},
+      booktitle={Proc. of ACL},
+      month={August},
+      year={2013},
+      pages={228--238},
+      url={http://aclweb.org/anthology/P13-1023}
+    }
 
 This Python 3 package provides an API to the UCCA annotation and tools to
 manipulate and process it. Its main features are conversion between different
@@ -27,5 +34,3 @@ Authors
 License
 -------
 This package is licensed under the GPLv3 or later license (see [`LICENSE.txt`](master/LICENSE.txt)).
-
-[1]: http://homepages.inf.ed.ac.uk/oabend/papers/ucca_acl.pdf
