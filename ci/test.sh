@@ -4,15 +4,17 @@ case "$TEST_SUITE" in
 unit)
     # unit tests
     python -m unittest discover -v || exit 1
-    # basic conversion test
-    ci/test_convert_toy.sh || exit 1
+    PASSAGES=../doc/toy.xml
     ;;
 convert)
-    ci/test_convert_all.sh
-    ;;
-convert_sentences)
-    mkdir -p pickle/sentences
-    python scripts/standard_to_sentences.py pickle/*.pickle -o pickle/sentences -b || exit 1
-    ci/test_convert_all_sentences.sh || exit 1
+    PASSAGES=../pickle/*.pickle
     ;;
 esac
+cd $(dirname $0)
+mkdir -p converted
+for FORMAT in conll sdp export "export --tree"; do
+    echo === Evaluating $FORMAT ===
+    if [ $# -lt 1 -o "$FORMAT" = "$1" ]; then
+        python ../scripts/convert_and_evaluate.py "$PASSAGES" -f "$FORMAT" | tee "$FORMAT.log"
+    fi
+done
