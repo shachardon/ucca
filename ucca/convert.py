@@ -819,7 +819,7 @@ class DependencyConverter(FormatConverter):
         return DependencyConverter.Node()
 
     @staticmethod
-    def _generate_lines(dep_nodes, test, tree):
+    def _generate_lines(passage_id, dep_nodes, test, tree):
         yield ""
 
     @staticmethod
@@ -969,9 +969,10 @@ class DependencyConverter(FormatConverter):
         for line in lines:
             if self.dep_nodes is None:
                 self.dep_nodes = [DependencyConverter.Node()]  # dummy root
-            m = re.match("#(\d*).*", line)
-            if m:  # comment
-                self.sentence_id = m.group(1)  # comment may optionally contain the sentence ID
+            if line.startswith("#"):  # comment
+                m = re.match("#\s*(\d+).*", line) or re.match("#\s*sent_id\s*=\s*(\S+)", line)
+                if m:  # comment may optionally contain the sentence ID
+                    self.sentence_id = m.group(1)
             elif line.strip():
                 dep_node = self._read_line(line, previous_node)  # different implementation for each subclass
                 if dep_node is not None:
@@ -1102,7 +1103,8 @@ class DependencyConverter(FormatConverter):
             edge.remove()
 
         lines += ["\t".join(str(field) for field in entry)
-                  for entry in self._generate_lines(dep_nodes, test, tree)] + [""]  # different for each subclass
+                  for entry in self._generate_lines(passage.ID, dep_nodes, test, tree)] + \
+                 [""]  # different for each subclass
         return lines
 
 
@@ -1123,7 +1125,8 @@ class ConllConverter(DependencyConverter):
         previous_node.add_edges(edges)
 
     @staticmethod
-    def _generate_lines(dep_nodes, test, tree):
+    def _generate_lines(passage_id, dep_nodes, test, tree):
+        yield ["# sent_id = " + passage_id]
         # id, form, lemma, coarse pos, fine pos, features
         for i, dep_node in enumerate(dep_nodes):
             position = i + 1
@@ -1162,7 +1165,7 @@ class SdpConverter(DependencyConverter):
                                         DependencyConverter.Terminal(text, tag), is_head=(pred == "+"))
 
     @staticmethod
-    def _generate_lines(dep_nodes, test, tree):
+    def _generate_lines(passage_id, dep_nodes, test, tree):
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
         preds = sorted({e.head_index for dep_node in dep_nodes
                         for e in dep_node.incoming})

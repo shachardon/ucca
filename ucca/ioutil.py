@@ -3,10 +3,11 @@ import os
 import pickle
 import sys
 import time
+from collections import defaultdict
 from xml.etree.ElementTree import ElementTree, tostring
 from xml.etree.ElementTree import ParseError
 
-from ucca.convert import from_standard, to_standard, FROM_FORMAT, TO_FORMAT, from_text, to_text, split2segments
+from ucca.convert import from_standard, to_standard, from_text, to_text, split2segments
 from ucca.core import Passage
 from ucca.textutil import indent_xml
 
@@ -50,12 +51,12 @@ class LazyLoadedPassages(object):
     """
     Iterable interface to Passage objects that loads files on-the-go and can be iterated more than once
     """
-    def __init__(self, files, sentences=False, paragraphs=False, default_converter=None):
+    def __init__(self, files, sentences=False, paragraphs=False, converters=None):
         self.files = files
         self.sentences = sentences
         self.paragraphs = paragraphs
         self.split = self.sentences or self.paragraphs
-        self.default_converter = default_converter
+        self.converters = defaultdict(lambda: from_text) if converters is None else converters
         self._files_iter = None
         self._split_iter = None
         self._file_handle = None
@@ -95,7 +96,7 @@ class LazyLoadedPassages(object):
                     passage = file2passage(file)  # XML or binary format
                 except (IOError, ParseError):  # Failed to read as passage file
                     base, ext = os.path.splitext(os.path.basename(file))
-                    converter = FROM_FORMAT.get(ext.lstrip("."), self.default_converter or from_text)
+                    converter = self.converters[ext.lstrip(".")]
                     self._file_handle = open(file)
                     self._split_iter = iter(converter(self._file_handle, passage_id=base, split=self.split))
             if self.split and self._split_iter is None:  # If it's not None, it's a converter and it splits alone
@@ -128,29 +129,28 @@ class LazyLoadedPassages(object):
         return bool(self.files)
 
 
-def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, default_converter=None):
+def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, converters=None):
     """
     :param files_and_dirs: iterable of files and/or directories to look in
     :param sentences: whether to split to sentences
     :param paragraphs: whether to split to paragraphs
-    :param default_converter: input format converter to use if not clear from the file extension
+    :param converters: dict of input format converters to use based on the file extension
     :return: list of (lazy-loaded) passages from all files given,
              plus any files directly under any directory given
     """
     files = list(files_and_dirs)
     files += [os.path.join(d, f) for d in files if os.path.isdir(d) for f in os.listdir(d)]
     files = [f for f in files if not os.path.isdir(f)]
-    return LazyLoadedPassages(files, sentences, paragraphs, default_converter)
+    return LazyLoadedPassages(files, sentences, paragraphs, converters)
 
 
-def write_passage(passage, output_format, binary, outdir, prefix, default_converter=None):
+def write_passage(passage, output_format, binary, outdir, prefix, converter=None):
     suffix = output_format or ("pickle" if binary else "xml")
     outfile = outdir + os.path.sep + prefix + passage.ID + "." + suffix
     print("Writing passage '%s'..." % outfile)
     if output_format is None or output_format in ("pickle", "xml"):
         passage2file(passage, outfile, binary=binary)
     else:
-        converter = TO_FORMAT.get(output_format, default_converter or to_text)
-        output = "\n".join(line for line in converter(passage))
+        output = "\n".join(line for line in (to_text if converter is None else converter)(passage))
         with open(outfile, "w") as f:
             f.write(output + "\n")
