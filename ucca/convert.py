@@ -19,6 +19,8 @@ import xml.sax.saxutils
 from collections import defaultdict
 from itertools import islice
 
+import pickle
+
 from ucca import textutil, core, layer0, layer1
 from ucca.layer1 import EdgeTags
 
@@ -1427,20 +1429,48 @@ def to_export(passage, test=False, tree=False, *args, **kwargs):
     return ExportConverter().to_format(passage, test, tree)
 
 
-def from_xml(f, passage_id=None, split=False, *args, **kwargs):
-    del passage_id, args, kwargs
-    p = from_standard(ET.ElementTree().parse(f))
-    return split2sentences(p) if split else p
-
-
 CONVERTERS = {
     "conll":  (from_conll,  to_conll),
     "sdp":    (from_sdp,    to_sdp),
     "export": (from_export, to_export),
-    "xml":    (from_xml,    None),
 }
 FROM_FORMAT = {f: c[0] for f, c in CONVERTERS.items() if c[0] is not None}
 TO_FORMAT = {f: c[1] for f, c in CONVERTERS.items() if c[1] is not None}
+
+
+def file2passage(filename):
+    """Opens a file and returns its parsed Passage object
+    Tries to read both as a standard XML file and as a binary pickle
+    :param filename: file name to write to
+    """
+    try:
+        with open(filename) as f:
+            etree = ET.ElementTree().parse(f)
+        return from_standard(etree)
+    except Exception as e:
+        try:
+            with open(filename, 'rb') as h:
+                return pickle.load(h)
+        except Exception:
+            raise e
+
+
+def passage2file(passage, filename, indent=True, binary=False):
+    """Writes a UCCA passage as a standard XML file or a binary pickle
+    :param passage: passage object to write
+    :param filename: file name to write to
+    :param indent: whether to indent each line
+    :param binary: whether to write pickle format (or XML)
+    """
+    if binary:
+        with open(filename, 'wb') as h:
+            pickle.dump(passage, h)
+    else:  # xml
+        root = to_standard(passage)
+        xml = ET.tostring(root).decode()
+        output = textutil.indent_xml(xml) if indent else xml
+        with open(filename, 'w') as h:
+            h.write(output)
 
 
 def split2sentences(passage, remarks=False):
