@@ -59,7 +59,7 @@ class LazyLoadedPassages(object):
                 except (IOError, ParseError):  # Failed to read as passage file
                     base, ext = os.path.splitext(os.path.basename(file))
                     converter = self.converters[ext.lstrip(".")]
-                    self._file_handle = open(file)
+                    self._file_handle = open(file, encoding="utf-8")
                     self._split_iter = iter(converter(self._file_handle, passage_id=base, split=self.split))
             if self.split and self._split_iter is None:  # If it's not None, it's a converter and it splits alone
                 self._split_iter = iter(split2segments(passage, is_sentences=self.sentences))
