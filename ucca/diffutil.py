@@ -53,10 +53,10 @@ def diff_passages(true_passage, pred_passage):
     if true_ids:
         lines.append("Missing nodes: %s" % ", ".join(true_ids))
     if lines:
-        outfile = "ucca_passage%s.xml" % true_passage.ID
+        outfile = "%s.xml" % true_passage.ID
         sys.stderr.write("Writing passage '%s'...\n" % outfile)
         passage2file(true_passage, outfile)
-        outfile = "ucca_passage%s_pred.xml" % pred_passage.ID
+        outfile = "%s_pred.xml" % pred_passage.ID
         sys.stderr.write("Writing passage '%s'...\n" % outfile)
         passage2file(pred_passage, outfile)
     return "\n" + "\n".join(lines)
