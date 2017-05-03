@@ -1444,12 +1444,12 @@ def file2passage(filename):
     :param filename: file name to write to
     """
     try:
-        with open(filename) as f:
+        with open(filename, encoding="utf-8") as f:
             etree = ET.ElementTree().parse(f)
         return from_standard(etree)
     except Exception as e:
         try:
-            with open(filename, 'rb') as h:
+            with open(filename, "rb") as h:
                 return pickle.load(h)
         except Exception:
             raise e
@@ -1463,13 +1463,13 @@ def passage2file(passage, filename, indent=True, binary=False):
     :param binary: whether to write pickle format (or XML)
     """
     if binary:
-        with open(filename, 'wb') as h:
+        with open(filename, "wb") as h:
             pickle.dump(passage, h)
     else:  # xml
         root = to_standard(passage)
         xml = ET.tostring(root).decode()
         output = textutil.indent_xml(xml) if indent else xml
-        with open(filename, 'w') as h:
+        with open(filename, "w", encoding="utf-8") as h:
             h.write(output)
 
 
