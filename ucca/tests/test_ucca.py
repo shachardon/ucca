@@ -579,9 +579,8 @@ class ConversionTests(unittest.TestCase):
         ref = convert.from_standard(TestUtil.load_xml('test_files/standard3.conll.xml'))
         self.assertTrue(converted_passage.equals(ref))
         # Put the same sentence twice and try converting again
-        converted_passage = next(convert.from_conll(converted * 2, passage.ID))
-        # ioutil.passage2file(converted_passage, 'test_files/standard3.conll.2.xml')
-        ref = convert.from_standard(TestUtil.load_xml('test_files/standard3.conll.2.xml'))
+        for converted_passage in convert.from_conll(converted * 2, passage.ID):
+            ref = convert.from_standard(TestUtil.load_xml('test_files/standard3.conll.xml'))
         self.assertTrue(converted_passage.equals(ref))
 
     def test_to_sdp(self):
