@@ -1533,14 +1533,15 @@ def split_passage(passage, ends, remarks=False):
     return passages
 
 
-def join_passages(passages, remarks=False):
+def join_passages(passages, passage_id=None, remarks=False):
     """
     Join passages to one passage with all the nodes in order
     :param passages: sequence of passages to join
+    :param passage_id: ID of newly created passage (otherwise, ID of first passage)
     :param remarks: add original node ID as remarks to the new nodes
     :return: joined passage
     """
-    other = core.Passage(ID=passages[0].ID, attrib=passages[0].attrib.copy())
+    other = core.Passage(ID=passage_id or passages[0].ID, attrib=passages[0].attrib.copy())
     other.extra = passages[0].extra.copy()
     l0 = passages[0].layer(layer0.LAYER_ID)
     l1 = passages[0].layer(layer1.LAYER_ID)
