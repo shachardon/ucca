@@ -168,7 +168,8 @@ def extract_edges(passage, constructions=None, reference=None, verbose=False):
     if reference is not None:
         assert terminal_ids(passage) == terminal_ids(reference),\
             "Reference passage terminals do not match: %s" % reference.ID
-    textutil.annotate(passage, verbose=verbose)
+    if any(not c.default for c in constructions):
+        textutil.annotate(passage, verbose=verbose)
     extracted = OrderedDict((c, []) for c in constructions)
     for node in passage.layer(layer1.LAYER_ID).all:
         for edge in node:
