@@ -1503,6 +1503,8 @@ def split_passage(passage, ends, remarks=False):
     """
     passages = []
     for i, (start, end) in enumerate(zip([0] + ends[:-1], ends)):
+        if start == end:
+            continue
         other = core.Passage(ID="%s%03d" % (passage.ID, i),
                              attrib=passage.attrib.copy())
         other.extra = passage.extra.copy()
