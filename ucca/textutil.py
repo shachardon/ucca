@@ -88,20 +88,22 @@ def break2sentences(passage):
     A sentence is a list of terminals which ends with a mark from
     SENTENCE_END_MARKS, and is also the end of a paragraph or parallel scene.
     :param passage: the Passage object to operate on
-    :return: a list of positions in the Passage, each denotes a closing Terminal
-        of a sentence.
+    :return: a list of positions in the Passage, each denotes a closing Terminal of a sentence.
     """
     l1 = passage.layer(layer1.LAYER_ID)
     terminals = extract_terminals(passage)
-    ps_ends = [ps.end_position for ps in l1.top_scenes]
-    ps_starts = [ps.start_position for ps in l1.top_scenes]
-    marks = [t.position for t in terminals if t.text in SENTENCE_END_MARKS]
-    # Annotations doesn't always include the ending period (or other mark)
-    # with the parallel scene it closes. Hence, if the terminal before the
-    # mark closed the parallel scene, and this mark doesn't open a scene
-    # in any way (hence it probably just "hangs" there), it's a sentence end
-    marks = [x for x in marks
-             if x in ps_ends or ((x - 1) in ps_ends and x not in ps_starts)]
+    if any(n.outgoing for n in l1.all):  # Passage is labeled
+        ps_ends = [ps.end_position for ps in l1.top_scenes]
+        ps_starts = [ps.start_position for ps in l1.top_scenes]
+        marks = [t.position for t in terminals if t.text in SENTENCE_END_MARKS]
+        # Annotations doesn't always include the ending period (or other mark)
+        # with the parallel scene it closes. Hence, if the terminal before the
+        # mark closed the parallel scene, and this mark doesn't open a scene
+        # in any way (hence it probably just "hangs" there), it's a sentence end
+        marks = [x for x in marks if x in ps_ends or ((x - 1) in ps_ends and x not in ps_starts)]
+    else:  # Not labeled, split using spaCy
+        annotated = get_annotated([t.text for t in terminals])
+        marks = [span.end for span in annotated.sents]
     marks = sorted(set(marks + break2paragraphs(passage)))
     # Avoid punctuation-only sentences
     if len(marks) > 1:

@@ -1349,7 +1349,7 @@ class ExportConverter(FormatConverter):
         return lines
 
 
-def from_conll(lines, passage_id, split=False, *args, **kwargs):
+def from_conll(lines, passage_id, split=True, *args, **kwargs):
     """Converts from parsed text in CoNLL format to a Passage object.
 
     :param lines: iterable of lines in CoNLL format, describing a single passage.
@@ -1375,7 +1375,7 @@ def to_conll(passage, test=False, tree=True, *args, **kwargs):
     return ConllConverter().to_format(passage, test, tree)
 
 
-def from_sdp(lines, passage_id, split=False, mark_aux=False, *args, **kwargs):
+def from_sdp(lines, passage_id, split=True, mark_aux=False, *args, **kwargs):
     """Converts from parsed text in SemEval 2015 SDP format to a Passage object.
 
     :param lines: iterable of lines in SDP format, describing a single passage.
@@ -1403,7 +1403,7 @@ def to_sdp(passage, test=False, tree=False, mark_aux=False, *args, **kwargs):
     return SdpConverter(mark_aux=mark_aux).to_format(passage, test, tree)
 
 
-def from_export(lines, passage_id=None, split=False, *args, **kwargs):
+def from_export(lines, passage_id=None, split=True, *args, **kwargs):
     """Converts from parsed text in NeGra export format to a Passage object.
 
     :param lines: iterable of lines in NeGra export format, describing a single passage.
