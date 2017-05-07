@@ -1517,9 +1517,7 @@ def split_passage(passage, ends, remarks=False):
         id_to_other = {}
         for terminal in l0.all[start:end]:
             other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, terminal.paragraph)
-            other_terminal.extra = terminal.extra.copy()
-            if remarks:
-                other_terminal.extra["remarks"] = terminal.ID
+            _copy_attrib_and_extra(terminal, other_terminal, remarks)
             id_to_other[terminal.ID] = other_terminal
             level.update(terminal.parents)
             nodes.add(terminal)
@@ -1554,9 +1552,7 @@ def join_passages(passages, passage_id=None, remarks=False):
         l0 = passage.layer(layer0.LAYER_ID)
         for terminal in l0.all:
             other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, terminal.paragraph)
-            other_terminal.extra = terminal.extra.copy()
-            if remarks:
-                other_terminal.extra["remarks"] = terminal.ID
+            _copy_attrib_and_extra(terminal, other_terminal, remarks)
             id_to_other[terminal.ID] = other_terminal
         _copy_l1_nodes(passage, other, id_to_other, remarks=remarks)
     return other
@@ -1599,29 +1595,28 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
                     grandchild = child.children[0]
                     other_child = other_l1.add_punct(other_node, id_to_other[grandchild.ID])
                     other_grandchild = other_child.children[0]
-                    other_grandchild.extra = grandchild.extra.copy()
-                    if remarks:
-                        other_grandchild.extra["remarks"] = grandchild.ID
+                    _copy_attrib_and_extra(grandchild, other_grandchild, remarks)
                 else:
                     other_child = other_l1.add_fnode(other_node, edge.tag,
                                                      implicit=child.attrib.get("implicit"))
                     queue.append((child, other_child))
-
                 id_to_other[child.ID] = other_child
-                other_child.extra = child.extra.copy()
-                if remarks:
-                    other_child.extra["remarks"] = child.ID
-    # Add remotes
+                _copy_attrib_and_extra(child, other_child, remarks)  # Add remotes
     for edge, parent in remotes:
         other_l1.add_remote(parent, edge.tag, id_to_other[edge.child.ID])
     # Add linkages
     for linkage in linkages:
         arguments = [id_to_other[argument.ID] for argument in linkage.arguments]
         other_linkage = other_l1.add_linkage(id_to_other[linkage.relation.ID], *arguments)
-        other_linkage.extra = linkage.extra.copy()
-        if remarks:
-            other_linkage.extra["remarks"] = linkage.ID
+        _copy_attrib_and_extra(linkage, other_linkage, remarks)
     for head, other_head in zip(heads, other_l1.heads):
-        other_head.extra = head.extra.copy()
-        if remarks:
-            other_head.extra["remarks"] = head.ID
+        _copy_attrib_and_extra(head, other_head, remarks)
+
+
+def _copy_attrib_and_extra(node, other, remarks=False):
+    for k, v in node.attrib.items():
+        if other.attrib.get(k) is None:
+            other.attrib[k] = v
+    other.extra = node.extra.copy()
+    if remarks:
+        other.extra["remarks"] = node.ID
