@@ -1585,6 +1585,7 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
             continue
         if other_node is None:
             heads.append(node)
+            other_node = other_l1.heads[0]
         for edge in node.outgoing:
             child = edge.child
             if include is None or child in include or child.attrib.get("implicit"):
