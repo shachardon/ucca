@@ -1505,8 +1505,7 @@ def split_passage(passage, ends, remarks=False):
     for i, (start, end) in enumerate(zip([0] + ends[:-1], ends)):
         if start == end:
             continue
-        other = core.Passage(ID="%s%03d" % (passage.ID, i),
-                             attrib=passage.attrib.copy())
+        other = core.Passage(ID="%s%03d" % (passage.ID, i), attrib=passage.attrib.copy())
         other.extra = passage.extra.copy()
         # Create terminals and find layer 1 nodes to be included
         l0 = passage.layer(layer0.LAYER_ID)
@@ -1584,7 +1583,7 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
             other_node = other_l1.heads[0]
         for edge in node.outgoing:
             child = edge.child
-            if include is None or child in include or child.attrib.get("implicit"):
+            if include is None or child in include or _is_unanchored(child):
                 if edge.attrib.get("remote"):
                     remotes.append((edge, other_node))
                     continue
@@ -1597,8 +1596,7 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
                     other_grandchild = other_child.children[0]
                     _copy_attrib_and_extra(grandchild, other_grandchild, remarks)
                 else:
-                    other_child = other_l1.add_fnode(other_node, edge.tag,
-                                                     implicit=child.attrib.get("implicit"))
+                    other_child = other_l1.add_fnode(other_node, edge.tag, implicit=child.attrib.get("implicit"))
                     queue.append((child, other_child))
                 id_to_other[child.ID] = other_child
                 _copy_attrib_and_extra(child, other_child, remarks)  # Add remotes
@@ -1620,3 +1618,7 @@ def _copy_attrib_and_extra(node, other, remarks=False):
     other.extra = node.extra.copy()
     if remarks:
         other.extra["remarks"] = node.ID
+
+
+def _is_unanchored(node):
+    return node.attrib.get("implicit") or all(e.attrib.get("remote") or _is_unanchored(e.child) for e in node)
