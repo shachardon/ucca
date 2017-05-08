@@ -1583,7 +1583,7 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
             other_node = other_l1.heads[0]
         for edge in node.outgoing:
             child = edge.child
-            if include is None or child in include or _is_unanchored(child):
+            if include is None or child in include or not _anchored(child):
                 if edge.attrib.get("remote"):
                     remotes.append((edge, other_node))
                     continue
@@ -1620,5 +1620,5 @@ def _copy_attrib_and_extra(node, other, remarks=False):
         other.extra["remarks"] = node.ID
 
 
-def _is_unanchored(node):
-    return node.attrib.get("implicit") or all(e.attrib.get("remote") or _is_unanchored(e.child) for e in node)
+def _anchored(node):
+    return not node.attrib.get("implicit") or any(not e.attrib.get("remote") and _anchored(e.child) for e in node)
