@@ -1,5 +1,5 @@
 """Utility functions for UCCA package."""
-from itertools import groupby, islice
+from itertools import groupby
 from operator import attrgetter
 
 from ucca import layer0, layer1
@@ -12,7 +12,7 @@ def nlp(*args, **kwargs):
 def get_nlp():
     if nlp.instance is None:
         import spacy
-        nlp.instance = spacy.load("en", entity=False, matcher=False)
+        nlp.instance = spacy.load("en")
     return nlp.instance
 nlp.instance = None
 
@@ -48,10 +48,12 @@ def get_annotated(tokens):
 
 TAG_KEY = "tag"  # fine-grained POS tag
 POS_KEY = "pos"  # coarse-grained POS tag
+NER_KEY = "ner"  # named entity type
+IOB_KEY = "iob"  # integer named entity IOB tag (1: I, 2: B, 3: O)
 DEP_KEY = "dep"  # dependency relation to syntactic head
 HEAD_KEY = "head"  # integer position of syntactic head within paragraph (para_pos)
 LEMMA_KEY = "lemma"
-ANNOTATION_KEYS = (TAG_KEY, POS_KEY, DEP_KEY, HEAD_KEY, LEMMA_KEY)
+ANNOTATION_KEYS = (TAG_KEY, POS_KEY, NER_KEY, IOB_KEY, DEP_KEY, HEAD_KEY, LEMMA_KEY)
 
 
 def annotate(passage, verbose=False, replace=False):
@@ -70,6 +72,8 @@ def annotate(passage, verbose=False, replace=False):
             for terminal, lex in zip(p, annotated):
                 terminal.extra[TAG_KEY] = lex.tag_
                 terminal.extra[POS_KEY] = lex.pos_
+                terminal.extra[NER_KEY] = lex.ent_type_
+                terminal.extra[IOB_KEY] = str(lex.ent_iob)
                 terminal.extra[DEP_KEY] = lex.dep_
                 terminal.extra[HEAD_KEY] = str(lex.head.i + 1)
                 terminal.extra[LEMMA_KEY] = lex.lemma_
