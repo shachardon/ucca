@@ -13,8 +13,16 @@ def get_nlp():
     if nlp.instance is None:
         import spacy
         nlp.instance = spacy.load("en")
+        nlp.tokenizer = nlp.instance.tokenizer
+        nlp.instance.tokenizer = nlp.tokenizer.tokens_from_list
     return nlp.instance
 nlp.instance = None
+nlp.tokenizer = None
+
+
+def get_tokenizer(tokenized=False):
+    get_nlp()
+    return nlp.instance.tokenizer if tokenized else nlp.tokenizer
 
 
 def get_word_vectors(dim=None, size=None, filename=None):
@@ -35,15 +43,6 @@ def get_word_vectors(dim=None, size=None, filename=None):
         vocab.resize_vectors(dim)
     lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
     return {l.orth_: l.vector for l in lexemes}, vocab.vectors_length
-
-
-def get_annotated(tokens):
-    doc = get_nlp().tokenizer.tokens_from_list(tokens)
-    if nlp.instance.tagger is not None:
-        nlp.instance.tagger(doc)
-        if nlp.instance.parser is not None:
-            nlp.instance.parser(doc)
-    return doc
 
 
 TAG_KEY = "tag"  # fine-grained POS tag
@@ -68,7 +67,7 @@ def annotate(passage, verbose=False, replace=False):
     paragraphs = [sorted(p, key=attrgetter("position")) for _, p in groupby(l0.all, key=attrgetter("paragraph"))]
     if replace or any(k not in t.extra for p in paragraphs for t in p for k in ANNOTATION_KEYS):
         for p in paragraphs:
-            annotated = get_annotated([t.text for t in p])
+            annotated = nlp([t.text for t in p])
             for terminal, lex in zip(p, annotated):
                 terminal.extra[TAG_KEY] = lex.tag_
                 terminal.extra[POS_KEY] = lex.pos_
@@ -110,7 +109,7 @@ def break2sentences(passage):
         # in any way (hence it probably just "hangs" there), it's a sentence end
         marks = [x for x in marks if x in ps_ends or ((x - 1) in ps_ends and x not in ps_starts)]
     else:  # Not labeled, split using spaCy
-        annotated = get_annotated([t.text for t in terminals])
+        annotated = nlp([t.text for t in terminals])
         marks = [span.end for span in annotated.sents]
     marks = sorted(set(marks + break2paragraphs(passage)))
     # Avoid punctuation-only sentences

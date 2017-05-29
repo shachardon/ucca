@@ -12,14 +12,13 @@ The possible other formats are:
 """
 
 import operator
+import pickle
 import re
 import sys
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
 from collections import defaultdict
 from itertools import islice
-
-import pickle
 
 from ucca import textutil, core, layer0, layer1
 from ucca.layer1 import EdgeTags
@@ -665,9 +664,7 @@ def from_text(text, passage_id="1", split=False, tokenized=False, *args, **kwarg
     del args, kwargs
     if tokenized or isinstance(text, str):
         text = (text,)
-    tokenizer = textutil.get_nlp().tokenizer
-    if tokenized:
-        tokenizer = tokenizer.tokens_from_list
+    tokenizer = textutil.get_tokenizer(tokenized)
     p = None
     l0 = None
     for i, par in enumerate(filter(None, text)):  # Only non-empty lines
