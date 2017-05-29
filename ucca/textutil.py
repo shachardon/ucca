@@ -48,7 +48,7 @@ def get_word_vectors(dim=None, size=None, filename=None):
 TAG_KEY = "tag"  # fine-grained POS tag
 POS_KEY = "pos"  # coarse-grained POS tag
 NER_KEY = "ner"  # named entity type
-IOB_KEY = "iob"  # integer named entity IOB tag (1: I, 2: B, 3: O)
+IOB_KEY = "iob"  # integer named entity IOB tag (0: unknown, 1: I, 2: O, 3: B)
 DEP_KEY = "dep"  # dependency relation to syntactic head
 HEAD_KEY = "head"  # integer position of syntactic head within paragraph (para_pos)
 LEMMA_KEY = "lemma"
