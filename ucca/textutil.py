@@ -78,8 +78,12 @@ def annotate(passage, verbose=False, replace=False):
                 terminal.extra[HEAD_KEY] = str(lex.head.i + 1)
                 terminal.extra[LEMMA_KEY] = lex.lemma_
     if verbose:
-        print("\n".join(" ".join("%s/%s/%s" % (t.text, t.extra[TAG_KEY], t.extra[DEP_KEY]) for t in p)
-                        for p in paragraphs))
+        for p in paragraphs:
+            extra = [["text"] + list(ANNOTATION_KEYS)] + [[t.text] + [t.extra[k] for k in ANNOTATION_KEYS] for t in p]
+            width = [max(len(f) for f in t) for t in extra]
+            for i in range(1 + len(ANNOTATION_KEYS)):
+                print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)))
+            print()
 
 
 SENTENCE_END_MARKS = ('.', '?', '!')
