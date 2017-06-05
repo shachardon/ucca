@@ -1,4 +1,5 @@
 """Utility functions for UCCA package."""
+import os
 from itertools import groupby
 from operator import attrgetter
 
@@ -12,7 +13,7 @@ def nlp(*args, **kwargs):
 def get_nlp():
     if nlp.instance is None:
         import spacy
-        nlp.instance = spacy.load("en")
+        nlp.instance = spacy.load(os.environ.get("SPACY_MODEL", "en"))
         nlp.tokenizer = nlp.instance.tokenizer
         nlp.instance.tokenizer = nlp.tokenizer.tokens_from_list
     return nlp.instance
