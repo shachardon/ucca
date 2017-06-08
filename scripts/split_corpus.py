@@ -30,7 +30,7 @@ def numeric(s):
         return s
 
 
-def split_passages(directory, train, dev, link):
+def split_passages(directory, train, dev, link, quiet=False):
     filenames = sorted(os.listdir(directory), key=numeric)
     assert filenames, "No files to split"
     directory = os.path.abspath(directory)
@@ -39,23 +39,30 @@ def split_passages(directory, train, dev, link):
     for subdirectory in "train", "dev", "test":
         if not os.path.exists(directory + subdirectory):
             mkdir(directory + subdirectory)
-    print("%d files to split" % len(filenames))
+    print("%d files to split: %d/%d/%d" % (len(filenames), train, dev, len(filenames) - train - dev))
     print_format = "Creating link in %s to: " if link else "Copying to %s: "
-    print(print_format % "train", end="", flush=True)
+    if not quiet:
+        print(print_format % "train", end="", flush=True)
     for f in filenames[:train]:
         copy(directory + f, directory + "train" + os.sep + f, link)
-        print(f, end=" ", flush=True)
-    print()
-    print(print_format % "dev", end="", flush=True)
+        if not quiet:
+            print(f, end=" ", flush=True)
+    if not quiet:
+        print()
+        print(print_format % "dev", end="", flush=True)
     for f in filenames[train:train + dev]:
         copy(directory + f, directory + "dev" + os.sep + f, link)
-        print(f, end=" ", flush=True)
-    print()
-    print(print_format % "test", end="", flush=True)
+        if not quiet:
+            print(f, end=" ", flush=True)
+    if not quiet:
+        print()
+        print(print_format % "test", end="", flush=True)
     for f in filenames[train + dev:]:
         copy(directory + f, directory + "test" + os.sep + f, link)
-        print(f, end=" ", flush=True)
-    print()
+        if not quiet:
+            print(f, end=" ", flush=True)
+    if not quiet:
+        print()
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description=desc)
@@ -67,6 +74,7 @@ if __name__ == "__main__":
                            help="size of dev split (default: %d)" % DEV_DEFAULT)
     argparser.add_argument("-l", "--link", action="store_true",
                            help="create symbolic link instead of copying")
+    argparser.add_argument("-q", "--quiet", action="store_true", help="less output")
     args = argparser.parse_args()
 
-    split_passages(args.directory, args.train, args.dev, link=args.link)
+    split_passages(args.directory, args.train, args.dev, link=args.link, quiet=args.quiet)
