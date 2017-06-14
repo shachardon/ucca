@@ -670,18 +670,23 @@ def from_text(text, passage_id="1", split=False, tokenized=False, *args, **kwarg
     tokenizer = textutil.get_tokenizer(tokenized)
     p = None
     l0 = None
-    for i, par in enumerate(filter(None, text)):  # Only non-empty lines
-        if p is None:
-            p = core.Passage(passage_id + ("_%d" % i if split else ""))
-            l0 = layer0.Layer0(p)
-            layer1.Layer1(p)
-        for lex in tokenizer(par.strip() if isinstance(par, str) else par):
-            # i is paragraph index, but it starts with 0, so we need to add +1
-            l0.add_terminal(text=lex.orth_, punct=lex.is_punct, paragraph=1 if split else i + 1)
-        if split:
+    i = 0
+    stripped = None
+    for line in text:
+        stripped = line.strip() if isinstance(stripped, str) else line
+        if stripped:
+            if p is None:
+                p = core.Passage("%s_%d" % (passage_id, i))
+                l0 = layer0.Layer0(p)
+                layer1.Layer1(p)
+            for lex in tokenizer(stripped):
+                # i is paragraph index, but it starts with 0, so we need to add +1
+                l0.add_terminal(text=lex.orth_, punct=lex.is_punct, paragraph=1 if split else i + 1)
+            i += 1
+        if not stripped or split:
             yield p
             p = None
-    if not split:
+    if stripped or not split:
         yield p
 
 
