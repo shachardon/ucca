@@ -556,14 +556,16 @@ class ConversionTests(unittest.TestCase):
                 pos += 1
 
     def test_from_text_long(self):
-        sample = """After graduation, John moved to New York City.
-
-He liked it there. He played tennis.
-And basketball.
-
-And he lived happily ever after."""
-        passages = list(convert.from_text(sample.splitlines()))
-        self.assertEqual(len(passages), 3, passages)
+        sample = """
+            After graduation, John moved to New York City.
+            
+            He liked it there. He played tennis.
+            And basketball.
+            
+            And he lived happily ever after.
+            """
+        passages = list(convert.from_text(sample))
+        self.assertEqual(len(passages), 3, list(map(convert.to_text, passages)))
 
     def test_to_text(self):
         passage = convert.from_standard(TestUtil.load_xml('test_files/standard3.xml'))

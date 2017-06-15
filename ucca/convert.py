@@ -654,39 +654,40 @@ def from_standard(root, extra_funcs=None):
     return passage
 
 
-def from_text(text, passage_id="1", split=False, tokenized=False, *args, **kwargs):
+def from_text(text, passage_id="1", tokenized=False, *args, **kwargs):
     """Converts from tokenized strings to a Passage object.
 
-    :param text: a sequence of strings, where each one will be a new paragraph.
-    :param passage_id: ID to set for passage
-    :param split: split each paragraph to its own passage
-    :param tokenized: whether the text is already given as a pre-tokenized list
+    :param text: a multi-line string or a sequence of strings:
+                 each line will be a new paragraph, and blank lines separate passages
+    :param passage_id: prefix of ID to set for returned passages
+    :param tokenized: whether the text is already given as a list of tokens
 
-    :return generator of Passage object with only Terminals units.
+    :return generator of Passage object with only Terminal units
     """
     del args, kwargs
-    if tokenized or isinstance(text, str):
-        text = (text,)
-    tokenizer = textutil.get_tokenizer(tokenized)
-    p = None
-    l0 = None
+    if isinstance(text, str):
+        text = text.splitlines()
+    if tokenized:
+        text = (text,)  # text is a list of tokens, not list of lines
+    p = l0 = paragraph = None
     i = 0
-    stripped = None
     for line in text:
-        stripped = line.strip() if isinstance(stripped, str) else line
-        if stripped:
+        if not tokenized:
+            line = line.strip()
+        if line:
             if p is None:
                 p = core.Passage("%s_%d" % (passage_id, i))
                 l0 = layer0.Layer0(p)
                 layer1.Layer1(p)
-            for lex in tokenizer(stripped):
-                # i is paragraph index, but it starts with 0, so we need to add +1
-                l0.add_terminal(text=lex.orth_, punct=lex.is_punct, paragraph=1 if split else i + 1)
-            i += 1
-        if not stripped or split:
+                paragraph = 1
+            for lex in textutil.get_tokenizer(tokenized)(line):
+                l0.add_terminal(text=lex.orth_, punct=lex.is_punct, paragraph=paragraph)
+            paragraph += 1
+        elif p:  # blank line
             yield p
             p = None
-    if stripped or not split:
+            i += 1
+    if p:
         yield p
 
 
