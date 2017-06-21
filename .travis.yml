@@ -1,13 +1,10 @@
 sudo: false
 language: python
 python:
-  - "3.5"
-before_install:
-  - pip install pytest-pep8
-  - pip install -r requirements.txt
-  - python -m spacy.en.download all > spacy.log
+  - "3.6"
 install:
-  - python setup.py install
+  - pip install .
+  - python -m spacy download en > spacy.log
 before_script:
   - mkdir pickle
   - curl -L http://www.cs.huji.ac.il/~danielh/ucca/ucca_corpus_pickle.tgz | tar xz -C pickle

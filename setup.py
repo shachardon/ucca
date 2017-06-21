@@ -1,17 +1,28 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
-import os
+from setuptools import setup, find_packages
 
-setup(name='UCCA',
-      version='1.0',
-      description='Universal Conceptual Cognitive Annotation',
-      author='Daniel Hershcovich',
-      author_email='danielh@cs.huji.ac.il',
-      url='http://www.cs.huji.ac.il/~oabend/ucca.html',
-      packages=['ucca', 'scripts'],
-      package_dir={
-          'ucca': 'ucca',
-          'scripts': 'scripts',
-          },
+try:
+    import pypandoc
+    long_description = pypandoc.convert("README.md", "rst")
+except (IOError, ImportError):
+    long_description = ""
+
+
+setup(name="UCCA",
+      version="1.0",
+      install_requires="spacy",
+      description="Universal Conceptual Cognitive Annotation",
+      long_description=long_description,
+      author="Daniel Hershcovich",
+      author_email="danielh@cs.huji.ac.il",
+      url="https://github.com/huji-nlp/ucca",
+      classifiers=[
+          "Development Status :: 4 - Beta",
+          "Intended Audience :: Science/Research",
+          "Programming Language :: Python :: 3.6",
+          "Topic :: Text Processing :: Linguistic",
+          "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+      ],
+      packages=find_packages(),
       )

@@ -19,9 +19,6 @@ representations of UCCA annotations, and rich objects for all of the linguistic
 relations which appear in the theoretical framework (see `core`, `layer0`, `layer1`
 and `convert` modules under the `ucca` package).
 
-
-See [`ucca/README.md`](ucca/README.md) for a list of modules under the `ucca` package.
-
 The `scripts` package contains various utilities for processing passage files.
 
 
@@ -33,4 +30,4 @@ Authors
 
 License
 -------
-This package is licensed under the GPLv3 or later license (see [`LICENSE.txt`](master/LICENSE.txt)).
+This package is licensed under the GPLv3 or later license.
