@@ -1,4 +1,4 @@
-Universal Conceptual Cognitive Annotation [![Build Status](https://travis-ci.org/danielhers/ucca.svg?branch=master)](https://travis-ci.org/danielhers/ucca)
+Universal Conceptual Cognitive Annotation [![Build Status](https://travis-ci.org/danielhers/ucca.svg?branch=master)](https://travis-ci.org/danielhers/ucca) [![PyPI version](https://badge.fury.io/py/UCCA.svg)](https://badge.fury.io/py/UCCA)
 ============================
 UCCA is a linguistic framework for semantic annotation, whose details
 are available at [the following paper](http://www.cs.huji.ac.il/~oabend/papers/ucca_acl.pdf):
