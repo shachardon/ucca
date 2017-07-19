@@ -34,7 +34,7 @@ def main():
     lines = "\n".join(sorted(roles))
     print(lines)
     if args.outfile:
-        with open(args.outfile, "w") as f:
+        with open(args.outfile, "w", encoding="utf-8") as f:
             print(lines, file=f)
 
     sys.exit(0)

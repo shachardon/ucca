@@ -31,7 +31,7 @@ def get_word_vectors(dim=None, size=None, filename=None):
     if filename is not None:
         print("Loading word vectors from '%s'..." % filename)
         try:
-            with open(filename) as f:
+            with open(filename, encoding="utf-8") as f:
                 first_line = f.readline().split()
                 if len(first_line) == 2 and all(s.isdigit() for s in first_line):
                     vocab.resize_vectors(int(first_line[1]))

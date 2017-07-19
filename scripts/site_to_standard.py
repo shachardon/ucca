@@ -23,7 +23,7 @@ or using filename of a site-formatted XML file.
 
 def site2passage(filename):
     """Opens a file and returns its parsed Passage object"""
-    with open(filename) as f:
+    with open(filename, encoding="utf-8") as f:
         etree = ElementTree().parse(f)
     return ucca.convert.from_site(etree)
 
@@ -40,12 +40,12 @@ def db2passage(handle, pid, user):
 
 def main():
     argparser = argparse.ArgumentParser(description=desc)
-    argparser.add_argument('filename', nargs='?', help="XML file name to convert")
-    argparser.add_argument('-o', '--outfile', help="output file for standard XML")
-    argparser.add_argument('-b', '--binary', help="output file for binary pickel")
-    argparser.add_argument('-d', '--db', help="DB file to get input from")
-    argparser.add_argument('-p', '--pid', type=int, help="PassageID to query DB")
-    argparser.add_argument('-u', '--user', help="Username to DB query")
+    argparser.add_argument("filename", nargs="?", help="XML file name to convert")
+    argparser.add_argument("-o", "--outfile", help="output file for standard XML")
+    argparser.add_argument("-b", "--binary", help="output file for binary pickel")
+    argparser.add_argument("-d", "--db", help="DB file to get input from")
+    argparser.add_argument("-p", "--pid", type=int, help="PassageID to query DB")
+    argparser.add_argument("-u", "--user", help="Username to DB query")
     args = argparser.parse_args()
 
     # Checking for illegal combinations
@@ -57,7 +57,7 @@ def main():
         argparser.error("Must specify a username and a passage ID when " +
                      "using DB file option")
     if (args.pid or args.user) and not args.db:
-        argparser.error("Can't use user and passage ID options without DB file")
+        argparser.error("Cannot use user and passage ID options without DB file")
 
     if args.filename:
         passage = site2passage(args.filename)
@@ -67,13 +67,13 @@ def main():
         passage = db2passage(c, args.pid, args.user)
 
     if args.binary:
-        with open(args.binary, 'wb') as binf:
+        with open(args.binary, "wb") as binf:
             pickle.dump(passage, binf)
     else:
         root = ucca.convert.to_standard(passage)
         output = indent_xml(tostring(root).decode())
         if args.outfile:
-            with open(args.outfile, 'w') as outf:
+            with open(args.outfile, "w", encoding="utf-8") as outf:
                 outf.write(output)
         else:
             print(output)
@@ -81,5 +81,5 @@ def main():
     sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

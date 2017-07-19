@@ -15,67 +15,67 @@ class CoreTests(unittest.TestCase):
 
         p = TestUtil.create_basic_passage()
 
-        self.assertEqual(p.ID, '1')
+        self.assertEqual(p.ID, "1")
         self.assertEqual(p.root, p)
         self.assertDictEqual(p.attrib.copy(), {})
-        self.assertEqual(p.layer('1').ID, '1')
-        self.assertEqual(p.layer('2').ID, '2')
-        self.assertRaises(KeyError, p.layer, '3')
+        self.assertEqual(p.layer("1").ID, "1")
+        self.assertEqual(p.layer("2").ID, "2")
+        self.assertRaises(KeyError, p.layer, "3")
 
-        l1 = p.layer('1')
-        l2 = p.layer('2')
+        l1 = p.layer("1")
+        l2 = p.layer("2")
         self.assertEqual(l1.root, p)
-        self.assertEqual(l2.attrib['test'], True)
+        self.assertEqual(l2.attrib["test"], True)
         self.assertNotEqual(l1.orderkey, l2.orderkey)
-        self.assertSequenceEqual([x.ID for x in l1.all], ['1.1', '1.2', '1.3'])
-        self.assertSequenceEqual([x.ID for x in l1.heads], ['1.2'])
-        self.assertSequenceEqual([x.ID for x in l2.all], ['2.2', '2.1'])
-        self.assertSequenceEqual([x.ID for x in l2.heads], ['2.2', '2.1'])
+        self.assertSequenceEqual([x.ID for x in l1.all], ["1.1", "1.2", "1.3"])
+        self.assertSequenceEqual([x.ID for x in l1.heads], ["1.2"])
+        self.assertSequenceEqual([x.ID for x in l2.all], ["2.2", "2.1"])
+        self.assertSequenceEqual([x.ID for x in l2.heads], ["2.2", "2.1"])
 
         node11, node12, node13 = l1.all
         node22, node21 = l2.all
-        self.assertEqual(node11.ID, '1.1')
+        self.assertEqual(node11.ID, "1.1")
         self.assertEqual(node11.root, p)
-        self.assertEqual(node11.layer.ID, '1')
-        self.assertEqual(node11.tag, '1')
+        self.assertEqual(node11.layer.ID, "1")
+        self.assertEqual(node11.tag, "1")
         self.assertEqual(len(node11), 0)
         self.assertSequenceEqual(node11.parents, [node12, node21, node22])
         self.assertSequenceEqual(node13.parents, [node12, node22])
-        self.assertDictEqual(node13.attrib.copy(), {'node': True})
+        self.assertDictEqual(node13.attrib.copy(), {"node": True})
         self.assertEqual(len(node12), 2)
         self.assertSequenceEqual(node12.children, [node13, node11])
-        self.assertDictEqual(node12[0].attrib.copy(), {'edge': True})
+        self.assertDictEqual(node12[0].attrib.copy(), {"edge": True})
         self.assertSequenceEqual(node12.parents, [node22, node21])
-        self.assertEqual(node21[0].ID, '2.1->1.1')
-        self.assertEqual(node21[1].ID, '2.1->1.2')
-        self.assertEqual(node22[0].ID, '2.2->1.1')
-        self.assertEqual(node22[1].ID, '2.2->1.2')
-        self.assertEqual(node22[2].ID, '2.2->1.3')
+        self.assertEqual(node21[0].ID, "2.1->1.1")
+        self.assertEqual(node21[1].ID, "2.1->1.2")
+        self.assertEqual(node22[0].ID, "2.2->1.1")
+        self.assertEqual(node22[1].ID, "2.2->1.2")
+        self.assertEqual(node22[2].ID, "2.2->1.3")
 
     def test_modifying(self):
         p = TestUtil.create_basic_passage()
-        l1, l2 = p.layer('1'), p.layer('2')
+        l1, l2 = p.layer("1"), p.layer("2")
         node11, node12, node13 = l1.all
         node22, node21 = l2.all
 
         # Testing attribute changes
-        p.attrib['passage'] = 1
-        self.assertDictEqual(p.attrib.copy(), {'passage': 1})
-        del l2.attrib['test']
+        p.attrib["passage"] = 1
+        self.assertDictEqual(p.attrib.copy(), {"passage": 1})
+        del l2.attrib["test"]
         self.assertDictEqual(l2.attrib.copy(), {})
         node13.attrib[1] = 1
-        self.assertDictEqual(node13.attrib.copy(), {'node': True, 1: 1})
+        self.assertDictEqual(node13.attrib.copy(), {"node": True, 1: 1})
         self.assertEqual(len(node13.attrib), 2)
-        self.assertEqual(node13.attrib.get('node'), True)
-        self.assertEqual(node13.attrib.get('missing'), None)
+        self.assertEqual(node13.attrib.get("node"), True)
+        self.assertEqual(node13.attrib.get("missing"), None)
 
         # Testing Node changes
-        node14 = core.Node(ID='1.4', root=p, tag='4')
-        node15 = core.Node(ID='1.5', root=p, tag='5')
+        node14 = core.Node(ID="1.4", root=p, tag="4")
+        node15 = core.Node(ID="1.5", root=p, tag="5")
         self.assertSequenceEqual(l1.all, [node11, node12, node13, node14,
                                           node15])
         self.assertSequenceEqual(l1.heads, [node12, node14, node15])
-        node15.add('test', node11)
+        node15.add("test", node11)
         self.assertSequenceEqual(node11.parents, [node12, node15, node21,
                                                   node22])
         node21.remove(node12)
@@ -83,20 +83,20 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(len(node21), 0)
         self.assertSequenceEqual(node12.parents, [node22])
         self.assertSequenceEqual(node11.parents, [node12, node15, node22])
-        node14.add('test', node15)
+        node14.add("test", node15)
         self.assertSequenceEqual(l1.heads, [node12, node14])
         node12.destroy()
         self.assertSequenceEqual(l1.heads, [node13, node14])
         self.assertSequenceEqual(node22.children, [node11, node13])
 
-        node22.tag = 'x'
-        node22[0].tag = 'testx'
-        self.assertEqual(node22.tag, 'x')
-        self.assertEqual(node22[0].tag, 'testx')
+        node22.tag = "x"
+        node22[0].tag = "testx"
+        self.assertEqual(node22.tag, "x")
+        self.assertEqual(node22[0].tag, "testx")
 
     def test_equals(self):
-        p1 = core.Passage('1')
-        p2 = core.Passage('2')
+        p1 = core.Passage("1")
+        p2 = core.Passage("2")
         p1l0 = layer0.Layer0(p1)
         p2l0 = layer0.Layer0(p2)
         p1l1 = layer1.Layer1(p1)
@@ -104,19 +104,19 @@ class CoreTests(unittest.TestCase):
         self.assertTrue(p1.equals(p2) and p2.equals(p1))
 
         # Checks basic passage equality and Attrib/tag/len differences
-        p1l0.add_terminal('0', False)
-        p1l0.add_terminal('1', False)
-        p1l0.add_terminal('2', False)
-        p2l0.add_terminal('0', False)
-        p2l0.add_terminal('1', False)
-        p2l0.add_terminal('2', False)
+        p1l0.add_terminal("0", False)
+        p1l0.add_terminal("1", False)
+        p1l0.add_terminal("2", False)
+        p2l0.add_terminal("0", False)
+        p2l0.add_terminal("1", False)
+        p2l0.add_terminal("2", False)
         self.assertTrue(p1.equals(p2) and p2.equals(p1))
-        pnct2 = p2l0.add_terminal('3', True)
+        pnct2 = p2l0.add_terminal("3", True)
         self.assertFalse(p1.equals(p2) or p2.equals(p1))
-        temp = p1l0.add_terminal('3', False)
+        temp = p1l0.add_terminal("3", False)
         self.assertFalse(p1.equals(p2) or p2.equals(p1))
         temp.destroy()
-        pnct1 = p1l0.add_terminal('3', True)
+        pnct1 = p1l0.add_terminal("3", True)
         self.assertTrue(p1.equals(p2) and p2.equals(p1))
 
         # Check Edge and node equality
@@ -138,17 +138,17 @@ class CoreTests(unittest.TestCase):
         p1l1.add_fnode(ps1, layer1.EdgeTags.Adverbial, implicit=True)
         ps2d3 = p2l1.add_fnode(ps2, layer1.EdgeTags.Adverbial)
         self.assertFalse(p1.equals(p2) or p2.equals(p1))
-        ps2d3.attrib['implicit'] = True
+        ps2d3.attrib["implicit"] = True
         self.assertTrue(p1.equals(p2) and p2.equals(p1))
-        ps2[2].attrib['remote'] = True
+        ps2[2].attrib["remote"] = True
         self.assertFalse(p1.equals(p2) or p2.equals(p1))
-        ps1[2].attrib['remote'] = True
+        ps1[2].attrib["remote"] = True
         self.assertTrue(p1.equals(p2) and p2.equals(p1))
         p1l1.add_punct(None, pnct1)
         self.assertFalse(p1.equals(p2) or p2.equals(p1))
         p2l1.add_punct(None, pnct2)
         self.assertTrue(p1.equals(p2) and p2.equals(p1))
-        core.Layer('2', p1)
+        core.Layer("2", p1)
         self.assertFalse(p1.equals(p2) or p2.equals(p1))
 
     def test_copying(self):
@@ -167,22 +167,22 @@ class CoreTests(unittest.TestCase):
 
     def test_iteration(self):
         p = TestUtil.create_basic_passage()
-        l1, l2 = p.layer('1'), p.layer('2')
+        l1, l2 = p.layer("1"), p.layer("2")
         node11, node12, node13 = l1.all
         node22, node21 = l2.all
 
         self.assertSequenceEqual(list(node11.iter()), [node11])
-        self.assertSequenceEqual(list(node11.iter(obj='edges')), ())
-        self.assertSequenceEqual(list(node13.iter(key=lambda x: x.tag != '3')),
+        self.assertSequenceEqual(list(node11.iter(obj="edges")), ())
+        self.assertSequenceEqual(list(node13.iter(key=lambda x: x.tag != "3")),
                                  ())
         self.assertSequenceEqual(list(node12.iter()), [node12, node13, node11])
-        self.assertSequenceEqual(list(x.ID for x in node12.iter(obj='edges')),
-                                 ['1.2->1.3', '1.2->1.1'])
+        self.assertSequenceEqual(list(x.ID for x in node12.iter(obj="edges")),
+                                 ["1.2->1.3", "1.2->1.1"])
         self.assertSequenceEqual(list(node21.iter(duplicates=True)),
                                  [node21, node11, node12, node13, node11])
         self.assertSequenceEqual(list(node21.iter()),
                                  [node21, node11, node12, node13])
-        self.assertSequenceEqual(list(node22.iter(method='bfs',
+        self.assertSequenceEqual(list(node22.iter(method="bfs",
                                                   duplicates=True)),
                                  [node22, node11, node12, node13, node13,
                                   node11])
@@ -193,42 +193,42 @@ class Layer0Tests(unittest.TestCase):
 
     def test_terminals(self):
         """Tests :class:layer0.Terminal new and inherited functionality."""
-        p = core.Passage('1')
+        p = core.Passage("1")
         layer0.Layer0(p)
         terms = [
-            layer0.Terminal(ID='0.1', root=p,
+            layer0.Terminal(ID="0.1", root=p,
                             tag=layer0.NodeTags.Word,
-                            attrib={'text': '1',
-                                    'paragraph': 1,
-                                    'paragraph_position': 1}),
-            layer0.Terminal(ID='0.2', root=p,
+                            attrib={"text": "1",
+                                    "paragraph": 1,
+                                    "paragraph_position": 1}),
+            layer0.Terminal(ID="0.2", root=p,
                             tag=layer0.NodeTags.Word,
-                            attrib={'text': '2',
-                                    'paragraph': 2,
-                                    'paragraph_position': 1}),
-            layer0.Terminal(ID='0.3', root=p,
+                            attrib={"text": "2",
+                                    "paragraph": 2,
+                                    "paragraph_position": 1}),
+            layer0.Terminal(ID="0.3", root=p,
                             tag=layer0.NodeTags.Punct,
-                            attrib={'text': '.',
-                                    'paragraph': 2,
-                                    'paragraph_position': 2})
+                            attrib={"text": ".",
+                                    "paragraph": 2,
+                                    "paragraph_position": 2})
         ]
 
-        p_copy = core.Passage('2')
+        p_copy = core.Passage("2")
         layer0.Layer0(p_copy)
-        equal_term = layer0.Terminal(ID='0.1', root=p_copy,
+        equal_term = layer0.Terminal(ID="0.1", root=p_copy,
                                      tag=layer0.NodeTags.Word,
-                                     attrib={'text': '1',
-                                             'paragraph': 1,
-                                             'paragraph_position': 1})
-        unequal_term = layer0.Terminal(ID='0.2', root=p_copy,
+                                     attrib={"text": "1",
+                                             "paragraph": 1,
+                                             "paragraph_position": 1})
+        unequal_term = layer0.Terminal(ID="0.2", root=p_copy,
                                        tag=layer0.NodeTags.Word,
-                                       attrib={'text': 'two',
-                                               'paragraph': 2,
-                                               'paragraph_position': 1})
+                                       attrib={"text": "two",
+                                               "paragraph": 2,
+                                               "paragraph_position": 1})
 
         self.assertSequenceEqual([t.punct for t in terms],
                                  [False, False, True])
-        self.assertSequenceEqual([t.text for t in terms], ['1', '2', '.'])
+        self.assertSequenceEqual([t.text for t in terms], ["1", "2", "."])
         self.assertSequenceEqual([t.position for t in terms], [1, 2, 3])
         self.assertSequenceEqual([t.paragraph for t in terms], [1, 2, 2])
         self.assertSequenceEqual([t.para_pos for t in terms], [1, 1, 2])
@@ -240,11 +240,11 @@ class Layer0Tests(unittest.TestCase):
         self.assertFalse(terms[1].equals(unequal_term))
 
     def test_layer0(self):
-        p = core.Passage('1')
+        p = core.Passage("1")
         l0 = layer0.Layer0(p)
-        t1 = l0.add_terminal(text='1', punct=False)
-        l0.add_terminal(text='2', punct=True, paragraph=2)
-        t3 = l0.add_terminal(text='3', punct=False, paragraph=2)
+        t1 = l0.add_terminal(text="1", punct=False)
+        l0.add_terminal(text="2", punct=True, paragraph=2)
+        t3 = l0.add_terminal(text="3", punct=False, paragraph=2)
         self.assertSequenceEqual([x[0] for x in l0.pairs], [1, 2, 3])
         self.assertSequenceEqual([t.para_pos for t in l0.all], [1, 1, 2])
         self.assertSequenceEqual(l0.words, (t1, t3))
@@ -255,12 +255,12 @@ class Layer1Tests(unittest.TestCase):
 
     def test_creation(self):
         p = TestUtil.create_passage()
-        head = p.layer('1').heads[0]
-        self.assertSequenceEqual([x.tag for x in head], ['L', 'H', 'H', 'U'])
+        head = p.layer("1").heads[0]
+        self.assertSequenceEqual([x.tag for x in head], ["L", "H", "H", "U"])
         self.assertSequenceEqual([x.child.position for x in head.children[0]],
                                  [1])
         self.assertSequenceEqual([x.tag for x in head.children[1]],
-                                 ['P', 'A', 'U', 'A'])
+                                 ["P", "A", "U", "A"])
         self.assertSequenceEqual([x.child.position
                                   for x in head.children[1].children[0]],
                                  [2, 3, 4, 5])
@@ -270,19 +270,19 @@ class Layer1Tests(unittest.TestCase):
         self.assertSequenceEqual([x.child.position
                                   for x in head.children[1].children[2]],
                                  [10])
-        self.assertTrue(head.children[1][3].attrib.get('remote'))
+        self.assertTrue(head.children[1][3].attrib.get("remote"))
 
     def test_fnodes(self):
         p = TestUtil.create_passage()
-        l0 = p.layer('0')
-        l1 = p.layer('1')
+        l0 = p.layer("0")
+        l1 = p.layer("1")
 
         terms = l0.all
         head, lkg1, lkg2 = l1.heads
         link1, ps1, ps23, punct2 = head.children
-        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get('remote')]
+        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get("remote")]
         ps2, link2, ps3 = ps23.children
-        a2, d2 = [x.child for x in ps2 if not x.attrib.get('remote')]
+        a2, d2 = [x.child for x in ps2 if not x.attrib.get("remote")]
         p3, a3, a4 = ps3.children
 
         self.assertEqual(lkg1.relation, link1)
@@ -299,7 +299,7 @@ class Layer1Tests(unittest.TestCase):
         self.assertEqual(ps2.start_position, 11)
         self.assertEqual(ps3.start_position, 17)
         self.assertEqual(a4.start_position, -1)
-        self.assertEqual(ps23.to_text(), '11 12 13 14 15 16 17 18 19')
+        self.assertEqual(ps23.to_text(), "11 12 13 14 15 16 17 18 19")
 
         self.assertEqual(ps1.fparent, head)
         self.assertEqual(link2.fparent, ps23)
@@ -308,11 +308,11 @@ class Layer1Tests(unittest.TestCase):
 
     def test_layer1(self):
         p = TestUtil.create_passage()
-        l1 = p.layer('1')
+        l1 = p.layer("1")
 
         head, lkg1, lkg2 = l1.heads
         link1, ps1, ps23, punct2 = head.children
-        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get('remote')]
+        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get("remote")]
         ps2, link2, ps3 = ps23.children
 
         self.assertSequenceEqual(l1.top_scenes, [ps1, ps2, ps3])
@@ -341,20 +341,20 @@ class Layer1Tests(unittest.TestCase):
 
     def test_str(self):
         p = TestUtil.create_passage()
-        self.assertSequenceEqual([str(x) for x in p.layer('1').heads],
-                                 ['[L 1] [H [P 2 3 4 5] [A 6 7 8 9] [U 10] '
-                                  '... [A* 15] ] [H [H [P* 2 3 4 5] [A 11 12 '
-                                  '13 14] [D 15] ] [L 16] [H [A IMPLICIT] [S '
-                                  '17 18] [A 19] ] ] [U 20] ',
-                                  '1.2-->1.3', '1.11-->1.8,1.12'])
+        self.assertSequenceEqual([str(x) for x in p.layer("1").heads],
+                                 ["[L 1] [H [P 2 3 4 5] [A 6 7 8 9] [U 10] "
+                                  "... [A* 15] ] [H [H [P* 2 3 4 5] [A 11 12 "
+                                  "13 14] [D 15] ] [L 16] [H [A IMPLICIT] [S "
+                                  "17 18] [A 19] ] ] [U 20] ",
+                                  "1.2-->1.3", "1.11-->1.8,1.12"])
 
     def test_destroy(self):
         p = TestUtil.create_passage()
-        l1 = p.layer('1')
+        l1 = p.layer("1")
 
         head, lkg1, lkg2 = l1.heads
         link1, ps1, ps23, punct2 = head.children
-        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get('remote')]
+        p1, a1, punct1 = [x.child for x in ps1 if not x.attrib.get("remote")]
         ps2, link2, ps3 = ps23.children
 
         ps1.destroy()
@@ -366,7 +366,7 @@ class Layer1Tests(unittest.TestCase):
     def test_discontiguous(self):
         """Tests FNode.discontiguous and FNode.get_sequences"""
         p = TestUtil.create_discontiguous()
-        l1 = p.layer('1')
+        l1 = p.layer("1")
         head = l1.heads[0]
         ps1, ps2, ps3 = head.children
         d1, a1, p1, f1 = ps1.children
@@ -426,11 +426,11 @@ class ConversionTests(unittest.TestCase):
             self.assertEqual(edge.child, term)
 
     def test_site_terminals(self):
-        elem = TestUtil.load_xml('test_files/site1.xml')
+        elem = TestUtil.load_xml("test_files/site1.xml")
         passage = convert.from_site(elem)
         terms = passage.layer(layer0.LAYER_ID).all
 
-        self.assertEqual(passage.ID, '118')
+        self.assertEqual(passage.ID, "118")
         self.assertEqual(len(terms), 15)
 
         # There are two punctuation signs (dots, positions 5 and 11), which
@@ -440,7 +440,7 @@ class ConversionTests(unittest.TestCase):
         for i, t in enumerate(terms):
             # i starts in 0, positions at 1, hence 5,11 ==> 4,10
             if i in (4, 10):
-                self.assertTrue(t.text == '.' and t.punct is True)
+                self.assertTrue(t.text == "." and t.punct is True)
             else:
                 self.assertTrue(t.text == str(i + 1) and t.punct is False)
             if i < 5:
@@ -452,22 +452,22 @@ class ConversionTests(unittest.TestCase):
             self.assertEqual(t.paragraph, par)
 
     def test_site_simple(self):
-        elem = TestUtil.load_xml('test_files/site2.xml')
+        elem = TestUtil.load_xml("test_files/site2.xml")
         passage = convert.from_site(elem)
         terms = passage.layer(layer0.LAYER_ID).all
-        l1 = passage.layer('1')
+        l1 = passage.layer("1")
 
         # The Terminals in the passage are just like in test_site_terminals,
         # with this layer1 hierarchy: [[1 C] [2 E] L] [3 4 . H]
         # with the linker having a remark and the parallel scene is uncertain
         head = l1.heads[0]
-        self.assertEqual(len(head), 12)  # including all 'unused' terminals
+        self.assertEqual(len(head), 12)  # including all "unused" terminals
         self.assertEqual(head[9].tag, layer1.EdgeTags.Linker)
         self.assertEqual(head[10].tag, layer1.EdgeTags.ParallelScene)
         linker = head.children[9]
         self._test_edges(linker, [layer1.EdgeTags.Center,
                                   layer1.EdgeTags.Elaborator])
-        self.assertTrue(linker.extra['remarks'], '"remark"')
+        self.assertTrue(linker.extra["remarks"], '"remark"')
         center = linker.children[0]
         elab = linker.children[1]
         self._test_terms(center, terms[0:1])
@@ -476,16 +476,16 @@ class ConversionTests(unittest.TestCase):
         self._test_edges(ps, [layer1.EdgeTags.Terminal,
                               layer1.EdgeTags.Terminal,
                               layer1.EdgeTags.Punctuation])
-        self.assertTrue(ps.attrib.get('uncertain'))
+        self.assertTrue(ps.attrib.get("uncertain"))
         self.assertEqual(ps.children[0], terms[2])
         self.assertEqual(ps.children[1], terms[3])
         self.assertEqual(ps.children[2].children[0], terms[4])
 
     def test_site_advanced(self):
-        elem = TestUtil.load_xml('test_files/site3.xml')
+        elem = TestUtil.load_xml("test_files/site3.xml")
         passage = convert.from_site(elem)
         terms = passage.layer(layer0.LAYER_ID).all
-        l1 = passage.layer('1')
+        l1 = passage.layer("1")
 
         # This passage has the same terminals as the simple and terminals test,
         # and have the same layer1 units for the first paragraph as the simple
@@ -506,12 +506,12 @@ class ConversionTests(unittest.TestCase):
                                 layer1.EdgeTags.ParallelScene,
                                 layer1.EdgeTags.Linker])
 
-        # we only take what we haven't checked already
+        # we only take what we haven"t checked already
         ps1, func, punct, ps2, ps3, ps4, link = head.children[2:]
         self._test_edges(ps1, [layer1.EdgeTags.Participant,
                                layer1.EdgeTags.Process,
                                layer1.EdgeTags.Adverbial])
-        self.assertTrue(ps1[2].attrib.get('remote'))
+        self.assertTrue(ps1[2].attrib.get("remote"))
         ps1_a, ps1_p, ps1_d = ps1.children
         self._test_edges(ps1_a, [layer1.EdgeTags.Elaborator,
                                  layer1.EdgeTags.Center])
@@ -526,7 +526,7 @@ class ConversionTests(unittest.TestCase):
         self._test_terms(ps4, terms[13:14])
         self.assertEqual(len(link), 2)
         self.assertEqual(link[0].tag, layer1.EdgeTags.Center)
-        self.assertTrue(link.children[0].attrib.get('implicit'))
+        self.assertTrue(link.children[0].attrib.get("implicit"))
         self.assertEqual(link[1].tag, layer1.EdgeTags.Elaborator)
         self.assertEqual(link.children[1][0].tag, layer1.EdgeTags.Terminal)
         self.assertEqual(link.children[1][0].child, terms[14])
@@ -534,18 +534,18 @@ class ConversionTests(unittest.TestCase):
         self.assertSequenceEqual(lkg.arguments, [ps2, ps3, ps4])
 
     def test_to_standard(self):
-        passage = convert.from_site(TestUtil.load_xml('test_files/site3.xml'))
-        ref = TestUtil.load_xml('test_files/standard3.xml')
+        passage = convert.from_site(TestUtil.load_xml("test_files/site3.xml"))
+        ref = TestUtil.load_xml("test_files/standard3.xml")
         root = convert.to_standard(passage)
         self.assertEqual(ETree.tostring(ref), ETree.tostring(root))
 
     def test_from_standard(self):
-        passage = convert.from_standard(TestUtil.load_xml('test_files/standard3.xml'))
-        ref = convert.from_site(TestUtil.load_xml('test_files/site3.xml'))
+        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
+        ref = convert.from_site(TestUtil.load_xml("test_files/site3.xml"))
         self.assertTrue(passage.equals(ref, ordered=True))
 
     def test_from_text(self):
-        sample = ['Hello . again', 'nice', ' ? ! end', '']
+        sample = ["Hello . again", "nice", " ? ! end", ""]
         passage = next(convert.from_text(sample))
         terms = passage.layer(layer0.LAYER_ID).all
         pos = 0
@@ -568,53 +568,53 @@ class ConversionTests(unittest.TestCase):
         self.assertEqual(len(passages), 3, list(map(convert.to_text, passages)))
 
     def test_to_text(self):
-        passage = convert.from_standard(TestUtil.load_xml('test_files/standard3.xml'))
+        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
         self.assertEqual(convert.to_text(passage, False)[0],
-                         '1 2 3 4 . 6 7 8 9 10 . 12 13 14 15')
+                         "1 2 3 4 . 6 7 8 9 10 . 12 13 14 15")
         self.assertSequenceEqual(convert.to_text(passage, True),
-                                 ['1 2 3 4 .', '6 7 8 9 10 .', '12 13 14 15'])
+                                 ["1 2 3 4 .", "6 7 8 9 10 .", "12 13 14 15"])
 
     def test_to_site(self):
-        passage = convert.from_standard(TestUtil.load_xml('test_files/standard3.xml'))
+        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
         root = convert.to_site(passage)
         copy = convert.from_site(root)
         self.assertTrue(passage.equals(copy))
 
     def test_to_conll(self):
-        passage = convert.from_standard(TestUtil.load_xml('test_files/standard3.xml'))
+        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
         converted = convert.to_conll(passage)
-        with open('test_files/standard3.conll') as f:
+        with open("test_files/standard3.conll", encoding="utf-8") as f:
             # f.write("\n".join(converted))
             self.assertSequenceEqual(converted, f.read().splitlines() + [""])
         converted_passage = next(convert.from_conll(converted, passage.ID))
-        # ioutil.passage2file(converted_passage, 'test_files/standard3.conll.xml')
-        ref = convert.from_standard(TestUtil.load_xml('test_files/standard3.conll.xml'))
+        # ioutil.passage2file(converted_passage, "test_files/standard3.conll.xml")
+        ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.conll.xml"))
         self.assertTrue(converted_passage.equals(ref))
         # Put the same sentence twice and try converting again
         for converted_passage in convert.from_conll(converted * 2, passage.ID):
-            ref = convert.from_standard(TestUtil.load_xml('test_files/standard3.conll.xml'))
+            ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.conll.xml"))
         self.assertTrue(converted_passage.equals(ref))
 
     def test_to_sdp(self):
-        passage = convert.from_standard(TestUtil.load_xml('test_files/standard3.xml'))
+        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
         converted = convert.to_sdp(passage)
-        with open('test_files/standard3.sdp') as f:
+        with open("test_files/standard3.sdp", encoding="utf-8") as f:
             # f.write("\n".join(converted))
             self.assertSequenceEqual(converted, f.read().splitlines() + [""])
         converted_passage = next(convert.from_sdp(converted, passage.ID))
-        # ioutil.passage2file(converted_passage, 'test_files/standard3.sdp.xml')
-        ref = convert.from_standard(TestUtil.load_xml('test_files/standard3.sdp.xml'))
+        # ioutil.passage2file(converted_passage, "test_files/standard3.sdp.xml")
+        ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.sdp.xml"))
         self.assertTrue(converted_passage.equals(ref))
 
     def test_to_export(self):
-        passage = convert.from_standard(TestUtil.load_xml('test_files/standard3.xml'))
+        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
         converted = convert.to_export(passage)
-        with open('test_files/standard3.export') as f:
+        with open("test_files/standard3.export", encoding="utf-8") as f:
             # f.write("\n".join(converted))
             self.assertSequenceEqual(converted, f.read().splitlines())
         converted_passage = next(convert.from_export(converted, passage.ID))
-        # ioutil.passage2file(converted_passage, 'test_files/standard3.export.xml')
-        ref = convert.from_standard(TestUtil.load_xml('test_files/standard3.export.xml'))
+        # ioutil.passage2file(converted_passage, "test_files/standard3.export.xml")
+        ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.export.xml"))
         self.assertTrue(converted_passage.equals(ref))
 
 
@@ -720,37 +720,37 @@ class TestUtil:
         Passage structure is as follows:
             Layer1: order by ID, heads = [1.2], all = [1.1, 1.2, 1.3]
             Layer2: order by node unique ID descending,
-                    heads = all = [2.2, 2.1], attrib={'test': True}
+                    heads = all = [2.2, 2.1], attrib={"test": True}
             Nodes (tag):
                 1.1 (1)
-                1.3 (3), attrib={'node': True}
+                1.3 (3), attrib={"node": True}
                 1.2 (x), order by edge tag
-                    children: 1.3 Edge: tag=test1, attrib={'Edge': True}
+                    children: 1.3 Edge: tag=test1, attrib={"Edge": True}
                               1.1 Edge: tag=test2
                 2.1 (2), children [1.1, 1.2] with edge tags [test, test2]
                 2.2 (2), children [1.1, 1.2, 1.3] with tags [test, test1, test]
 
         """
-        p = core.Passage(ID='1')
-        core.Layer(ID='1', root=p)
-        core.Layer(ID='2', root=p, attrib={'test': True},
-                   orderkey=lambda x: -1 * int(x.ID.split('.')[1]))
+        p = core.Passage(ID="1")
+        core.Layer(ID="1", root=p)
+        core.Layer(ID="2", root=p, attrib={"test": True},
+                   orderkey=lambda x: -1 * int(x.ID.split(".")[1]))
 
         # Order is explicitly different in order to break the alignment between
         # the ID/Edge ordering and the order of creation/addition
-        node11 = core.Node(ID='1.1', root=p, tag='1')
-        node13 = core.Node(ID='1.3', root=p, tag='3', attrib={'node': True})
-        node12 = core.Node(ID='1.2', root=p, tag='x',
-                           orderkey=operator.attrgetter('tag'))
-        node21 = core.Node(ID='2.1', root=p, tag='2')
-        node22 = core.Node(ID='2.2', root=p, tag='2')
-        node12.add('test2', node11)
-        node12.add('test1', node13, edge_attrib={'edge': True})
-        node21.add('test2', node12)
-        node21.add('test', node11)
-        node22.add('test1', node12)
-        node22.add('test', node13)
-        node22.add('test', node11)
+        node11 = core.Node(ID="1.1", root=p, tag="1")
+        node13 = core.Node(ID="1.3", root=p, tag="3", attrib={"node": True})
+        node12 = core.Node(ID="1.2", root=p, tag="x",
+                           orderkey=operator.attrgetter("tag"))
+        node21 = core.Node(ID="2.1", root=p, tag="2")
+        node22 = core.Node(ID="2.2", root=p, tag="2")
+        node12.add("test2", node11)
+        node12.add("test1", node13, edge_attrib={"edge": True})
+        node21.add("test2", node12)
+        node21.add("test", node11)
+        node22.add("test1", node12)
+        node22.add("test", node13)
+        node22.add("test", node11)
         return p
 
     @staticmethod
@@ -773,7 +773,7 @@ class TestUtil:
 
         """
 
-        p = core.Passage('1')
+        p = core.Passage("1")
         l0 = layer0.Layer0(p)
         l1 = layer1.Layer1(p)
         # 20 terminals (1-20), #10 and #20 are punctuation
@@ -843,18 +843,18 @@ class TestUtil:
                  [[8 P] . 10 . H]
 
         """
-        p = core.Passage('1')
+        p = core.Passage("1")
         l0 = layer0.Layer0(p)
         l1 = layer1.Layer1(p)
         terms = [l0.add_terminal(str(i), False) for i in range(1, 4)]
-        terms.append(l0.add_terminal('.', True))
-        terms.append(l0.add_terminal('5', False))
-        terms.append(l0.add_terminal('6', False))
-        terms.append(l0.add_terminal('.', True))
-        terms.append(l0.add_terminal('8', False, paragraph=2))
-        terms.append(l0.add_terminal('.', True, paragraph=2))
-        terms.append(l0.add_terminal('10', False, paragraph=2))
-        terms.append(l0.add_terminal('.', True, paragraph=2))
+        terms.append(l0.add_terminal(".", True))
+        terms.append(l0.add_terminal("5", False))
+        terms.append(l0.add_terminal("6", False))
+        terms.append(l0.add_terminal(".", True))
+        terms.append(l0.add_terminal("8", False, paragraph=2))
+        terms.append(l0.add_terminal(".", True, paragraph=2))
+        terms.append(l0.add_terminal("10", False, paragraph=2))
+        terms.append(l0.add_terminal(".", True, paragraph=2))
         h1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
         h2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
         h3 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
@@ -882,17 +882,17 @@ class TestUtil:
                  [[3 P] . 4 . H]
 
         """
-        p = core.Passage('1')
+        p = core.Passage("1")
         l0 = layer0.Layer0(p)
         l1 = layer1.Layer1(p)
         terms = [
-            l0.add_terminal('1', False),
-            l0.add_terminal('2', False),
-            l0.add_terminal('.', True),
-            l0.add_terminal('3', False, paragraph=2),
-            l0.add_terminal('.', True, paragraph=2),
-            l0.add_terminal('4', False, paragraph=2),
-            l0.add_terminal('.', True, paragraph=2),
+            l0.add_terminal("1", False),
+            l0.add_terminal("2", False),
+            l0.add_terminal(".", True),
+            l0.add_terminal("3", False, paragraph=2),
+            l0.add_terminal(".", True, paragraph=2),
+            l0.add_terminal("4", False, paragraph=2),
+            l0.add_terminal(".", True, paragraph=2),
         ]
         h1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
         h2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
@@ -910,7 +910,7 @@ class TestUtil:
     @staticmethod
     def create_discontiguous():
         """Creates a highly-discontiguous Passage object."""
-        p = core.Passage('1')
+        p = core.Passage("1")
         l0 = layer0.Layer0(p)
         l1 = layer1.Layer1(p)
         # 20 terminals (1-20), #10 and #20 are punctuation
@@ -974,5 +974,5 @@ class TestUtil:
         """XML file path ==> root element
         :param path: path to XML file
         """
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             return ETree.ElementTree().parse(f)

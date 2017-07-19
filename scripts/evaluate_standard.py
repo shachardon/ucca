@@ -71,11 +71,11 @@ if __name__ == "__main__":
             print("Average labeled F1 score: %.3f" % summary.average_f1())
     args_constructions = summary.evaluators
     if args.out_file:
-        with open(args.out_file, "w") as f:
+        with open(args.out_file, "w", encoding="utf-8") as f:
             print(",".join(summary.titles()), file=f)
             for result in results:
                 print(",".join(result.fields()), file=f)
     if args.summary_file:
-        with open(args.summary_file, "w") as f:
+        with open(args.summary_file, "w", encoding="utf-8") as f:
             print(",".join(summary.titles()), file=f)
             print(",".join(summary.fields()), file=f)

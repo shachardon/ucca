@@ -117,5 +117,5 @@ def write_passage(passage, output_format, binary, outdir, prefix, converter=None
         passage2file(passage, outfile, binary=binary)
     else:
         output = "\n".join(line for line in (to_text if converter is None else converter)(passage))
-        with open(outfile, "w") as f:
+        with open(outfile, "w", encoding="utf-8") as f:
             f.write(output + "\n")
