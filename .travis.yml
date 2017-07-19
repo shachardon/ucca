@@ -4,10 +4,10 @@ python:
   - "3.6"
 install:
   - pip install .
-  - python -m spacy download en > spacy.log
+  - python -m spacy download en
 before_script:
   - mkdir pickle
-  - curl -L http://www.cs.huji.ac.il/~danielh/ucca/ucca_corpus_pickle.tgz | tar xz -C pickle
+  - curl -L http://www.cs.huji.ac.il/~danielh/ucca/ucca_corpus_pickle.tgz | tar xz -C pickle || curl -L https://www.dropbox.com/s/q4ycn45zlmhuf9k/ucca_corpus_pickle.tgz | tar xz -C pickle
 env:
   - TEST_SUITE=unit
   - TEST_SUITE=convert
