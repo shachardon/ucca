@@ -787,6 +787,12 @@ class DependencyConverter(FormatConverter):
 
         def __repr__(self):
             return self.terminal.text if self.terminal else DependencyConverter.ROOT
+
+        def __eq__(self, other):
+            return self.position == other.position
+
+        def __hash__(self):
+            return hash(self.position)
     
     class Edge:
         def __init__(self, head_index, rel, remote):
@@ -808,8 +814,13 @@ class DependencyConverter(FormatConverter):
     
         def __repr__(self):
             return (str(self.head_index) if self.head is None else repr(self.head)) + \
-                   "-[" + self.rel + ("*" if self.remote else "") + "]->" + \
-                   repr(self.dependent)
+                   "-[" + self.rel + ("*" if self.remote else "") + "]->" + repr(self.dependent)
+
+        def __eq__(self, other):
+            return self.head_index == other.head_index and self.dependent == other.dependent
+
+        def __hash__(self):
+            return hash((self.head_index, self.dependent))
 
     class Terminal:
         def __init__(self, text, tag):
@@ -818,8 +829,6 @@ class DependencyConverter(FormatConverter):
             self.paragraph = None
 
     def __init__(self, mark_aux=False):
-        self.dep_nodes = None
-        self.sentence_id = None
         self.mark_aux = mark_aux
 
     @staticmethod
@@ -879,21 +888,44 @@ class DependencyConverter(FormatConverter):
     def _label_edge(self, node):
         return ("#" if self.mark_aux else "") + self._label(node)
 
-    def _init_nodes(self, passage_id):
-        self.passage_id = passage_id
-        self.sentence_id = None
-        self.dep_nodes = None
-        self.paragraph = 1
+    def build_nodes(self, lines, split=False):
+        # read dependencies and terminals from lines and create nodes
+        sentence_id = dep_nodes = previous_node = None
+        paragraph = 1
+        for line in lines:
+            if dep_nodes is None:
+                dep_nodes = [DependencyConverter.Node()]  # dummy root
+            if line.startswith("#"):  # comment
+                m = re.match("#\s*(\d+).*", line) or re.match("#\s*sent_id\s*=\s*(\S+)", line)
+                if m:  # comment may optionally contain the sentence ID
+                    sentence_id = m.group(1)
+            elif line.strip():
+                dep_node = self._read_line(line, previous_node)  # different implementation for each subclass
+                if dep_node is not None:
+                    previous_node = dep_node
+                    dep_node.terminal.paragraph = paragraph  # mark down which paragraph this is in
+                    dep_nodes.append(dep_node)
+            elif split:
+                try:
+                    self._link_heads(dep_nodes)
+                    yield dep_nodes, sentence_id
+                except Exception as e:
+                    sys.stderr.write("Skipped passage '%s': %s\n" % (sentence_id, e))
+                sentence_id = dep_nodes = None
+                paragraph = 1
+            else:
+                paragraph += 1
+        if not split:
+            self._link_heads(dep_nodes)
+            yield dep_nodes, sentence_id
 
-    def _build_passage(self):
-        self._link_heads(self.dep_nodes)
-
-        p = core.Passage(self.sentence_id or self.passage_id)
+    def _build_passage(self, dep_nodes, passage_id):
+        p = core.Passage(passage_id)
         l0 = layer0.Layer0(p)
         l1 = layer1.Layer1(p)
 
         # create terminals
-        for dep_node in self.dep_nodes:
+        for dep_node in dep_nodes:
             if dep_node.terminal is not None:
                 dep_node.terminal = l0.add_terminal(
                     text=dep_node.terminal.text,
@@ -902,8 +934,8 @@ class DependencyConverter(FormatConverter):
 
         # create nodes starting from the root and going down to pre-terminals
         linkages = defaultdict(list)
-        self.dep_nodes = self._topological_sort(self.dep_nodes)
-        for dep_node in self.dep_nodes:
+        dep_nodes = self._topological_sort(dep_nodes)
+        for dep_node in dep_nodes:
             incoming_rels = {e.rel for e in dep_node.incoming}
             if incoming_rels == {self.ROOT}:
                 # keep dep_node.node as None so that dependents are attached to the root
@@ -953,7 +985,7 @@ class DependencyConverter(FormatConverter):
             if link_relation.node is None:
                 link_relation.node = link_relation.preterminal = l1.add_fnode(None, EdgeTags.Linker)
             l1.add_linkage(link_relation.node, *args)
-        for dep_node in self.dep_nodes:
+        for dep_node in dep_nodes:
             # link pre-terminal to terminal
             dep_node.preterminal.add(EdgeTags.Terminal, dep_node.terminal)
             if layer0.is_punct(dep_node.terminal):
@@ -970,33 +1002,8 @@ class DependencyConverter(FormatConverter):
 
         :return generator of Passage objects.
         """
-        
-        self._init_nodes(passage_id)
-        # read dependencies and terminals from lines and create nodes
-        previous_node = None
-        for line in lines:
-            if self.dep_nodes is None:
-                self.dep_nodes = [DependencyConverter.Node()]  # dummy root
-            if line.startswith("#"):  # comment
-                m = re.match("#\s*(\d+).*", line) or re.match("#\s*sent_id\s*=\s*(\S+)", line)
-                if m:  # comment may optionally contain the sentence ID
-                    self.sentence_id = m.group(1)
-            elif line.strip():
-                dep_node = self._read_line(line, previous_node)  # different implementation for each subclass
-                if dep_node is not None:
-                    previous_node = dep_node
-                    dep_node.terminal.paragraph = self.paragraph  # mark down which paragraph this is in
-                    self.dep_nodes.append(dep_node)
-            elif split:
-                try:
-                    yield self._build_passage()
-                except Exception as e:
-                    sys.stderr.write("Skipped passage '%s': %s\n" % (self.sentence_id, e))
-                self._init_nodes(passage_id)
-            else:
-                self.paragraph += 1
-        if not split:
-            yield self._build_passage()
+        for dep_nodes, sentence_id in self.build_nodes(lines, split):
+            yield self._build_passage(dep_nodes, sentence_id or passage_id)
 
     def to_format(self, passage, test=False, tree=True):
         """ Convert from a Passage object to a string in CoNLL-X format (conll)
