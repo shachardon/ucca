@@ -26,13 +26,18 @@ def copy(src, dest, link=False):
 def numeric(s):
     try:
         return int(re.findall("([0-9]+)", s)[-1])
-    except ValueError:
+    except (ValueError, IndexError):
         return s
 
 
+def not_split_dir(filename)
+    return filename not in ("train", "dev", "test")
+
+
 def split_passages(directory, train, dev, link, quiet=False):
-    filenames = sorted(os.listdir(directory), key=numeric)
+    filenames = sorted(filter(not_split_dir, os.listdir(directory)), key=numeric)
     assert filenames, "No files to split"
+    assert train + dev <= len(filenames), "Not enough files to split: %d+%d>%d" % (train, dev, len(filenames))
     directory = os.path.abspath(directory)
     if not directory.endswith(os.sep):
         directory += os.sep
@@ -66,14 +71,12 @@ def split_passages(directory, train, dev, link, quiet=False):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description=desc)
-    argparser.add_argument("directory", default=".", nargs="?",
-                           help="directory to split (default: current directory)")
+    argparser.add_argument("directory", default=".", nargs="?", help="directory to split (default: current directory)")
     argparser.add_argument("-t", "--train", type=int, default=TRAIN_DEFAULT,
                            help="size of train split (default: %d)" % TRAIN_DEFAULT)
     argparser.add_argument("-d", "--dev", type=int, default=DEV_DEFAULT,
                            help="size of dev split (default: %d)" % DEV_DEFAULT)
-    argparser.add_argument("-l", "--link", action="store_true",
-                           help="create symbolic link instead of copying")
+    argparser.add_argument("-l", "--link", action="store_true", help="create symbolic link instead of copying")
     argparser.add_argument("-q", "--quiet", action="store_true", help="less output")
     args = argparser.parse_args()
 
