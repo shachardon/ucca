@@ -116,6 +116,6 @@ def write_passage(passage, output_format, binary, outdir, prefix, converter=None
     if output_format is None or output_format in ("pickle", "xml"):
         passage2file(passage, outfile, binary=binary)
     else:
-        output = "\n".join(line for line in (to_text if converter is None else converter)(passage))
+        output = "\n".join(line for line in (converter or to_text)(passage))
         with open(outfile, "w", encoding="utf-8") as f:
             f.write(output + "\n")
