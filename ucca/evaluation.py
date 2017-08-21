@@ -221,11 +221,13 @@ class Scores(object):
 
 
 class EvaluatorResults(object):
-    def __init__(self, results):
+    def __init__(self, results, default=None):
         """
         :param results: dict: Construction -> SummaryStatistics
+        :param default: map of default constructions (default is primary and remote)
         """
         self.results = OrderedDict(results)
+        self.default = default or DEFAULT
 
     def print(self):
         for construction, stats in self.results.items():
@@ -252,7 +254,7 @@ class EvaluatorResults(object):
         :return: SummaryStatistics object representing aggregation over primary and remote
         """
         try:
-            return SummaryStatistics.aggregate([self.results[c] for c in DEFAULT.values()])
+            return SummaryStatistics.aggregate([self.results[c] for c in self.default.values()])
         except KeyError as e:
             raise ValueError("Default constructions missing from evaluation results: " +
                              ", ".join(map(str, self.results.keys()))) from e
