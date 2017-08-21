@@ -849,6 +849,9 @@ class DependencyConverter(FormatConverter):
 
     def _omit_edge(self, edge, tree):
         return False
+
+    def modify_passage(self, passage):
+        pass
         
     @staticmethod
     def _topological_sort(nodes):
@@ -992,6 +995,7 @@ class DependencyConverter(FormatConverter):
             if layer0.is_punct(dep_node.terminal):
                 dep_node.preterminal.tag = layer1.NodeTags.Punctuation
 
+        self.modify_passage(p)
         return p
 
     def from_format(self, lines, passage_id, split=False):
