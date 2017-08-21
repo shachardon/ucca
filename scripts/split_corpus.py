@@ -30,7 +30,7 @@ def numeric(s):
         return s
 
 
-def not_split_dir(filename)
+def not_split_dir(filename):
     return filename not in ("train", "dev", "test")
 
 
