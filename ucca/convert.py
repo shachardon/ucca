@@ -817,10 +817,11 @@ class DependencyConverter(FormatConverter):
                    "-[" + self.rel + ("*" if self.remote else "") + "]->" + repr(self.dependent)
 
         def __eq__(self, other):
-            return self.head_index == other.head_index and self.dependent == other.dependent
+            return self.head_index == other.head_index and self.dependent == other.dependent and self.rel == other.rel \
+                and self.remote == other.remote
 
         def __hash__(self):
-            return hash((self.head_index, self.dependent))
+            return hash((self.head_index, self.dependent, self.rel, self.remote))
 
     class Terminal:
         def __init__(self, text, tag):
