@@ -229,7 +229,8 @@ class EvaluatorResults(object):
 
     def print(self):
         for construction, stats in self.results.items():
-            print("\n%s:" % construction.description)
+            if len(self.results) > 1:
+                print("\n%s:" % construction.description)
             stats.print()
         print()
 
