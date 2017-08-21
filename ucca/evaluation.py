@@ -243,10 +243,12 @@ class EvaluatorResults(object):
         :return: new EvaluatorResults with aggregates scores
         """
         collected = OrderedDict()
+        default = OrderedDict()
         for evaluator_results in results:
             for c, r in evaluator_results.results.items():
                 collected.setdefault(c, []).append(r)
-        return EvaluatorResults((c, SummaryStatistics.aggregate(r)) for c, r in collected.items())
+            default.update(evaluator_results.default)
+        return EvaluatorResults(((c, SummaryStatistics.aggregate(r)) for c, r in collected.items()), default=default)
 
     def aggregate_default(self):
         """
