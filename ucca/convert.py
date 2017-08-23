@@ -1178,16 +1178,19 @@ class SdpConverter(DependencyConverter):
     def __init__(self, *args, **kwargs):
         super(SdpConverter, self).__init__(*args, **kwargs)
 
-    @staticmethod
-    def read_line(line, previous_node):
+    def read_line(self, line, previous_node):
         fields = line.split()
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
-        position, text, _, tag, _, pred, _ = fields[:7]
+        position, text, _, tag, top, pred, _ = fields[:7]
         # incoming: (head positions, dependency relations, is remote for each one)
-        return DependencyConverter.Node(position, [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
-                                                   for i, rel in enumerate(fields[7:]) if rel != "_"] or
-                                        [DependencyConverter.Edge(0, DependencyConverter.ROOT, False)],
-                                        DependencyConverter.Terminal(text, tag), is_head=(pred == "+"))
+        return DependencyConverter.Node(
+            position, [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
+                       for i, rel in enumerate(fields[7:]) if rel != "_"] or self.edges_for_orphan(top),
+            DependencyConverter.Terminal(text, tag), is_head=(pred == "+"))
+
+    @staticmethod
+    def edges_for_orphan(top):
+        return [DependencyConverter.Edge(0, DependencyConverter.ROOT, False)]
 
     @staticmethod
     def generate_lines(passage_id, dep_nodes, test, tree):
