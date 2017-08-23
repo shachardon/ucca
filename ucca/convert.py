@@ -767,7 +767,7 @@ class DependencyConverter(FormatConverter):
     ROOT = "ROOT"
 
     class Node:
-        def __init__(self, position=0, incoming=None, terminal=None, is_head=True):
+        def __init__(self, position=0, incoming=None, terminal=None, is_head=True, is_top=False):
             self.position = position
             self.incoming = []
             if incoming is not None:
@@ -775,6 +775,7 @@ class DependencyConverter(FormatConverter):
             self.outgoing = []
             self.terminal = terminal
             self.is_head = is_head
+            self.is_top = is_top
             self.node = None
             self.level = None
             self.heads_visited = set()  # for topological sort
@@ -1104,6 +1105,10 @@ class DependencyConverter(FormatConverter):
                        key=lambda e: (not e.remote, e.rel != EdgeTags.Linker))
             edge.remove()
 
+    @staticmethod
+    def is_top(unit):
+        return False
+
     def to_format(self, passage, test=False, tree=True):
         """ Convert from a Passage object to a string in dependency format.
 
@@ -1124,7 +1129,7 @@ class DependencyConverter(FormatConverter):
                         for e, head_index in zip(edges, head_indices)
                         if head_index != terminal.position - 1 and  # avoid self loops
                         not self.omit_edge(e, tree)}  # different implementation for each subclass
-            dep_nodes.append(self.Node(terminal.position, incoming, terminal))
+            dep_nodes.append(self.Node(terminal.position, incoming, terminal, is_top=self.is_top(terminal)))
         self._link_heads(dep_nodes)
         self.break_cycles(dep_nodes)
         lines += ["\t".join(str(field) for field in entry)
@@ -1185,8 +1190,8 @@ class SdpConverter(DependencyConverter):
         # incoming: (head positions, dependency relations, is remote for each one)
         return DependencyConverter.Node(
             int(position), [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
-                       for i, rel in enumerate(fields[7:]) if rel != "_"] or self.edges_for_orphan(top == "+"),
-            DependencyConverter.Terminal(text, tag), is_head=(pred == "+"))
+                            for i, rel in enumerate(fields[7:]) if rel != "_"] or self.edges_for_orphan(top == "+"),
+            DependencyConverter.Terminal(text, tag), is_head=(pred == "+"), is_top=(top == "+"))
 
     @staticmethod
     def edges_for_orphan(top):
@@ -1195,11 +1200,9 @@ class SdpConverter(DependencyConverter):
     @staticmethod
     def generate_lines(passage_id, dep_nodes, test, tree):
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
-        preds = sorted({e.head_index for dep_node in dep_nodes
-                        for e in dep_node.incoming})
+        preds = sorted({e.head_index for dep_node in dep_nodes for e in dep_node.incoming})
         for i, dep_node in enumerate(dep_nodes):
-            heads = {e.head_index: e.rel + ("*" if e.remote else "")
-                     for e in dep_node.incoming}
+            heads = {e.head_index: e.rel + ("*" if e.remote else "") for e in dep_node.incoming}
             position = i + 1
             assert position == dep_node.position
             tag = dep_node.terminal.tag
@@ -1209,7 +1212,7 @@ class SdpConverter(DependencyConverter):
                 head_preds = [heads.get(pred, "_") for pred in preds]
                 if tree and head_preds:
                     head_preds = [head_preds[0]]
-                fields += ["-", pred, "_"] + head_preds  # rel for each pred
+                fields += ["+" if dep_node.is_top else "-", pred, "_"] + head_preds  # rel for each pred
             yield fields
 
     def omit_edge(self, edge, tree, linkage=False):
