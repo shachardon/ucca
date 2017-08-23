@@ -201,12 +201,15 @@ class Scores(object):
         :param scores: iterable of Scores
         :return: new Scores with aggregated scores
         """
-        return Scores((t, EvaluatorResults.aggregate(s.evaluators[t] for s in scores)) for t in EVAL_TYPES)
+        return Scores((t, EvaluatorResults.aggregate(filter(None, (s.evaluators.get(t) for s in scores))))
+                      for t in EVAL_TYPES)
 
     def print(self, **kwargs):
         for eval_type in EVAL_TYPES:
-            print("Evaluation type: (" + eval_type + ")", **kwargs)
-            self.evaluators[eval_type].print(**kwargs)
+            evaluator = self.evaluators.get(eval_type)
+            if evaluator is not None:
+                print("Evaluation type: (" + eval_type + ")", **kwargs)
+                evaluator.print(**kwargs)
 
     def fields(self):
         e = self.evaluators[LABELED]
