@@ -13,7 +13,13 @@ def nlp(*args, **kwargs):
 def get_nlp():
     if nlp.instance is None:
         import spacy
-        nlp.instance = spacy.load(os.environ.get("SPACY_MODEL", "en"))
+        model_name = os.environ.get("SPACY_MODEL", "en")
+        nlp.instance = spacy.load(model_name)
+        if nlp.instance.tagger is None:  # Model not really loaded
+            spacy.cli.download(model_name)
+            nlp.instance = spacy.load(model_name)
+            assert nlp.instance.tagger, "Failed to get spaCy model. " \
+                                        "Download it manually using `python -m spacy download %s`." % model_name
         nlp.tokenizer = nlp.instance.tokenizer
         nlp.instance.tokenizer = nlp.tokenizer.tokens_from_list
     return nlp.instance
