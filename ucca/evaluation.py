@@ -203,10 +203,10 @@ class Scores(object):
         """
         return Scores((t, EvaluatorResults.aggregate(s.evaluators[t] for s in scores)) for t in EVAL_TYPES)
 
-    def print(self):
+    def print(self, **kwargs):
         for eval_type in EVAL_TYPES:
-            print("Evaluation type: (" + eval_type + ")")
-            self.evaluators[eval_type].print()
+            print("Evaluation type: (" + eval_type + ")", **kwargs)
+            self.evaluators[eval_type].print(**kwargs)
 
     def fields(self):
         e = self.evaluators[LABELED]
@@ -229,12 +229,12 @@ class EvaluatorResults(object):
         self.results = OrderedDict(results)
         self.default = default or DEFAULT
 
-    def print(self):
+    def print(self, **kwargs):
         for construction, stats in self.results.items():
             if len(self.results) > 1:
-                print("\n%s:" % construction.description)
-            stats.print()
-        print()
+                print("\n%s:" % construction.description, **kwargs)
+            stats.print(**kwargs)
+        print(**kwargs)
 
     @classmethod
     def aggregate(cls, results):
@@ -277,10 +277,10 @@ class SummaryStatistics(object):
                 return
         self.f1 = 2.0 * self.p * self.r / float(self.p + self.r)
 
-    def print(self):
-        print("Precision: {:.3} ({}/{})".format(self.p, self.num_matches, self.num_guessed))
-        print("Recall: {:.3} ({}/{})".format(self.r, self.num_matches, self.num_ref))
-        print("F1: {:.3}".format(self.f1))
+    def print(self, **kwargs):
+        print("Precision: {:.3} ({}/{})".format(self.p, self.num_matches, self.num_guessed), **kwargs)
+        print("Recall: {:.3} ({}/{})".format(self.r, self.num_matches, self.num_ref), **kwargs)
+        print("F1: {:.3}".format(self.f1), **kwargs)
 
     @classmethod
     def aggregate(cls, stats):
