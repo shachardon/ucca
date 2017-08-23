@@ -926,7 +926,7 @@ class DependencyConverter(FormatConverter):
     def build_passage(self, dep_nodes, passage_id):
         p = core.Passage(passage_id)
         self.create_terminals(dep_nodes, layer0.Layer0(p))
-        self.create_non_terminals(self._topological_sort(dep_nodes), layer1.Layer1(p))
+        self.create_non_terminals(dep_nodes, layer1.Layer1(p))
         self.link_pre_terminals(dep_nodes)
         self.modify_passage(p)
         return p
@@ -934,7 +934,7 @@ class DependencyConverter(FormatConverter):
     def create_non_terminals(self, dep_nodes, l1):
         # create nodes starting from the root and going down to pre-terminals
         linkages = defaultdict(list)
-        for dep_node in dep_nodes:
+        for dep_node in self._topological_sort(dep_nodes):
             incoming_rels = {e.rel for e in dep_node.incoming}
             if incoming_rels == {self.ROOT}:
                 # keep dep_node.node as None so that dependents are attached to the root
