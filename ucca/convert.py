@@ -833,11 +833,11 @@ class DependencyConverter(FormatConverter):
         self.mark_aux = mark_aux
 
     @staticmethod
-    def _read_line(line, previous_node):
+    def read_line(line, previous_node):
         return DependencyConverter.Node()
 
     @staticmethod
-    def _generate_lines(passage_id, dep_nodes, test, tree):
+    def generate_lines(passage_id, dep_nodes, test, tree):
         yield ""
 
     @staticmethod
@@ -847,7 +847,7 @@ class DependencyConverter(FormatConverter):
             for edge in dep_node.incoming:
                 edge.link_head(heads)
 
-    def _omit_edge(self, edge, tree):
+    def omit_edge(self, edge, tree):
         return False
 
     def modify_passage(self, passage):
@@ -904,7 +904,7 @@ class DependencyConverter(FormatConverter):
                 if m:  # comment may optionally contain the sentence ID
                     sentence_id = m.group(1)
             elif line.strip():
-                dep_node = self._read_line(line, previous_node)  # different implementation for each subclass
+                dep_node = self.read_line(line, previous_node)  # different implementation for each subclass
                 if dep_node is not None:
                     previous_node = dep_node
                     dep_node.terminal.paragraph = paragraph  # mark down which paragraph this is in
@@ -923,22 +923,17 @@ class DependencyConverter(FormatConverter):
             self._link_heads(dep_nodes)
             yield dep_nodes, sentence_id
 
-    def _build_passage(self, dep_nodes, passage_id):
+    def build_passage(self, dep_nodes, passage_id):
         p = core.Passage(passage_id)
-        l0 = layer0.Layer0(p)
-        l1 = layer1.Layer1(p)
+        self.create_terminals(dep_nodes, layer0.Layer0(p))
+        self.create_non_terminals(self._topological_sort(dep_nodes), layer1.Layer1(p))
+        self.link_pre_terminals(dep_nodes)
+        self.modify_passage(p)
+        return p
 
-        # create terminals
-        for dep_node in dep_nodes:
-            if dep_node.terminal is not None:
-                dep_node.terminal = l0.add_terminal(
-                    text=dep_node.terminal.text,
-                    punct=(dep_node.terminal.tag == layer0.NodeTags.Punct),
-                    paragraph=dep_node.terminal.paragraph)
-
+    def create_non_terminals(self, dep_nodes, l1):
         # create nodes starting from the root and going down to pre-terminals
         linkages = defaultdict(list)
-        dep_nodes = self._topological_sort(dep_nodes)
         for dep_node in dep_nodes:
             incoming_rels = {e.rel for e in dep_node.incoming}
             if incoming_rels == {self.ROOT}:
@@ -989,14 +984,24 @@ class DependencyConverter(FormatConverter):
             if link_relation.node is None:
                 link_relation.node = link_relation.preterminal = l1.add_fnode(None, EdgeTags.Linker)
             l1.add_linkage(link_relation.node, *args)
-        for dep_node in dep_nodes:
-            # link pre-terminal to terminal
-            dep_node.preterminal.add(EdgeTags.Terminal, dep_node.terminal)
-            if layer0.is_punct(dep_node.terminal):
-                dep_node.preterminal.tag = layer1.NodeTags.Punctuation
 
-        self.modify_passage(p)
-        return p
+    @staticmethod
+    def create_terminals(dep_nodes, l0):
+        for dep_node in dep_nodes:
+            if dep_node.terminal is not None:  # not the root
+                dep_node.terminal = l0.add_terminal(  # replace DependencyConverter.Terminal by layer0.Terminal
+                    text=dep_node.terminal.text,
+                    punct=(dep_node.terminal.tag == layer0.NodeTags.Punct),
+                    paragraph=dep_node.terminal.paragraph)
+
+    @staticmethod
+    def link_pre_terminals(dep_nodes):
+        for dep_node in dep_nodes:
+            if dep_node.preterminal is not None:
+                # link pre-terminal to terminal
+                dep_node.preterminal.add(EdgeTags.Terminal, dep_node.terminal)
+                if layer0.is_punct(dep_node.terminal):
+                    dep_node.preterminal.tag = layer1.NodeTags.Punctuation
 
     def from_format(self, lines, passage_id, split=False):
         """Converts from parsed text in dependency format to a Passage object.
@@ -1008,10 +1013,99 @@ class DependencyConverter(FormatConverter):
         :return generator of Passage objects.
         """
         for dep_nodes, sentence_id in self.build_nodes(lines, split):
-            yield self._build_passage(dep_nodes, sentence_id or passage_id)
+            yield self.build_passage(dep_nodes, sentence_id or passage_id)
+
+    TAG_PRIORITY = [  # ordered list of edge labels for head selection
+        EdgeTags.Center,
+        EdgeTags.Connector,
+        EdgeTags.ParallelScene,
+        EdgeTags.Process,
+        EdgeTags.State,
+        EdgeTags.Participant,
+        EdgeTags.Adverbial,
+        EdgeTags.Time,
+        EdgeTags.Elaborator,
+        EdgeTags.Relator,
+        EdgeTags.Function,
+        EdgeTags.Linker,
+        EdgeTags.LinkRelation,
+        EdgeTags.LinkArgument,
+        EdgeTags.Ground,
+        EdgeTags.Terminal,
+        EdgeTags.Punctuation,
+    ]
+
+    def find_head_child_edge(self, unit):
+        """ find the outgoing edge to the head child of this unit.
+        The child of the returned edge is referred to as h(u) in the paper.
+        :param unit: unit to find the edges from
+        :return the head outgoing edge
+        """
+        try:
+            return next(e for tag in self.TAG_PRIORITY  # head selection by priority
+                        for e in unit.outgoing if e.tag == tag and not e.child.attrib.get("implicit"))
+        except StopIteration:
+            # edge tags are not in the priority list, so use a simple heuristic:
+            # find the child with the highest number of terminals in the yield
+            return max(unit.outgoing, key=lambda e: len(e.child.get_terminals()))
+
+    def find_head_terminal(self, unit):
+        """ find the head terminal of this unit, by recursive descent.
+        Referred to as h*(u) in the paper.
+        :param unit: unit to find the terminal of
+        :return the unit itself if it is a terminal, otherwise recursively applied to child
+        """
+        while unit.outgoing:
+            unit = self.find_head_child_edge(unit).child
+        return unit
+
+    def find_top_headed_edges(self, unit):
+        """ find uppermost edges above here, to a head child from its parent.
+        Referred to as N(t) in the paper.
+        :param unit: unit to start from
+        :return generator of edges
+        """
+        # This iterative implementation has a bug... find it and re-enable
+        # remaining = list(unit.incoming)
+        # ret = []
+        # while remaining:
+        #     edge = remaining.pop()
+        #     if edge is find_head_child_edge(edge.parent):
+        #         remaining += edge.parent.incoming
+        #     else:
+        #         ret.append(edge)
+        # return ret
+        for e in unit.incoming:
+            if e == self.find_head_child_edge(e.parent):
+                yield from self.find_top_headed_edges(e.parent)
+            elif self.find_head_terminal(e.parent).layer.ID == layer0.LAYER_ID:
+                yield e
+
+    def find_cycle(self, n, v, p):
+        if n in v:
+            return False
+        v.add(n)
+        p.add(n)
+        for e in n.incoming:
+            if e.head in p or self.find_cycle(e.head, v, p):
+                return True
+        p.remove(n)
+        return False
+
+    def break_cycles(self, dep_nodes):
+        # find cycles and remove them
+        while True:
+            path = set()
+            visited = set()
+            if not any(self.find_cycle(dep_node, visited, path) for dep_node in dep_nodes):
+                break
+            # remove edges from cycle in priority order: first remote edges, then linker edges
+            edge = min((e for dep_node in path for e in dep_node.incoming),
+                       key=lambda e: (not e.remote, e.rel != EdgeTags.Linker))
+            edge.remove()
 
     def to_format(self, passage, test=False, tree=True):
-        """ Convert from a Passage object to a string in CoNLL-X format (conll)
+        """ Convert from a Passage object to a string in dependency format.
 
         :param passage: the Passage object to convert
         :param test: whether to omit the head and deprel columns. Defaults to False
@@ -1019,111 +1113,22 @@ class DependencyConverter(FormatConverter):
 
         :return a list of strings representing the dependencies in the passage
         """
-        _TAG_PRIORITY = [    # ordered list of edge labels for head selection
-            EdgeTags.Center,
-            EdgeTags.Connector,
-            EdgeTags.ParallelScene,
-            EdgeTags.Process,
-            EdgeTags.State,
-            EdgeTags.Participant,
-            EdgeTags.Adverbial,
-            EdgeTags.Time,
-            EdgeTags.Elaborator,
-            EdgeTags.Relator,
-            EdgeTags.Function,
-            EdgeTags.Linker,
-            EdgeTags.LinkRelation,
-            EdgeTags.LinkArgument,
-            EdgeTags.Ground,
-            EdgeTags.Terminal,
-            EdgeTags.Punctuation,
-        ]
-
-        def _find_head_child_edge(unit):
-            """ find the outgoing edge to the head child of this unit.
-            The child of the returned edge is referred to as h(u) in the paper.
-            :param unit: unit to find the edges from
-            :return the head outgoing edge
-            """
-            try:
-                return next(e for tag in _TAG_PRIORITY  # head selection by priority
-                            for e in unit.outgoing
-                            if e.tag == tag and not e.child.attrib.get("implicit"))
-            except StopIteration:
-                # edge tags are not in the priority list, so use a simple heuristic:
-                # find the child with the highest number of terminals in the yield
-                return max(unit.outgoing, key=lambda e: len(e.child.get_terminals()))
-
-        def _find_head_terminal(unit):
-            """ find the head terminal of this unit, by recursive descent.
-            Referred to as h*(u) in the paper.
-            :param unit: unit to find the terminal of
-            :return the unit itself if it is a terminal, otherwise recursively applied to child
-            """
-            while unit.outgoing:
-                unit = _find_head_child_edge(unit).child
-            return unit
-
-        def _find_top_headed_edges(unit):
-            """ find uppermost edges above here, to a head child from its parent.
-            Referred to as N(t) in the paper.
-            :param unit: unit to start from
-            :return generator of edges
-            """
-            # This iterative implementation has a bug... find it and re-enable
-            # remaining = list(unit.incoming)
-            # ret = []
-            # while remaining:
-            #     edge = remaining.pop()
-            #     if edge is _find_head_child_edge(edge.parent):
-            #         remaining += edge.parent.incoming
-            #     else:
-            #         ret.append(edge)
-            # return ret
-            for e in unit.incoming:
-                if e == _find_head_child_edge(e.parent):
-                    yield from _find_top_headed_edges(e.parent)
-                elif _find_head_terminal(e.parent).layer.ID == layer0.LAYER_ID:
-                    yield e
-
-        def _find_cycle(n, v, p):
-            if n in v:
-                return False
-            v.add(n)
-            p.add(n)
-            for e in n.incoming:
-                if e.head in p or _find_cycle(e.head, v, p):
-                    return True
-            p.remove(n)
-            return False
-
         lines = []  # list of output lines to return
         terminals = passage.layer(layer0.LAYER_ID).all  # terminal units from the passage
         dep_nodes = []
         for terminal in sorted(terminals, key=operator.attrgetter("position")):
-            edges = list(_find_top_headed_edges(terminal))
-            head_indices = [_find_head_terminal(e.parent).position - 1 for e in edges]
+            edges = list(self.find_top_headed_edges(terminal))
+            head_indices = [self.find_head_terminal(e.parent).position - 1 for e in edges]
             # (head positions, dependency relations, is remote for each one)
             incoming = {self.Edge(head_index, e.tag, e.attrib.get("remote", False))
                         for e, head_index in zip(edges, head_indices)
                         if head_index != terminal.position - 1 and  # avoid self loops
-                        not self._omit_edge(e, tree)}  # different implementation for each subclass
+                        not self.omit_edge(e, tree)}  # different implementation for each subclass
             dep_nodes.append(self.Node(terminal.position, incoming, terminal))
         self._link_heads(dep_nodes)
-
-        # find cycles and remove them
-        while True:
-            path = set()
-            visited = set()
-            if not any(_find_cycle(dep_node, visited, path) for dep_node in dep_nodes):
-                break
-            # remove edges from cycle in priority order: first remote edges, then linker edges
-            edge = min((e for dep_node in path for e in dep_node.incoming),
-                       key=lambda e: (not e.remote, e.rel != EdgeTags.Linker))
-            edge.remove()
-
+        self.break_cycles(dep_nodes)
         lines += ["\t".join(str(field) for field in entry)
-                  for entry in self._generate_lines(passage.ID, dep_nodes, test, tree)] + \
+                  for entry in self.generate_lines(passage.ID, dep_nodes, test, tree)] + \
                  [""]  # different for each subclass
         return lines
 
@@ -1133,7 +1138,7 @@ class ConllConverter(DependencyConverter):
         super(ConllConverter, self).__init__(*args, **kwargs)
 
     @staticmethod
-    def _read_line(line, previous_node):
+    def read_line(line, previous_node):
         fields = line.split()
         # id, form, lemma, coarse pos, fine pos, features, head, relation
         position, text, _, tag, _, _, head_position, rel = fields[:8]
@@ -1145,7 +1150,7 @@ class ConllConverter(DependencyConverter):
         previous_node.add_edges(edges)
 
     @staticmethod
-    def _generate_lines(passage_id, dep_nodes, test, tree):
+    def generate_lines(passage_id, dep_nodes, test, tree):
         yield ["# sent_id = " + passage_id]
         # id, form, lemma, coarse pos, fine pos, features
         for i, dep_node in enumerate(dep_nodes):
@@ -1165,7 +1170,7 @@ class ConllConverter(DependencyConverter):
                 for head in heads:
                     yield fields + list(head) + ["_", "_"]
 
-    def _omit_edge(self, edge, tree, linkage=False):
+    def omit_edge(self, edge, tree, linkage=False):
         return (tree or not linkage) and edge.tag == EdgeTags.LinkArgument or tree and edge.attrib.get("remote")
 
 
@@ -1174,7 +1179,7 @@ class SdpConverter(DependencyConverter):
         super(SdpConverter, self).__init__(*args, **kwargs)
 
     @staticmethod
-    def _read_line(line, previous_node):
+    def read_line(line, previous_node):
         fields = line.split()
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
         position, text, _, tag, _, pred, _ = fields[:7]
@@ -1185,7 +1190,7 @@ class SdpConverter(DependencyConverter):
                                         DependencyConverter.Terminal(text, tag), is_head=(pred == "+"))
 
     @staticmethod
-    def _generate_lines(passage_id, dep_nodes, test, tree):
+    def generate_lines(passage_id, dep_nodes, test, tree):
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
         preds = sorted({e.head_index for dep_node in dep_nodes
                         for e in dep_node.incoming})
@@ -1204,7 +1209,7 @@ class SdpConverter(DependencyConverter):
                 fields += ["-", pred, "_"] + head_preds  # rel for each pred
             yield fields
 
-    def _omit_edge(self, edge, tree, linkage=False):
+    def omit_edge(self, edge, tree, linkage=False):
         return (tree or not linkage) and edge.tag == EdgeTags.LinkArgument or self.mark_aux and edge.tag.startswith("#")
 
         
