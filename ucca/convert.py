@@ -1145,8 +1145,8 @@ class ConllConverter(DependencyConverter):
         edges = []
         if head_position and head_position != "_":
             edges.append(DependencyConverter.Edge(int(head_position), rel.rstrip("*"), rel.endswith("*")))
-        if not edges or previous_node is None or previous_node.position != position:
-            return DependencyConverter.Node(position, edges, DependencyConverter.Terminal(text, tag))
+        if not edges or previous_node is None or previous_node.position != int(position):
+            return DependencyConverter.Node(int(position), edges, DependencyConverter.Terminal(text, tag))
         previous_node.add_edges(edges)
 
     @staticmethod
@@ -1184,7 +1184,7 @@ class SdpConverter(DependencyConverter):
         position, text, _, tag, top, pred, _ = fields[:7]
         # incoming: (head positions, dependency relations, is remote for each one)
         return DependencyConverter.Node(
-            position, [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
+            int(position), [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
                        for i, rel in enumerate(fields[7:]) if rel != "_"] or self.edges_for_orphan(top == "+"),
             DependencyConverter.Terminal(text, tag), is_head=(pred == "+"))
 
