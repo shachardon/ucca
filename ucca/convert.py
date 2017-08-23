@@ -1185,7 +1185,7 @@ class SdpConverter(DependencyConverter):
         # incoming: (head positions, dependency relations, is remote for each one)
         return DependencyConverter.Node(
             position, [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
-                       for i, rel in enumerate(fields[7:]) if rel != "_"] or self.edges_for_orphan(top),
+                       for i, rel in enumerate(fields[7:]) if rel != "_"] or self.edges_for_orphan(top == "+"),
             DependencyConverter.Terminal(text, tag), is_head=(pred == "+"))
 
     @staticmethod
