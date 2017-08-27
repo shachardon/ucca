@@ -201,8 +201,8 @@ class Scores(object):
         :param scores: iterable of Scores
         :return: new Scores with aggregated scores
         """
-        return Scores((t, EvaluatorResults.aggregate(filter(None, (s.evaluators.get(t) for s in scores))))
-                      for t in EVAL_TYPES)
+        evaluators = [s.evaluators for s in scores]
+        return Scores((t, EvaluatorResults.aggregate(filter(None, (e.get(t) for e in evaluators)))) for t in EVAL_TYPES)
 
     def print(self, **kwargs):
         for eval_type in EVAL_TYPES:
