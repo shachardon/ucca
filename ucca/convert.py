@@ -815,7 +815,7 @@ class DependencyConverter(FormatConverter):
     
         def __repr__(self):
             return (str(self.head_index) if self.head is None else repr(self.head)) + \
-                   "-[" + self.rel + ("*" if self.remote else "") + "]->" + repr(self.dependent)
+                   "-[" + (self.rel or "") + ("*" if self.remote else "") + "]->" + repr(self.dependent)
 
         def __eq__(self, other):
             return self.head_index == other.head_index and self.dependent == other.dependent and self.rel == other.rel \
