@@ -10,7 +10,7 @@ except (IOError, ImportError, RuntimeError):
 
 
 setup(name="UCCA",
-      version="1.0.5",
+      version="1.0.6",
       install_requires="spacy",
       description="Universal Conceptual Cognitive Annotation",
       long_description=long_description,
