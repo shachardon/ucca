@@ -1169,8 +1169,7 @@ class ConllConverter(DependencyConverter):
                 fields += ["_", "_"]   # projective head, projective dependency relation (optional)
                 yield fields
             else:
-                heads = [(e.head_index + 1, e.rel + ("*" if e.remote else ""))
-                         for e in dep_node.incoming] or \
+                heads = [(e.head_index + 1, e.rel + ("*" if e.remote else "")) for e in dep_node.incoming] or \
                         [(0, DependencyConverter.ROOT)]
                 if tree:
                     heads = [heads[0]]
