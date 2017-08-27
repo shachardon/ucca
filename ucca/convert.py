@@ -1147,6 +1147,8 @@ class ConllConverter(DependencyConverter):
         fields = line.split()
         # id, form, lemma, coarse pos, fine pos, features, head, relation
         position, text, _, tag, _, _, head_position, rel = fields[:8]
+        if "." in position:
+            return None
         edges = []
         if head_position and head_position != "_":
             edges.append(DependencyConverter.Edge(int(head_position), rel.rstrip("*"), rel.endswith("*")))
