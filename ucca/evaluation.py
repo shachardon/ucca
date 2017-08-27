@@ -272,13 +272,9 @@ class SummaryStatistics(object):
         self.num_only_ref = num_only_ref
         self.num_guessed = num_matches + num_only_guessed
         self.num_ref = num_matches + num_only_ref
-        self.p = "NaN" if self.num_guessed == 0 else 1.0 * num_matches / self.num_guessed
-        self.r = "NaN" if self.num_ref == 0 else 1.0 * num_matches / self.num_ref
-        for v in (0.0, "NaN"):
-            if v in (self.p, self.r):
-                self.f1 = v
-                return
-        self.f1 = 2.0 * self.p * self.r / float(self.p + self.r)
+        self.p = 1.0 if self.num_guessed == 0 else 1.0 * num_matches / self.num_guessed
+        self.r = 1.0 if self.num_ref == 0 else 1.0 * num_matches / self.num_ref
+        self.f1 = 0.0 if 0.0 in (self.p, self.r) else 2.0 * self.p * self.r / float(self.p + self.r)
 
     def print(self, **kwargs):
         print("Precision: {:.3} ({}/{})".format(self.p, self.num_matches, self.num_guessed), **kwargs)
