@@ -916,7 +916,7 @@ class DependencyConverter(FormatConverter):
                     yield dep_nodes, sentence_id
                 except Exception as e:
                     sys.stderr.write("Skipped passage '%s': %s\n" % (sentence_id, e))
-                sentence_id = dep_nodes = None
+                sentence_id = dep_nodes = previous_node = None
                 paragraph = 1
             else:
                 paragraph += 1
