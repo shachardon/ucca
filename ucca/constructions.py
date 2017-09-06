@@ -155,6 +155,11 @@ def terminal_ids(passage):
     return {t.ID for t in passage.layer(layer0.LAYER_ID).all}
 
 
+def diff_terminals(*passages):
+    texts = [[t.text for t in p.layer(layer0.LAYER_ID).all] for p in passages]
+    return [[t for t in texts[i] if t not in texts[j]] for i, j in ((0, 1), (1, 0))]
+
+
 def extract_edges(passage, constructions=None, reference=None, verbose=False):
     """
     Find constructions in UCCA passage.
@@ -166,8 +171,10 @@ def extract_edges(passage, constructions=None, reference=None, verbose=False):
     """
     constructions = get_by_names(constructions)
     if reference is not None:
-        assert terminal_ids(passage) == terminal_ids(reference),\
-            "Reference passage terminals do not match: %s" % reference.ID
+        ids1, ids2 = terminal_ids(passage), terminal_ids(reference)
+        assert ids1 == ids2, "Reference passage terminals do not match: %s (%d != %d)\nDifference:\n%s" % (
+            reference.ID, len(terminal_ids(passage)), len(terminal_ids(reference)),
+            "\n".join(map(str, diff_terminals(passage, reference))))
     if any(not c.default for c in constructions):
         textutil.annotate(passage, verbose=verbose)
     extracted = OrderedDict((c, []) for c in constructions)
