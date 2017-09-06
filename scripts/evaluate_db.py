@@ -3,12 +3,9 @@
 The evaluation software for UCCA layer 1.
 """
 
-# import sys, collections, pdb
-# from ucca import layer0
-# from ucca import layer1
 from optparse import OptionParser
 
-import ucca_db
+from scripts import ucca_db
 from ucca import convert
 from ucca.evaluation import evaluate
 
