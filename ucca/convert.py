@@ -11,6 +11,7 @@ The possible other formats are:
     sdp (SemEval 2015 semantic dependency parsing shared task)
 """
 
+import json
 import operator
 import pickle
 import re
@@ -19,6 +20,7 @@ import xml.etree.ElementTree as ET
 import xml.sax.saxutils
 from collections import defaultdict
 from itertools import islice
+from operator import itemgetter
 
 from ucca import textutil, core, layer0, layer1
 from ucca.layer1 import EdgeTags
@@ -755,6 +757,107 @@ def to_sequence(passage):
         seq += ' '
 
 
+IGNORED_CATEGORIES = {"Unanalyzable"}
+
+
+def from_json(lines, *args, **kwargs):
+    """Convert text in UCCA-App JSON format to a Passage object.
+        According to the API, annotation units are organized in a tree, where the full unit is included as a child of
+          its parent: https://github.com/omriabnd/UCCA-App/blob/master/UCCAApp_REST_API_Reference.pdf
+          Just token children are included in the simple form ("id" only), in the "children_tokens" field.
+          Note: children_tokens contains all tokens that are descendants of the unit, not just immediate children.
+          However, in the implementation, each unit may be included in full multiple times:
+          Once directly under its parent, with the "children" field fully shown, and again under each of its ancestors
+          and at the root level, with the "children" field either empty or partially shown.
+        annotation_unit_tree_id: encodes the path leading to the node, e.g., 3-5-2.
+          1-based, and in reverse order to the children's appearance, so that 1 is last, 2 is before last, etc.
+          The exception is the first level, where there is just 0, and the next level starts from 1 (not 0-1).
+        parent_id: the annotation_unit_tree_id of the node's parent, where 0 is the root
+    :param lines: iterable of lines in JSON format, describing a single passage.
+    :return generator of Passage objects
+    """
+    del args, kwargs
+    d = lines if isinstance(lines, dict) else json.loads("".join(lines))
+    passage = core.Passage(str(d["id"]))
+    l0 = layer0.Layer0(passage)
+    token_id_to_terminal = {token["id"]: l0.add_terminal(
+        text=token["text"], punct=not token["require_annotation"], paragraph=1)
+        for token in sorted(d["tokens"], key=itemgetter("start_index"))}
+    l1 = layer1.Layer1(passage)
+    tree_id_to_node = {}
+    category_id_to_edge_tag = {}
+    queue = [d["annotation_units"][0]]  # breadth-first search
+    while queue:
+        unit = queue.pop(0)
+        tree_id = unit["annotation_unit_tree_id"]
+        remote = unit["is_remote_copy"]
+        if not remote and tree_id in tree_id_to_node:  # Skip repeated units
+            continue
+        children = unit["children"]
+        queue += children
+        parent_id = unit["parent_id"]
+        if parent_id is None:  # No need to create root node
+            tree_id_to_node[tree_id] = None
+            continue
+        try:
+            parent_node = tree_id_to_node[parent_id]
+        except KeyError:
+            raise ValueError("Unit %d appears before its parent" % unit["id"])
+        category = None
+        try:
+            category = [c for c in unit["categories"] if c["name"] not in IGNORED_CATEGORIES][0]
+        except IndexError:
+            print("Unit %d has a parent but no categories" % unit["id"], file=sys.stderr)
+        if category:
+            tag = category_id_to_edge_tag.get(category["id"])
+            if tag is None:
+                try:
+                    tag = EdgeTags.__dict__[category["name"].replace(" ", "")]
+                except KeyError:
+                    raise ValueError("Unknown category name: %s" % category["name"])
+                category_id_to_edge_tag[category["id"]] = tag
+        else:
+            tag = ""
+        if remote:
+            try:
+                node = tree_id_to_node[tree_id]
+            except KeyError:
+                raise ValueError("Remote copy of unit %d appears before its first non-remote copy" % unit["id"])
+            l1.add_remote(parent_node, tag, node)
+        else:
+            node = tree_id_to_node[tree_id] = l1.add_fnode(parent_node, tag, implicit=(unit["type"] == "IMPLICIT"))
+            if not children:
+                for token in unit["children_tokens"]:
+                    try:
+                        terminal = token_id_to_terminal[token["id"]]
+                    except KeyError:
+                        raise ValueError("Child token %d of unit %d not found" % (token["id"], unit["id"]))
+                    node.add(EdgeTags.Terminal, terminal)
+    return passage
+
+
+def to_json(passage, *args, return_dict=False, **kwargs):
+    """Convert a Passage object to text in UCCA-App JSON
+    :param passage: the Passage object to convert
+    :param return_dict: whether to return dict rather than list of lines
+    :return list of lines in JSON format
+    """
+    del args, kwargs
+    tokens = []
+    start_index = 0
+    for token in sorted(passage.layer(layer0.LAYER_ID).all, key=operator.attrgetter("position")):
+        end_index = start_index + len(token.text)
+        tokens.append(dict(id=token.ID, text=token.text, start_index=start_index, end_index=end_index))
+        start_index = end_index + 1
+    annotation_units = [dict(id=u.ID, type="IMPLICIT" if u.attrib.get("implicit") else "REGULAR", is_remote_copy=False,
+                             categories=[dict(name=e.tag) for e in u.incoming],
+                             children_tokens=[dict(id=t.ID) for t in u.children if t.layer.ID == layer0.LAYER_ID],
+                             children=[dict(id=u.ID)], parent_id=u.fparent.ID)
+                        for u in passage.layer(layer1.LAYER_ID).all]
+    d = dict(id=passage.ID, tokens=tokens, annotation_units=annotation_units)
+    return d if return_dict else json.dumps(d).splitlines()
+
+
 class FormatConverter(object):
     def from_format(self, lines, passage_id, split=False):
         pass
@@ -915,7 +1018,7 @@ class DependencyConverter(FormatConverter):
                     self._link_heads(dep_nodes)
                     yield dep_nodes, sentence_id
                 except Exception as e:
-                    sys.stderr.write("Skipped passage '%s': %s\n" % (sentence_id, e))
+                    print("Skipped passage '%s': %s" % (sentence_id, e), file=sys.stderr)
                 sentence_id = dep_nodes = previous_node = None
                 paragraph = 1
             else:
@@ -1460,6 +1563,7 @@ def to_export(passage, test=False, tree=False, *args, **kwargs):
 
 
 CONVERTERS = {
+    "json":   (from_json,   to_json),
     "conll":  (from_conll,  to_conll),
     "sdp":    (from_sdp,    to_sdp),
     "export": (from_export, to_export),
