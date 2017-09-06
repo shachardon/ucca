@@ -11,7 +11,8 @@ except (IOError, ImportError, RuntimeError):
 
 setup(name="UCCA",
       version="1.0.8",
-      install_requires="spacy",
+      install_requires=["spacy", "requests"],
+      extras_require={"visualize": ["matplotlib", "networkx"]},
       description="Universal Conceptual Cognitive Annotation",
       long_description=long_description,
       author="Daniel Hershcovich",
