@@ -786,55 +786,53 @@ def from_json(lines, *args, **kwargs):
     l1 = layer1.Layer1(passage)
     tree_id_to_node = {}
     category_id_to_edge_tag = {}
-    annotation_units = d["annotation_units"]
-    if annotation_units:
-        queue = [annotation_units[0]]  # breadth-first search
-        while queue:
-            unit = queue.pop(0)
-            tree_id = unit["annotation_unit_tree_id"]
-            remote = unit["is_remote_copy"]
-            if not remote and tree_id in tree_id_to_node:  # Skip repeated units
-                continue
-            children = unit["children"]
-            queue += children
-            parent_id = unit["parent_id"]
-            if parent_id is None:  # No need to create root node
-                tree_id_to_node[tree_id] = None
-                continue
-            try:
-                parent_node = tree_id_to_node[parent_id]
-            except KeyError:
-                raise ValueError("Unit %d appears before its parent" % unit["id"])
-            category = None
-            try:
-                category = [c for c in unit["categories"] if c["name"] not in IGNORED_CATEGORIES][0]
-            except IndexError:
-                print("Unit %d has a parent but no categories" % unit["id"], file=sys.stderr)
-            if category:
-                tag = category_id_to_edge_tag.get(category["id"])
-                if tag is None:
-                    try:
-                        tag = EdgeTags.__dict__[category["name"].replace(" ", "")]
-                    except KeyError:
-                        raise ValueError("Unknown category name: %s" % category["name"])
-                    category_id_to_edge_tag[category["id"]] = tag
-            else:
-                tag = ""
-            if remote:
+    queue = list(d["annotation_units"])  # breadth-first search
+    while queue:
+        unit = queue.pop(0)
+        tree_id = unit["annotation_unit_tree_id"]
+        remote = unit["is_remote_copy"]
+        if not remote and tree_id in tree_id_to_node:  # Skip repeated units
+            continue
+        children = unit["children"]
+        queue += children
+        parent_id = unit["parent_id"]
+        if parent_id is None:  # No need to create root node
+            tree_id_to_node[tree_id] = None
+            continue
+        try:
+            parent_node = tree_id_to_node[parent_id]
+        except KeyError:
+            raise ValueError("Unit %d appears before its parent" % unit["id"])
+        category = None
+        try:
+            category = [c for c in unit["categories"] if c["name"] not in IGNORED_CATEGORIES][0]
+        except IndexError:
+            print("Unit %d has a parent but no categories" % unit["id"], file=sys.stderr)
+        if category:
+            tag = category_id_to_edge_tag.get(category["id"])
+            if tag is None:
                 try:
-                    node = tree_id_to_node[tree_id]
+                    tag = EdgeTags.__dict__[category["name"].replace(" ", "")]
                 except KeyError:
-                    raise ValueError("Remote copy of unit %d appears before its first non-remote copy" % unit["id"])
-                l1.add_remote(parent_node, tag, node)
-            else:
-                node = tree_id_to_node[tree_id] = l1.add_fnode(parent_node, tag, implicit=(unit["type"] == "IMPLICIT"))
-                if not children:
-                    for token in unit["children_tokens"]:
-                        try:
-                            terminal = token_id_to_terminal[token["id"]]
-                        except KeyError:
-                            raise ValueError("Child token %d of unit %d not found" % (token["id"], unit["id"]))
-                        node.add(EdgeTags.Terminal, terminal)
+                    raise ValueError("Unknown category name: %s" % category["name"])
+                category_id_to_edge_tag[category["id"]] = tag
+        else:
+            tag = ""
+        if remote:
+            try:
+                node = tree_id_to_node[tree_id]
+            except KeyError:
+                raise ValueError("Remote copy of unit %d appears before its first non-remote copy" % unit["id"])
+            l1.add_remote(parent_node, tag, node)
+        else:
+            node = tree_id_to_node[tree_id] = l1.add_fnode(parent_node, tag, implicit=(unit["type"] == "IMPLICIT"))
+            if not children:
+                for token in unit["children_tokens"]:
+                    try:
+                        terminal = token_id_to_terminal[token["id"]]
+                    except KeyError:
+                        raise ValueError("Child token %d of unit %d not found" % (token["id"], unit["id"]))
+                    node.add(EdgeTags.Terminal, terminal)
     return passage
 
 
@@ -854,9 +852,9 @@ def to_json(passage, *args, return_dict=False, **kwargs):
     annotation_units = [dict(id=u.ID, type="IMPLICIT" if u.attrib.get("implicit") else "REGULAR", is_remote_copy=False,
                              categories=[dict(name=e.tag) for e in u.incoming],
                              children_tokens=[dict(id=t.ID) for t in u.children if t.layer.ID == layer0.LAYER_ID],
-                             children=[dict(id=u.ID)], parent_id=u.fparent.ID)
+                             children=[dict(id=u.ID)], parent_id=u.fparent.ID if u.fparent else None)
                         for u in passage.layer(layer1.LAYER_ID).all]
-    d = dict(id=passage.ID, tokens=tokens, annotation_units=annotation_units)
+    d = dict(tokens=tokens, annotation_units=annotation_units, manager_comment=passage.ID)
     return d if return_dict else json.dumps(d).splitlines()
 
 
