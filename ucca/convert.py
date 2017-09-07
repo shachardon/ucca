@@ -18,7 +18,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from itertools import islice
 from operator import itemgetter
 
@@ -847,13 +847,39 @@ def to_json(passage, *args, return_dict=False, **kwargs):
     start_index = 0
     for token in sorted(passage.layer(layer0.LAYER_ID).all, key=operator.attrgetter("position")):
         end_index = start_index + len(token.text)
-        tokens.append(dict(id=token.ID, text=token.text, start_index=start_index, end_index=end_index))
+        tokens.append(dict(id=token.position, text=token.text, start_index=start_index, end_index=end_index))
         start_index = end_index + 1
-    annotation_units = [dict(id=u.ID, type="IMPLICIT" if u.attrib.get("implicit") else "REGULAR", is_remote_copy=False,
-                             categories=[dict(name=e.tag) for e in u.incoming],
-                             children_tokens=[dict(id=t.ID) for t in u.children if t.layer.ID == layer0.LAYER_ID],
-                             children=[dict(id=u.ID)], parent_id=u.fparent.ID if u.fparent else None)
-                        for u in passage.layer(layer1.LAYER_ID).all]
+    root_node = passage.layer(layer1.LAYER_ID).heads[0]
+    root_annotation_unit = dict(annotation_unit_tree_id="0", type="REGULAR", is_remote_copy=False, categories=[],
+                                children_tokens=[], children=[], parent_id=None, comment=root_node.ID)
+    annotation_units = [root_annotation_unit]
+    primary_node_id_to_annotation_unit = {root_node.ID: root_annotation_unit}
+    remote_node_id_to_annotation_unit = {}
+    edge_tag_to_category_name = {v: re.sub(r"(?<![a-z])(?![A-Z])", " ", k) for k, v in EdgeTags.__dict__.items()}
+    queue = [([], e) for e in root_node]  # (tree id elements, edge) - for each outgoing edge from the root
+    while queue:  # breadth-first search
+        tree_id_elements, edge = queue.pop(0)
+        node = edge.child
+        remote = edge.attrib.get("remote")
+        parent_annotation_unit = primary_node_id_to_annotation_unit[edge.parent.ID]
+        annotation_unit = dict(annotation_unit_tree_id="-".join(map(str, tree_id_elements)),
+                               type="IMPLICIT" if node.attrib.get("implicit") else "REGULAR",
+                               is_remote_copy=remote,
+                               categories=[dict(name=edge_tag_to_category_name[edge.tag])],
+                               children_tokens=[dict(id=t.position) for t in node.terminals],
+                               children=[],
+                               parent_id=parent_annotation_unit["annotation_unit_tree_id"])
+        parent_annotation_unit["children"].append(annotation_unit)
+        if remote:
+            remote_node_id_to_annotation_unit[node.ID] = annotation_unit
+        else:
+            for i, edge in enumerate(e for e in node if e.child.tag == layer1.NodeTags.Foundational):
+                queue.append((tree_id_elements + [i + 1], edge))
+            primary_node_id_to_annotation_unit[node.ID] = annotation_unit
+        annotation_units.append(annotation_unit)
+    for node_id, remote_annotation_unit in remote_node_id_to_annotation_unit.items():
+        primary_annotation_unit = primary_node_id_to_annotation_unit[node_id]
+        remote_annotation_unit["annotation_unit_tree_id"] = primary_annotation_unit["annotation_unit_tree_id"]
     d = dict(tokens=tokens, annotation_units=annotation_units, manager_comment=passage.ID)
     return d if return_dict else json.dumps(d).splitlines()
 
