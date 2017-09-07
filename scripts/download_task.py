@@ -22,9 +22,9 @@ class ServerAccessor(object):
         if verbose:
             logging.basicConfig(level=logging.DEBUG)
         server_address = server_address or os.environ.get(SERVER_ADDRESS_ENV_VAR, DEFAULT_SERVER)
-        auth_token = auth_token or os.environ[AUTH_TOKEN_ENV_VAR]
+        auth_token = auth_token or os.environ[AUTH_TOKEN_ENV_VAR]  # TODO get from /login by username and password
         self.headers = dict(Authorization="Token " + auth_token)
-        self.prefix = server_address + API_PREFIX + "user_tasks/"
+        self.prefix = server_address + API_PREFIX
 
     def request(self, method, url_suffix, **kwargs):
         response = requests.request(method, self.prefix + str(url_suffix), headers=self.headers, **kwargs)
@@ -43,7 +43,7 @@ class TaskDownloader(ServerAccessor):
     def download_tasks(self, task_ids, out_format, binary, out_dir, prefix, **kwargs):
         del kwargs
         for task_id in task_ids:
-            task = self.request("get", str(task_id)).json()
+            task = self.request("get", "user_tasks/" + str(task_id)).json()
             passage = from_json(task)
             write_passage(passage, out_format, binary, out_dir, prefix, TO_FORMAT.get(out_format))
 
