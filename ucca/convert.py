@@ -855,7 +855,7 @@ def to_json(passage, *args, return_dict=False, **kwargs):
     annotation_units = [root_annotation_unit]
     primary_node_id_to_annotation_unit = {root_node.ID: root_annotation_unit}
     remote_node_id_to_annotation_unit = {}
-    edge_tag_to_category_name = {v: re.sub(r"(?<![a-z])(?![A-Z])", " ", k) for k, v in EdgeTags.__dict__.items()}
+    edge_tag_to_category_name = {v: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", k) for k, v in EdgeTags.__dict__.items()}
     queue = [([], e) for e in root_node]  # (tree id elements, edge) - for each outgoing edge from the root
     while queue:  # breadth-first search
         tree_id_elements, edge = queue.pop(0)
