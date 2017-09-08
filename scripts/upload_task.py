@@ -4,7 +4,10 @@ import logging
 import os
 import sys
 from glob import glob
-from json.decoder import JSONDecodeError
+try:
+    from simplejson.scanner import JSONDecodeError
+except ImportError:
+    from json.decoder import JSONDecodeError
 
 from requests.exceptions import HTTPError
 
@@ -56,9 +59,12 @@ class TaskUploader(ServerAccessor):
                                                       manager_comment="Passage " + p.ID, is_active=True)).json()
                     logging.debug("Created tokenization task: " + str(tok_task))
                     self.request("put", "user_tasks/%d/submit" % tok_task["id"])
-                    task = self.request("post", "tasks/", json=to_json(p)).json()
+                    task = self.request("post", "tasks/",
+                                        json=dict(parent=tok_task, children=[], type="ANNOTATION", status="SUBMITTED",
+                                                  project=self.project, user=self.user, passage=passage, is_demo=False,
+                                                  manager_comment="Passage " + p.ID, is_active=True)).json()
                     logging.debug("Created annotation task: " + str(task))
-                    self.request("put", "user_tasks/%d/submit" % task["id"])
+                    self.request("put", "user_tasks/%d/submit" % task["id"], json=to_json(p, return_dict=True))
         except HTTPError as e:
             try:
                 raise ValueError(e.response.json()) from e
