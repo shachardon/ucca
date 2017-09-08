@@ -15,16 +15,23 @@ DEFAULT_SERVER = "http://ucca-demo.cs.huji.ac.il"
 API_PREFIX = "/api/v1/"
 SERVER_ADDRESS_ENV_VAR = "UCCA_APP_SERVER_ADDRESS"
 AUTH_TOKEN_ENV_VAR = "UCCA_APP_AUTH_TOKEN"
+EMAIL_ENV_VAR = "UCCA_APP_EMAIL"
+PASSWORD_ENV_VAR = "UCCA_APP_PASSWORD"
 
 
 class ServerAccessor(object):
-    def __init__(self, server_address, auth_token, verbose, **kwargs):
+    def __init__(self, server_address, email, password, auth_token, verbose, **kwargs):
         if verbose:
             logging.basicConfig(level=logging.DEBUG)
         server_address = server_address or os.environ.get(SERVER_ADDRESS_ENV_VAR, DEFAULT_SERVER)
-        auth_token = auth_token or os.environ[AUTH_TOKEN_ENV_VAR]  # TODO get from /login by username and password
-        self.headers = dict(Authorization="Token " + auth_token)
+        self.headers = {}
         self.prefix = server_address + API_PREFIX
+        token = auth_token or os.environ.get(AUTH_TOKEN_ENV_VAR)
+        if not token:
+            token = self.request("post", "login", json=dict(
+                email=email or os.environ[EMAIL_ENV_VAR],
+                password=password or os.environ[PASSWORD_ENV_VAR])).json()["token"]
+        self.headers["Authorization"] = "Token " + token
 
     def request(self, method, url_suffix, **kwargs):
         response = requests.request(method, self.prefix + str(url_suffix), headers=self.headers, **kwargs)
@@ -35,7 +42,10 @@ class ServerAccessor(object):
     def add_arguments(argparser):
         argparser.add_argument("--server-address", default=DEFAULT_SERVER,
                                help="UCCA-App server, otherwise set by " + SERVER_ADDRESS_ENV_VAR)
-        argparser.add_argument("--auth-token", help="authorization token, otherwise set by " + AUTH_TOKEN_ENV_VAR)
+        argparser.add_argument("--email", help="UCCA-App email, otherwise set by " + EMAIL_ENV_VAR)
+        argparser.add_argument("--password", help="UCCA-App password, otherwise set by " + PASSWORD_ENV_VAR)
+        argparser.add_argument("--auth-token", help="authorization token (required only if email or password missing), "
+                                                    "otherwise set by " + AUTH_TOKEN_ENV_VAR)
         argparser.add_argument("-v", "--verbose", action="store_true", help="detailed output")
 
 
