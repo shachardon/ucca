@@ -856,11 +856,11 @@ def to_json(passage, *args, return_dict=False, **kwargs):
     primary_node_id_to_annotation_unit = {root_node.ID: root_annotation_unit}
     remote_node_id_to_annotation_unit = {}
     edge_tag_to_category_name = {v: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", k) for k, v in EdgeTags.__dict__.items()}
-    queue = [([], e) for e in root_node]  # (tree id elements, edge) - for each outgoing edge from the root
+    queue = [([i + 1], e) for i, e in enumerate(root_node)]  # (tree id elements, edge) for each outgoing edge from root
     while queue:  # breadth-first search
         tree_id_elements, edge = queue.pop(0)
         node = edge.child
-        remote = edge.attrib.get("remote")
+        remote = edge.attrib.get("remote", False)
         parent_annotation_unit = primary_node_id_to_annotation_unit[edge.parent.ID]
         annotation_unit = dict(annotation_unit_tree_id="-".join(map(str, tree_id_elements)),
                                type="IMPLICIT" if node.attrib.get("implicit") else "REGULAR",
@@ -876,7 +876,7 @@ def to_json(passage, *args, return_dict=False, **kwargs):
             for i, edge in enumerate(e for e in node if e.child.tag == layer1.NodeTags.Foundational):
                 queue.append((tree_id_elements + [i + 1], edge))
             primary_node_id_to_annotation_unit[node.ID] = annotation_unit
-        annotation_units.append(annotation_unit)
+        annotation_units.append(dict(annotation_unit))
     for node_id, remote_annotation_unit in remote_node_id_to_annotation_unit.items():
         primary_annotation_unit = primary_node_id_to_annotation_unit[node_id]
         remote_annotation_unit["annotation_unit_tree_id"] = primary_annotation_unit["annotation_unit_tree_id"]
