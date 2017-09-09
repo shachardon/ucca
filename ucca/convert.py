@@ -862,7 +862,9 @@ def to_json(passage, *args, return_dict=False, **kwargs):
         node = edge.child
         remote = edge.attrib.get("remote", False)
         parent_annotation_unit = primary_node_id_to_annotation_unit[edge.parent.ID]
-        annotation_unit = dict(annotation_unit_tree_id="-".join(map(str, tree_id_elements)),
+        annotation_unit = dict(id=int(node.ID.split(node.ID_SEPARATOR)[1]),
+                               comment=node.ID,
+                               annotation_unit_tree_id="-".join(map(str, tree_id_elements)),
                                type="IMPLICIT" if node.attrib.get("implicit") else "REGULAR",
                                is_remote_copy=remote,
                                categories=[dict(name=edge_tag_to_category_name[edge.tag])],
@@ -880,7 +882,7 @@ def to_json(passage, *args, return_dict=False, **kwargs):
     for node_id, remote_annotation_unit in remote_node_id_to_annotation_unit.items():
         primary_annotation_unit = primary_node_id_to_annotation_unit[node_id]
         remote_annotation_unit["annotation_unit_tree_id"] = primary_annotation_unit["annotation_unit_tree_id"]
-    d = dict(tokens=tokens, annotation_units=annotation_units, manager_comment=passage.ID)
+    d = dict(tokens=tokens, annotation_units=annotation_units)
     return d if return_dict else json.dumps(d).splitlines()
 
 

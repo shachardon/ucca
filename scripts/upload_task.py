@@ -64,7 +64,12 @@ class TaskUploader(ServerAccessor):
                                                   project=self.project, user=self.user, passage=passage, is_demo=False,
                                                   manager_comment="Passage " + p.ID, is_active=True)).json()
                     logging.debug("Created annotation task: " + str(task))
-                    self.request("put", "user_tasks/%d/submit" % task["id"], json=to_json(p, return_dict=True))
+                    user_task = to_json(p, return_dict=True)
+                    user_task.update(dict(parent=task, children=[], type="ANNOTATION", status="SUBMITTED",
+                                          project=self.project, user=self.user, passage=passage, is_demo=False,
+                                          manager_comment="Passage " + p.ID, is_active=True))
+                    self.request("put", "user_tasks/%d/submit" % task["id"], json=user_task)
+                    print("Submitted task %d" % task["id"])
         except HTTPError as e:
             try:
                 raise ValueError(e.response.json()) from e
