@@ -51,7 +51,7 @@ def move_functions(p1, p2):
             for parent in unit.parents:
                 tag = unit.ftag
                 parent.remove(unit)
-                p.layer(layer1.LAYER_ID).top_node.add(tag, unit)
+                p.layer(layer1.LAYER_ID).heads[0].add(tag, unit)
 
 
 def get_text(p, positions):
