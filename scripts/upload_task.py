@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import logging
 import os
 import sys
 from glob import glob
+
 try:
     from simplejson.scanner import JSONDecodeError
 except ImportError:
@@ -35,8 +37,8 @@ SOURCE_ID_ENV_VAR = "UCCA_APP_SOURCE_ID"
 class TaskUploader(ServerAccessor):
     def __init__(self, user_id, project_id, source_id, **kwargs):
         super().__init__(**kwargs)
-        self.user = dict(id=user_id or int(os.environ[USER_ID_ENV_VAR]))
-        self.project = dict(id=project_id or int(os.environ[PROJECT_ID_ENV_VAR]))
+        self.user_in = dict(id=user_id or int(os.environ[USER_ID_ENV_VAR]))
+        self.project_id = project_id or int(os.environ[PROJECT_ID_ENV_VAR])
         self.source_id = source_id or int(os.environ[SOURCE_ID_ENV_VAR])
         
     def upload_tasks(self, filenames, **kwargs):
@@ -46,30 +48,47 @@ class TaskUploader(ServerAccessor):
                 filenames = glob(pattern)
                 if not filenames:
                     raise IOError("Not found: " + pattern)
-                for p in read_files_and_dirs(filenames):
-                    source = self.request("get", "sources/%d/" % self.source_id).json()
-                    logging.debug("Got source: " + str(source))
-                    text = to_text(p, sentences=False)[0]
-                    passage = self.request("post", "passages/",
-                                           json=dict(text=text, type="PUBLIC", source=source)).json()
-                    logging.debug("Created passage: " + str(passage))
-                    tok_task = self.request("post", "tasks/",
-                                            json=dict(type="TOKENIZATION", status="SUBMITTED", project=self.project,
-                                                      passage=passage, user=self.user, parent=False, is_demo=False,
-                                                      manager_comment="Passage " + p.ID, is_active=True)).json()
-                    logging.debug("Created tokenization task: " + str(tok_task))
-                    self.request("put", "user_tasks/%d/submit" % tok_task["id"])
-                    task = self.request("post", "tasks/",
-                                        json=dict(parent=tok_task, children=[], type="ANNOTATION", status="SUBMITTED",
-                                                  project=self.project, user=self.user, passage=passage, is_demo=False,
-                                                  manager_comment="Passage " + p.ID, is_active=True)).json()
-                    logging.debug("Created annotation task: " + str(task))
-                    user_task = to_json(p, return_dict=True)
-                    user_task.update(dict(parent=task, children=[], type="ANNOTATION", status="SUBMITTED",
-                                          project=self.project, user=self.user, passage=passage, is_demo=False,
-                                          manager_comment="Passage " + p.ID, is_active=True))
-                    self.request("put", "user_tasks/%d/submit" % task["id"], json=user_task)
-                    print("Submitted task %d" % task["id"])
+                for passage in read_files_and_dirs(filenames):
+                    # Get source
+                    source_out = self.request("get", "sources/%d/" % self.source_id).json()
+                    logging.debug("Got source: " + str(source_out))
+                    # Get project
+                    project_out = self.request("get", "projects/%d/" % self.project_id).json()
+                    logging.debug("Got project: " + str(project_out))
+                    # Get layer
+                    layer_out = self.request("get", "layers/%d/" % project_out["layer"]["id"]).json()
+                    logging.debug("Got layer: " + str(layer_out))
+                    # Create passage
+                    passage_in = dict(text=to_text(passage, sentences=False)[0], type="PUBLIC", source=source_out)
+                    passage_out = self.request("post", "passages/", json=passage_in).json()
+                    logging.debug("Created passage: " + str(passage_out))
+                    # Create tokenization task
+                    tok_task_in = dict(
+                        type="TOKENIZATION", status="SUBMITTED", project=project_out, user=self.user_in,
+                        passage=passage_out, manager_comment=passage.ID, children=[], parent=None,
+                        is_demo=False, is_active=True)
+                    tok_task_out = self.request("post", "tasks/", json=tok_task_in).json()
+                    logging.debug("Created tokenization task: " + str(tok_task_out))
+                    # Submit tokenization task
+                    tok_user_task_in = dict(tok_task_out)
+                    tok_user_task_in.update(to_json(passage, return_dict=True, tok_task=True))
+                    self.request("put", "user_tasks/%d/draft" % tok_task_out["id"], json=tok_user_task_in)
+                    # TODO see if doing submit without draft works for tokenization
+                    tok_user_task_out = self.request("put", "user_tasks/%d/submit" % tok_task_out["id"]).json()
+                    logging.debug("Submitted tokenization task: " + str(tok_user_task_out))
+                    # Create annotation task
+                    ann_task_in = dict(tok_task_in)
+                    ann_task_in.update(dict(parent=tok_task_out, type="ANNOTATION"))
+                    ann_task_out = self.request("post", "tasks/", json=ann_task_in).json()
+                    logging.debug("Created annotation task: " + str(ann_task_out))
+                    # Submit annotation task
+                    ann_user_task_in = dict(ann_task_out)
+                    ann_user_task_in.update(to_json(passage, return_dict=True, tok_task=tok_user_task_out,
+                                                    categories=layer_out["categories"]))
+                    self.request("put", "user_tasks/%d/draft" % ann_task_out["id"], json=ann_user_task_in)
+                    ann_user_task_out = self.request("put", "user_tasks/%d/submit" % ann_task_out["id"])
+                    logging.debug("Submitted annotation task: " + str(ann_user_task_out))
+                    print("Submitted task %d" % ann_user_task_out["id"])
         except HTTPError as e:
             try:
                 raise ValueError(e.response.json()) from e
