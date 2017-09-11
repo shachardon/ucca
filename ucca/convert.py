@@ -756,7 +756,8 @@ def to_sequence(passage):
         seq += ' '
 
 
-IGNORED_CATEGORIES = {"Unanalyzable"}
+UNANALYZABLE = "Unanalyzable"
+IGNORED_CATEGORIES = {UNANALYZABLE}
 
 
 def from_json(lines, *args, **kwargs):
@@ -778,10 +779,12 @@ def from_json(lines, *args, **kwargs):
     del args, kwargs
     d = lines if isinstance(lines, dict) else json.loads("".join(lines))
     passage = core.Passage(str(d.get("id") or d["manager_comment"]))
+    # Create terminals
     l0 = layer0.Layer0(passage)
     token_id_to_terminal = {token["id"]: l0.add_terminal(
         text=token["text"], punct=not token["require_annotation"], paragraph=1)
         for token in sorted(d["tokens"], key=operator.itemgetter("start_index"))}
+    # Create non-terminals
     l1 = layer1.Layer1(passage)
     tree_id_to_node = {}
     queue = list(d["annotation_units"])  # breadth-first search
@@ -827,26 +830,28 @@ def from_json(lines, *args, **kwargs):
     return passage
 
 
-IGNORED_EDGE_TAGS = {"Punctuation"}
+IGNORED_EDGE_TAGS = {EdgeTags.Punctuation, EdgeTags.Terminal}
 
 
-def to_json(passage, *args, return_dict=False, tok_task=None, categories=None, **kwargs):
+def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=None, **kwargs):
     """Convert a Passage object to text (or dict) in UCCA-App JSON
     :param passage: the Passage object to convert
     :param return_dict: whether to return dict rather than list of lines
     :param tok_task: completed tokenization task with token IDs, or if True, return tokenization instead of annotation
-    :param categories: list of category dicts so that IDs can be added, if available
+    :param all_categories: list of category dicts so that IDs can be added, if available
     :return list of lines in JSON format (or dict)
     """
     del args, kwargs
+    # Create tokens
     terminal_id_to_token_id = {}
     terminals = sorted(passage.layer(layer0.LAYER_ID).all, key=operator.attrgetter("position"))
     if tok_task is True or tok_task is None:  # Necessary because bool(tok_task) == True also if a task dict is given
         tokens = []
         start_index = 0
         for terminal in terminals:
-            end_index = start_index + len(terminal.text)  # TODO get ids from uploaded tokenization by start_index order
-            token = dict(text=terminal.text, start_index=start_index, end_index=end_index)
+            end_index = start_index + len(terminal.text)
+            token = dict(text=terminal.text, start_index=start_index, end_index=end_index,
+                         require_annotation=not layer0.is_punct(terminal))
             if tok_task is None:  # When doing tokenization as a task, no need to fill the IDs (done by the server)
                 token["id"] = terminal_id_to_token_id[terminal.ID] = terminal.position
             tokens.append(token)
@@ -858,46 +863,53 @@ def to_json(passage, *args, return_dict=False, tok_task=None, categories=None, *
                              (len(tokens), len(terminals)))
         for token, terminal in zip(tokens, terminals):
             terminal_id_to_token_id[terminal.ID] = token["id"]
-    category_name_to_id = {c["name"]: c["id"] for c in categories} if categories else None
+    # Create annotation units
+    category_name_to_id = {c["name"]: c["id"] for c in all_categories} if all_categories else None
     annotation_units = []
     if tok_task is not True:  # Annotation required, not just tokenization; tok_task might be None or a full task dict
         root_node = passage.layer(layer1.LAYER_ID).heads[0]  # Ignoring Linkage: taking only the first head
-        root_annotation_unit = dict(annotation_unit_tree_id="0", type="REGULAR", is_remote_copy=False, categories=[],
-                                    children_tokens=[], parent_id=None, children=[], comment=root_node.ID,
-                                    gui_status="OPEN")
+        root_annotation_unit = dict(
+            annotation_unit_tree_id="0", type="REGULAR", is_remote_copy=False, categories=[], comment="",
+            parent_id=None, children=[], gui_status="OPEN",
+            children_tokens=[])
         annotation_units.append(root_annotation_unit)
         primary_node_id_to_annotation_unit = {root_node.ID: root_annotation_unit}
         remote_node_id_to_annotation_unit = {}
         edge_tag_to_category_name = {v: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", k) for k, v in EdgeTags.__dict__.items()}
-        queue = [([i + 1], e) for i, e in enumerate(root_node)]  # (tree id elements, edge) for each root outgoing edge
+        root_outgoing = [e for e in root_node if e.tag not in IGNORED_EDGE_TAGS]
+        queue = [([i + 1], e) for i, e in enumerate(root_outgoing)]  # (tree id elements, edge) for each edge
         while queue:  # breadth-first search
             tree_id_elements, edge = queue.pop(0)
             node = edge.child
             remote = edge.attrib.get("remote", False)
             parent_annotation_unit = primary_node_id_to_annotation_unit[edge.parent.ID]
-            category = dict(name=edge_tag_to_category_name[edge.tag])
-            if category["name"] in IGNORED_EDGE_TAGS:
-                continue
-            if categories:
-                try:
-                    category["id"] = category_name_to_id[category["name"]]
-                except KeyError:
-                    raise ValueError("Category missing from layer: " + category["name"])
-            annotation_unit = dict(annotation_unit_tree_id="-".join(map(str, tree_id_elements)),
-                                   type="IMPLICIT" if node.attrib.get("implicit") else "REGULAR",
-                                   is_remote_copy=remote,
-                                   categories=[category],
-                                   children_tokens=[dict(id=terminal_id_to_token_id[t.ID]) for t in node.terminals],
-                                   parent_id=parent_annotation_unit["annotation_unit_tree_id"],
-                                   children=[], comment=node.ID, gui_status="OPEN")
-            # parent_annotation_unit["children"].append(annotation_unit)  # removed for flat structure w/ parent_id
+            categories = [dict(name=edge_tag_to_category_name[edge.tag])]
+            terminals = node.get_terminals()
+            outgoing = [e for e in node if e.tag not in IGNORED_EDGE_TAGS]
+            if not outgoing and len(terminals) > 1:
+                categories.insert(0, dict(name=UNANALYZABLE))
+            if all_categories:
+                for category in categories:
+                    try:
+                        category["id"] = category_name_to_id[category["name"]]
+                    except KeyError:
+                        raise ValueError("Category missing from layer: " + category["name"])
+            annotation_unit = dict(
+                annotation_unit_tree_id="-".join(map(str, tree_id_elements)),
+                type="IMPLICIT" if node.attrib.get("implicit") else "REGULAR", is_remote_copy=remote,
+                categories=categories, comment=node.ID,
+                parent_id=parent_annotation_unit["annotation_unit_tree_id"], children=[], gui_status="OPEN",
+                children_tokens=[dict(id=terminal_id_to_token_id[t.ID]) for t in terminals])
+            annotation_unit_copy = dict(annotation_unit)
             if remote:
-                remote_node_id_to_annotation_unit[node.ID] = annotation_unit
+                remote_node_id_to_annotation_unit[node.ID] = annotation_unit_copy
             else:
-                for i, edge in enumerate(e for e in node if e.child.tag == layer1.NodeTags.Foundational):
+                for i, edge in enumerate(outgoing):
                     queue.append((tree_id_elements + [i + 1], edge))
                 primary_node_id_to_annotation_unit[node.ID] = annotation_unit
-            annotation_units.append(dict(annotation_unit))
+                parent_annotation_unit["children"].insert(0, annotation_unit)  # In the tree, the original unit is used
+            annotation_units.append(annotation_unit_copy)  # In the flat list, a copy is used with children=[]
+        # Modify tree id of remote copies to be the same as their non-remote units, and not as originally constructed
         for node_id, remote_annotation_unit in remote_node_id_to_annotation_unit.items():
             primary_annotation_unit = primary_node_id_to_annotation_unit[node_id]
             remote_annotation_unit["annotation_unit_tree_id"] = primary_annotation_unit["annotation_unit_tree_id"]
