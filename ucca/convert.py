@@ -766,9 +766,6 @@ def from_json(lines, *args, **kwargs):
           its parent: https://github.com/omriabnd/UCCA-App/blob/master/UCCAApp_REST_API_Reference.pdf
           Just token children are included in the simple form ("id" only), in the "children_tokens" field.
           Note: children_tokens contains all tokens that are descendants of the unit, not just immediate children.
-          However, in the implementation, each unit may be included in full multiple times:
-          Once directly under its parent, with the "children" field fully shown, and again under each of its ancestors
-          and at the root level, with the "children" field either empty or partially shown.
         annotation_unit_tree_id: encodes the path leading to the node, e.g., 3-5-2.
           1-based, and in reverse order to the children's appearance, so that 1 is last, 2 is before last, etc.
           The exception is the first level, where there is just 0, and the next level starts from 1 (not 0-1).

@@ -119,3 +119,4 @@ def write_passage(passage, output_format, binary, outdir, prefix, converter=None
         output = "\n".join(line for line in (converter or to_text)(passage))
         with open(outfile, "w", encoding="utf-8") as f:
             f.write(output + "\n")
+    return outfile

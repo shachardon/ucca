@@ -40,8 +40,7 @@ class ServerAccessor(object):
 
     @staticmethod
     def add_arguments(argparser):
-        argparser.add_argument("--server-address", default=DEFAULT_SERVER,
-                               help="UCCA-App server, otherwise set by " + SERVER_ADDRESS_ENV_VAR)
+        argparser.add_argument("--server-address", help="UCCA-App server, otherwise set by " + SERVER_ADDRESS_ENV_VAR)
         argparser.add_argument("--email", help="UCCA-App email, otherwise set by " + EMAIL_ENV_VAR)
         argparser.add_argument("--password", help="UCCA-App password, otherwise set by " + PASSWORD_ENV_VAR)
         argparser.add_argument("--auth-token", help="authorization token (required only if email or password missing), "
@@ -50,12 +49,17 @@ class ServerAccessor(object):
 
 
 class TaskDownloader(ServerAccessor):
-    def download_tasks(self, task_ids, out_format, binary, out_dir, prefix, **kwargs):
-        del kwargs
+    def download_tasks(self, task_ids, **kwargs):
         for task_id in task_ids:
-            task = self.request("get", "user_tasks/" + str(task_id)).json()
-            passage = from_json(task)
+            yield self.download_task(task_id, **kwargs)
+
+    def download_task(self, task_id, write=True, out_format=None, binary=None, out_dir=None, prefix=None, **kwargs):
+        del kwargs
+        task = self.request("get", "user_tasks/" + str(task_id)).json()
+        passage = from_json(task)
+        if write:
             write_passage(passage, out_format, binary, out_dir, prefix, TO_FORMAT.get(out_format))
+        return passage
 
     @staticmethod
     def add_arguments(argparser):
@@ -67,12 +71,12 @@ class TaskDownloader(ServerAccessor):
         ServerAccessor.add_arguments(argparser)
 
 
-def main(kwargs):
-    TaskDownloader(**kwargs).download_tasks(**kwargs)
+def main(**kwargs):
+    list(TaskDownloader(**kwargs).download_tasks(**kwargs))
 
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser(description=desc)
     TaskDownloader.add_arguments(argument_parser)
-    main(vars(argument_parser.parse_args()))
+    main(**vars(argument_parser.parse_args()))
     sys.exit(0)

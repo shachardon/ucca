@@ -49,59 +49,61 @@ class TaskUploader(ServerAccessor):
                 if not filenames:
                     raise IOError("Not found: " + pattern)
                 for passage in read_files_and_dirs(filenames):
-                    # Get source
-                    logging.debug("Getting source %d" % self.source_id)
-                    source_out = self.request("get", "sources/%d/" % self.source_id).json()
-                    logging.debug("Got source: " + json.dumps(source_out))
-                    # Get project
-                    logging.debug("Getting project %d" % self.project_id)
-                    project_out = self.request("get", "projects/%d/" % self.project_id).json()
-                    logging.debug("Got project: " + json.dumps(project_out))
-                    # Get layer
-                    layer_id = project_out["layer"]["id"]
-                    logging.debug("Getting layer %d" % layer_id)
-                    layer_out = self.request("get", "layers/%d/" % layer_id).json()
-                    logging.debug("Got layer: " + json.dumps(layer_out))
-                    # Create passage
-                    passage_in = dict(text=to_text(passage, sentences=False)[0], type="PUBLIC", source=source_out)
-                    logging.debug("Creating passage: " + json.dumps(passage_in))
-                    passage_out = self.request("post", "passages/", json=passage_in).json()
-                    logging.debug("Created passage: " + json.dumps(passage_out))
-                    # Create tokenization task
-                    tok_task_in = dict(
-                        type="TOKENIZATION", status="SUBMITTED", project=project_out, user=self.user_in,
-                        passage=passage_out, manager_comment=passage.ID, children=[], parent=None,
-                        is_demo=False, is_active=True)
-                    logging.debug("Creating tokenization task: " + json.dumps(tok_task_in))
-                    tok_task_out = self.request("post", "tasks/", json=tok_task_in).json()
-                    logging.debug("Created tokenization task: " + json.dumps(tok_task_out))
-                    # Submit tokenization task
-                    tok_user_task_in = dict(tok_task_out)
-                    tok_user_task_in.update(to_json(passage, return_dict=True, tok_task=True))
-                    logging.debug("Submitting tokenization task: " + json.dumps(tok_user_task_in))
-                    self.request("put", "user_tasks/%d/draft" % tok_task_out["id"], json=tok_user_task_in)
-                    tok_user_task_out = self.request("put", "user_tasks/%d/submit" % tok_task_out["id"]).json()
-                    logging.debug("Submitted tokenization task: " + json.dumps(tok_user_task_out))
-                    # Create annotation task
-                    ann_task_in = dict(tok_task_in)
-                    ann_task_in.update(dict(parent=tok_task_out, type="ANNOTATION"))
-                    logging.debug("Creating annotation task: " + json.dumps(ann_task_in))
-                    ann_task_out = self.request("post", "tasks/", json=ann_task_in).json()
-                    logging.debug("Created annotation task: " + json.dumps(ann_task_out))
-                    # Submit annotation task
-                    ann_user_task_in = dict(ann_task_out)
-                    ann_user_task_in.update(to_json(passage, return_dict=True, tok_task=tok_user_task_out,
-                                                    all_categories=layer_out["categories"]))
-                    logging.debug("Submitting annotation task: " + json.dumps(ann_user_task_in))
-                    self.request("put", "user_tasks/%d/draft" % ann_task_out["id"], json=ann_user_task_in)
-                    ann_user_task_out = self.request("put", "user_tasks/%d/submit" % ann_task_out["id"]).json()
-                    logging.debug("Submitted annotation task: " + json.dumps(ann_user_task_out))
-                    print("Submitted task %d" % ann_user_task_out["id"])
+                    yield self.upload_task(passage)
         except HTTPError as e:
             try:
                 raise ValueError(e.response.json()) from e
             except JSONDecodeError:
                 raise ValueError(e.response.text) from e
+
+    def upload_task(self, passage):
+        # Get source
+        logging.debug("Getting source %d" % self.source_id)
+        source_out = self.request("get", "sources/%d/" % self.source_id).json()
+        logging.debug("Got source: " + json.dumps(source_out))
+        # Get project
+        logging.debug("Getting project %d" % self.project_id)
+        project_out = self.request("get", "projects/%d/" % self.project_id).json()
+        logging.debug("Got project: " + json.dumps(project_out))
+        # Get layer
+        layer_id = project_out["layer"]["id"]
+        logging.debug("Getting layer %d" % layer_id)
+        layer_out = self.request("get", "layers/%d/" % layer_id).json()
+        logging.debug("Got layer: " + json.dumps(layer_out))
+        # Create passage
+        passage_in = dict(text=to_text(passage, sentences=False)[0], type="PUBLIC", source=source_out)
+        logging.debug("Creating passage: " + json.dumps(passage_in))
+        passage_out = self.request("post", "passages/", json=passage_in).json()
+        logging.debug("Created passage: " + json.dumps(passage_out))
+        # Create tokenization task
+        tok_task_in = dict(type="TOKENIZATION", status="SUBMITTED", project=project_out, user=self.user_in,
+                           passage=passage_out, manager_comment=passage.ID, parent=None, is_demo=False, is_active=True)
+        logging.debug("Creating tokenization task: " + json.dumps(tok_task_in))
+        tok_task_out = self.request("post", "tasks/", json=tok_task_in).json()
+        logging.debug("Created tokenization task: " + json.dumps(tok_task_out))
+        # Submit tokenization task
+        tok_user_task_in = dict(tok_task_out)
+        tok_user_task_in.update(to_json(passage, return_dict=True, tok_task=True))
+        logging.debug("Submitting tokenization task: " + json.dumps(tok_user_task_in))
+        self.request("put", "user_tasks/%d/draft" % tok_task_out["id"], json=tok_user_task_in)
+        tok_user_task_out = self.request("put", "user_tasks/%d/submit" % tok_task_out["id"]).json()
+        logging.debug("Submitted tokenization task: " + json.dumps(tok_user_task_out))
+        # Create annotation task
+        ann_task_in = dict(tok_task_in)
+        ann_task_in.update(dict(parent=tok_task_out, type="ANNOTATION"))
+        logging.debug("Creating annotation task: " + json.dumps(ann_task_in))
+        ann_task_out = self.request("post", "tasks/", json=ann_task_in).json()
+        logging.debug("Created annotation task: " + json.dumps(ann_task_out))
+        # Submit annotation task
+        ann_user_task_in = dict(ann_task_out)
+        ann_user_task_in.update(
+            to_json(passage, return_dict=True, tok_task=tok_user_task_out, all_categories=layer_out["categories"]))
+        logging.debug("Submitting annotation task: " + json.dumps(ann_user_task_in))
+        self.request("put", "user_tasks/%d/draft" % ann_task_out["id"], json=ann_user_task_in)
+        ann_user_task_out = self.request("put", "user_tasks/%d/submit" % ann_task_out["id"]).json()
+        logging.debug("Submitted annotation task: " + json.dumps(ann_user_task_out))
+        print("Submitted task %d" % ann_user_task_out["id"])
+        return ann_user_task_out
 
     @staticmethod
     def add_arguments(argparser):
@@ -112,12 +114,12 @@ class TaskUploader(ServerAccessor):
         ServerAccessor.add_arguments(argparser)
 
 
-def main(kwargs):
-    TaskUploader(**kwargs).upload_tasks(**kwargs)
+def main(**kwargs):
+    list(TaskUploader(**kwargs).upload_tasks(**kwargs))
 
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser(description=desc)
     TaskUploader.add_arguments(argument_parser)
-    main(vars(argument_parser.parse_args()))
+    main(**vars(argument_parser.parse_args()))
     sys.exit(0)
