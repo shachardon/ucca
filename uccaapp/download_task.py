@@ -6,8 +6,8 @@ import sys
 
 import requests
 
-from convert import from_json, CONVERTERS, TO_FORMAT
-from ioutil import write_passage
+from ucca.convert import from_json, CONVERTERS, TO_FORMAT
+from ucca.ioutil import write_passage
 
 desc = """Download task from UCCA-App and convert to a passage in standard format"""
 

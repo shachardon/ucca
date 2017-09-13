@@ -6,16 +6,16 @@ import os
 import sys
 from glob import glob
 
+from requests.exceptions import HTTPError
+
+from ucca.convert import to_json, to_text
+from ucca.ioutil import read_files_and_dirs
+from uccaapp.download_task import ServerAccessor
+
 try:
     from simplejson.scanner import JSONDecodeError
 except ImportError:
     from json.decoder import JSONDecodeError
-
-from requests.exceptions import HTTPError
-
-from convert import to_json, to_text
-from download_task import ServerAccessor
-from ucca.ioutil import read_files_and_dirs
 
 desc = """Convert a passage file to JSON format and upload to UCCA-App as a completed task"""
 
