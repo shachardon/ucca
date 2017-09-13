@@ -787,15 +787,12 @@ def from_json(lines, *args, **kwargs):
     # Create non-terminals
     l1 = layer1.Layer1(passage)
     tree_id_to_node = {}
-    queue = list(d["annotation_units"])  # breadth-first search
-    while queue:
-        unit = queue.pop(0)
+    token_id_to_preterminal = {}
+    for unit in d["annotation_units"]:  # Assuming topological sort: parents always appear before children
         tree_id = unit["annotation_unit_tree_id"]
         remote = unit["is_remote_copy"]
         if not remote and tree_id in tree_id_to_node:  # Skip repeated units
             continue
-        children = unit["children"]
-        queue += children
         parent_id = unit["parent_id"]
         if parent_id is None:  # No need to create root node
             tree_id_to_node[tree_id] = None
@@ -819,14 +816,12 @@ def from_json(lines, *args, **kwargs):
                 l1.add_remote(parent_node, tag, node)
             else:
                 node = tree_id_to_node[tree_id] = l1.add_fnode(parent_node, tag, implicit=(unit["type"] == "IMPLICIT"))
-                if not children:  # We assume that children_tokens is only valid when the unit appears without children
-                    for token in unit["children_tokens"]:
-                        try:
-                            terminal = token_id_to_terminal[token["id"]]
-                        except KeyError:
-                            raise ValueError("Child token %d of unit %s not found" % (token["id"], tree_id))
-                        node.add(EdgeTags.Terminal, terminal)
+                for token in unit["children_tokens"]:
+                    token_id_to_preterminal[token["id"]] = node
                 remote = True  # Any further categories between the same pair of units will result in remote edges
+    # Attach terminals to non-terminals
+    for token_id, node in token_id_to_preterminal.items():
+        node.add(EdgeTags.Terminal, token_id_to_terminal[token_id])
     return passage
 
 
@@ -868,10 +863,10 @@ def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=Non
     annotation_units = []
     if tok_task is not True:  # Annotation required, not just tokenization; tok_task might be None or a full task dict
         root_node = passage.layer(layer1.LAYER_ID).heads[0]  # Ignoring Linkage: taking only the first head
-        root_annotation_unit = dict(annotation_unit_tree_id="0", type="REGULAR", is_remote_copy=False, categories=[],
-                                    comment="", parent_id=None, gui_status="OPEN", children_tokens=[])
-        annotation_units.append(root_annotation_unit)
-        node_id_to_primary_annotation_unit = {root_node.ID: root_annotation_unit}
+        root_unit = dict(annotation_unit_tree_id="0", type="REGULAR", is_remote_copy=False, categories=[], comment="",
+                         parent_id=None, gui_status="OPEN", children_tokens=[])
+        annotation_units.append(root_unit)
+        node_id_to_primary_annotation_unit = {root_node.ID: root_unit}
         node_id_to_remote_annotation_units = defaultdict(list)
         edge_tag_to_category_name = {v: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", k) for k, v in EdgeTags.__dict__.items()}
         root_outgoing = [e for e in root_node if e.tag not in IGNORED_EDGE_TAGS]
@@ -892,23 +887,22 @@ def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=Non
                         category["id"] = category_name_to_id[category["name"]]
                     except KeyError:
                         raise ValueError("Category missing from layer: " + category["name"])
-            annotation_unit = dict(annotation_unit_tree_id="-".join(map(str, tree_id_elements)),
-                                   type="IMPLICIT" if node.attrib.get("implicit") else "REGULAR", is_remote_copy=remote,
-                                   categories=categories, comment=node.ID,
-                                   parent_id=parent_annotation_unit["annotation_unit_tree_id"], gui_status="OPEN",
-                                   children_tokens=[dict(id=terminal_id_to_token_id[t.ID]) for t in terminals])
+            unit = dict(annotation_unit_tree_id="-".join(map(str, tree_id_elements)),
+                        type="IMPLICIT" if node.attrib.get("implicit") else "REGULAR", is_remote_copy=remote,
+                        categories=categories, comment=node.ID,
+                        parent_id=parent_annotation_unit["annotation_unit_tree_id"], gui_status="OPEN",
+                        children_tokens=[dict(id=terminal_id_to_token_id[t.ID]) for t in terminals])
             if remote:
-                node_id_to_remote_annotation_units[node.ID].append(annotation_unit)
+                node_id_to_remote_annotation_units[node.ID].append(unit)
             else:
                 for i, edge in enumerate(outgoing):
                     queue.append((tree_id_elements + [i + 1], edge))
-                node_id_to_primary_annotation_unit[node.ID] = annotation_unit
-            annotation_units.append(annotation_unit)
+                node_id_to_primary_annotation_unit[node.ID] = unit
+            annotation_units.append(unit)
         # Modify tree id of remote copies to be the same as their non-remote units, and not as originally constructed
         for node_id, remote_annotation_units in node_id_to_remote_annotation_units.items():
-            for annotation_unit in remote_annotation_units:
-                annotation_unit["annotation_unit_tree_id"] = \
-                    node_id_to_primary_annotation_unit[node_id]["annotation_unit_tree_id"]
+            for unit in remote_annotation_units:
+                unit["annotation_unit_tree_id"] = node_id_to_primary_annotation_unit[node_id]["annotation_unit_tree_id"]
     d = dict(tokens=tokens, annotation_units=annotation_units, manager_comment=passage.ID)
     return d if return_dict else json.dumps(d).splitlines()
 
