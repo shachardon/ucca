@@ -35,7 +35,7 @@ USER_ID_ENV_VAR = "UCCA_APP_USER_ID"
 class TaskUploader(ServerAccessor):
     def __init__(self, user_id, **kwargs):
         super().__init__(**kwargs)
-        self.user_in = dict(id=user_id or int(os.environ[USER_ID_ENV_VAR]))
+        self.user = dict(id=user_id or int(os.environ[USER_ID_ENV_VAR]))
         
     def upload_tasks(self, filenames, **kwargs):
         del kwargs
@@ -61,7 +61,7 @@ class TaskUploader(ServerAccessor):
         passage_out = self.request("post", "passages/", json=passage_in).json()
         logging.debug("Created passage: " + json.dumps(passage_out))
         # Create tokenization task
-        tok_task_in = dict(type="TOKENIZATION", status="SUBMITTED", project=self.project, user=self.user_in,
+        tok_task_in = dict(type="TOKENIZATION", status="SUBMITTED", project=self.project, user=self.user,
                            passage=passage_out, manager_comment=passage.ID, parent=None, is_demo=False, is_active=True)
         logging.debug("Creating tokenization task: " + json.dumps(tok_task_in))
         tok_task_out = self.request("post", "tasks/", json=tok_task_in).json()
