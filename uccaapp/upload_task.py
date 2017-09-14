@@ -49,7 +49,9 @@ class TaskUploader(ServerAccessor):
                 if not filenames:
                     raise IOError("Not found: " + pattern)
                 for passage in read_files_and_dirs(filenames):
-                    yield self.upload_task(passage)
+                    task = self.upload_task(passage)
+                    print("Submitted task %d" % task["id"])
+                    yield task
         except HTTPError as e:
             try:
                 raise ValueError(e.response.json()) from e
@@ -102,7 +104,6 @@ class TaskUploader(ServerAccessor):
         ann_user_task_out = self.request("put", "user_tasks/%d/submit" % ann_task_out["id"],
                                          json=ann_user_task_in).json()
         logging.debug("Submitted annotation task: " + json.dumps(ann_user_task_out))
-        print("Submitted task %d" % ann_user_task_out["id"])
         return ann_user_task_out
 
     @staticmethod

@@ -29,9 +29,12 @@ def main(filenames, **kwargs):
             if not filenames:
                 raise IOError("Not found: " + pattern)
             for ref in read_files_and_dirs(filenames):
+                print("Converting passage " + ref.ID + "... ", end="")
                 task = uploader.upload_task(ref)
                 guessed = downloader.download_task(task["id"], write=False)
-                scores.append(evaluate(guessed, ref, **kwargs))
+                score = evaluate(guessed, ref, **kwargs)
+                print("F1=%.3f" % score.average_f1())
+                scores.append(score)
     except HTTPError as e:
         try:
             raise ValueError(e.response.json()) from e
