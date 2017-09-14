@@ -760,7 +760,7 @@ UNANALYZABLE = "Unanalyzable"
 IGNORED_CATEGORIES = {UNANALYZABLE}
 
 
-def from_json(lines, *args, **kwargs):
+def from_json(lines, *args, all_categories=None, **kwargs):
     """Convert text (or dict) in UCCA-App JSON format to a Passage object.
         According to the API, annotation units are organized in a tree, where the full unit is included as a child of
           its parent: https://github.com/omriabnd/UCCA-App/blob/master/UCCAApp_REST_API_Reference.pdf
@@ -771,6 +771,7 @@ def from_json(lines, *args, **kwargs):
           The exception is the first level, where there is just 0, and the next level starts from 1 (not 0-1).
         parent_id: the annotation_unit_tree_id of the node's parent, where 0 is the root
     :param lines: iterable of lines in JSON format, describing a single passage.
+    :param all_categories: list of category dicts so that IDs can be resolved to names, if available
     :return generator of Passage objects
     """
     del args, kwargs
@@ -785,6 +786,7 @@ def from_json(lines, *args, **kwargs):
     l1 = layer1.Layer1(passage)
     tree_id_to_node = {}
     token_id_to_preterminal = {}
+    category_id_to_name = {c["id"]: c["name"] for c in all_categories} if all_categories else None
     for unit in d["annotation_units"]:  # Assuming topological sort: parents always appear before children
         tree_id = unit["annotation_unit_tree_id"]
         remote = unit["is_remote_copy"]
@@ -799,12 +801,18 @@ def from_json(lines, *args, **kwargs):
         except KeyError:
             raise ValueError("Unit %s appears before its parent" % tree_id)
         for category in unit["categories"]:
-            if category["name"] in IGNORED_CATEGORIES:
+            try:
+                category_name = category.get("name") or category_id_to_name[category["id"]]
+            except TypeError:
+                raise ValueError("Missing category name, and no category list available")
+            except KeyError:
+                raise ValueError("Category missing from layer: " + category["id"])
+            if category_name in IGNORED_CATEGORIES:
                 continue
             try:
-                tag = EdgeTags.__dict__[category["name"].replace(" ", "")]
+                tag = EdgeTags.__dict__[category_name.replace(" ", "")]
             except KeyError:
-                raise ValueError("Unknown category name: '%s'" % category["name"])
+                raise ValueError("Unknown category name: '%s'" % category_name)
             if remote:
                 try:
                     node = tree_id_to_node[tree_id]
