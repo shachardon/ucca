@@ -85,8 +85,8 @@ class TaskUploader(ServerAccessor):
         tok_user_task_in = dict(tok_task_out)
         tok_user_task_in.update(to_json(passage, return_dict=True, tok_task=True))
         logging.debug("Submitting tokenization task: " + json.dumps(tok_user_task_in))
-        self.request("put", "user_tasks/%d/draft" % tok_task_out["id"], json=tok_user_task_in)
-        tok_user_task_out = self.request("put", "user_tasks/%d/submit" % tok_task_out["id"]).json()
+        tok_user_task_out = self.request("put", "user_tasks/%d/submit" % tok_task_out["id"],
+                                         json=tok_user_task_in).json()
         logging.debug("Submitted tokenization task: " + json.dumps(tok_user_task_out))
         # Create annotation task
         ann_task_in = dict(tok_task_in)
@@ -99,8 +99,8 @@ class TaskUploader(ServerAccessor):
         ann_user_task_in.update(
             to_json(passage, return_dict=True, tok_task=tok_user_task_out, all_categories=layer_out["categories"]))
         logging.debug("Submitting annotation task: " + json.dumps(ann_user_task_in))
-        self.request("put", "user_tasks/%d/draft" % ann_task_out["id"], json=ann_user_task_in)
-        ann_user_task_out = self.request("put", "user_tasks/%d/submit" % ann_task_out["id"]).json()
+        ann_user_task_out = self.request("put", "user_tasks/%d/submit" % ann_task_out["id"],
+                                         json=ann_user_task_in).json()
         logging.debug("Submitted annotation task: " + json.dumps(ann_user_task_out))
         print("Submitted task %d" % ann_user_task_out["id"])
         return ann_user_task_out
