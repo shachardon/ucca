@@ -292,7 +292,7 @@ class SummaryStatistics(object):
 
 
 def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
-             units=False, fscore=True, errors=False, normalize=True):
+             units=False, fscore=True, errors=False, normalize=True, **kwargs):
     """
     Compare two passages and return requested diagnostics and scores, possibly printing them too.
     NOTE: since normalize=True by default, this method is destructive: it modifies the given passages before evaluation.
@@ -307,6 +307,7 @@ def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
     :param normalize: flatten centers and move common functions to root before evaluation - modifies passages
     :return: Scores object
     """
+    del kwargs
     if converter is not None:
         guessed = converter(guessed)
         ref = converter(ref)
