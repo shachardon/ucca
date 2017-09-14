@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import logging
 import os
 import sys
@@ -55,7 +56,9 @@ class TaskDownloader(ServerAccessor):
 
     def download_task(self, task_id, write=True, out_format=None, binary=None, out_dir=None, prefix=None, **kwargs):
         del kwargs
+        logging.debug("Getting task " + str(task_id))
         task = self.request("get", "user_tasks/" + str(task_id)).json()
+        logging.debug("Got task: " + json.dumps(task))
         passage = from_json(task)
         if write:
             write_passage(passage, out_format, binary, out_dir, prefix, TO_FORMAT.get(out_format))
