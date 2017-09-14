@@ -882,6 +882,7 @@ def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=Non
                 for category in categories:
                     try:
                         category["id"] = category_name_to_id[category["name"]]
+                        del category["name"]
                     except KeyError:
                         raise ValueError("Category missing from layer: " + category["name"])
             unit = dict(annotation_unit_tree_id="-".join(map(str, tree_id_elements)),
