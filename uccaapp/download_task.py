@@ -67,11 +67,15 @@ class TaskDownloader(ServerAccessor):
     @staticmethod
     def add_arguments(argparser):
         argparser.add_argument("task_ids", nargs="+", type=int, help="IDs of tasks to download and convert")
+        TaskDownloader.add_write_arguments(argparser)
+        ServerAccessor.add_arguments(argparser)
+
+    @staticmethod
+    def add_write_arguments(argparser):
         argparser.add_argument("-f", "--out-format", choices=CONVERTERS, help="output file format (default: UCCA)")
         argparser.add_argument("-o", "--out-dir", default=".", help="output directory")
         argparser.add_argument("-p", "--prefix", default="", help="output filename prefix")
         argparser.add_argument("-b", "--binary", action="store_true", help="write in binary format (.pickle)")
-        ServerAccessor.add_arguments(argparser)
 
 
 def main(**kwargs):

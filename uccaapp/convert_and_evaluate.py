@@ -19,7 +19,7 @@ then download task from UCCA-App and convert to a passage in standard format aga
 then evaluate the result against the original"""
 
 
-def main(filenames, **kwargs):
+def main(filenames, write, **kwargs):
     uploader = TaskUploader(**kwargs)
     downloader = TaskDownloader(**kwargs)
     scores = []
@@ -31,7 +31,7 @@ def main(filenames, **kwargs):
             for ref in read_files_and_dirs(filenames):
                 print("Converting passage " + ref.ID + "... ", end="")
                 task = uploader.upload_task(ref)
-                guessed = downloader.download_task(task["id"], write=False)
+                guessed = downloader.download_task(task["id"], write=write, **kwargs)
                 score = evaluate(guessed, ref, **kwargs)
                 print("F1=%.3f" % score.average_f1())
                 scores.append(score)
@@ -49,5 +49,7 @@ def main(filenames, **kwargs):
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser(description=desc)
     TaskUploader.add_arguments(argument_parser)
+    argument_parser.add_argument("--write", action="store_true", help="Write converted passage to file")
+    TaskDownloader.add_write_arguments(argument_parser)
     main(**vars(argument_parser.parse_args()))
     sys.exit(0)
