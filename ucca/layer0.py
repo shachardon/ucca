@@ -119,10 +119,10 @@ class Terminal(core.Node):
 
     # Terminal are immutable (except the extra dictionary which is
     # just a temporary playground) and have no children, so enforce it
-    def add(self):
+    def add(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def remove(self):
+    def remove(self, *args, **kwargs):
         raise NotImplementedError()
 
 
