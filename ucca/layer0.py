@@ -144,7 +144,7 @@ class Layer0(core.Layer):
 
     @property
     def pairs(self):
-        return tuple(zip(range(1, len(self._all) + 1), self._all))
+        return tuple(enumerate(self._all, start=1))
 
     def by_position(self, pos):
         """Returns the Terminals at the position given.
