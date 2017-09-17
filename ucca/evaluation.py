@@ -56,7 +56,7 @@ def move_functions(p1, p2):
 
 def get_text(p, positions):
     l0 = p.layer(layer0.LAYER_ID)
-    return [l0.by_position(i).text for i in sorted(positions.intersection(range(1, len(l0.all) + 1)))]
+    return [l0.by_position(i).text for i in range(1, len(l0.all) + 1) if i in positions]
 
 
 def create_passage_yields(p, constructions=None, reference=None, verbose=False):
