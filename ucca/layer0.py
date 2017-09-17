@@ -140,11 +140,11 @@ class Layer0(core.Layer):
 
     @property
     def words(self):
-        return tuple(x for x in self.all if not x.punct)
+        return tuple(x for x in self._all if not x.punct)
 
     @property
     def pairs(self):
-        return tuple(zip(range(1, len(self.all) + 1), self._all))
+        return tuple(zip(range(1, len(self._all) + 1), self._all))
 
     def by_position(self, pos):
         """Returns the Terminals at the position given.
@@ -180,9 +180,9 @@ class Layer0(core.Layer):
                 caused by un-ordered Terminal positions in the layer
 
         """
-        position = len(self.all) + 1  # we want positions to start with 1
-        if position > 1 and paragraph == self.all[-1].paragraph:
-            para_pos = self.all[-1].para_pos + 1
+        position = len(self._all) + 1  # we want positions to start with 1
+        if position > 1 and paragraph == self._all[-1].paragraph:
+            para_pos = self._all[-1].para_pos + 1
         else:
             para_pos = 1
 
@@ -210,4 +210,4 @@ class Layer0(core.Layer):
 
 def is_punct(node):
     """Returns whether the unit is a layer0 punctuation (for all Units)."""
-    return node.punct if node.layer.ID == LAYER_ID else False
+    return node.layer.ID == LAYER_ID and node.punct
