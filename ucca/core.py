@@ -729,7 +729,7 @@ class Layer:
         :param edge: the Edge removed from the Layer subgraph
 
         """
-        if all(p.layer != self for p in edge.child.parents):
+        if edge.child.layer == self and all(p.layer != self for p in edge.child.parents):
             self._heads.append(edge.child)
             self._heads.sort(key=self._orderkey)
         # Order may depend on edges, so re-order
@@ -986,7 +986,7 @@ class Passage:
 
         """
         # Currently no work is done in the Passage level
-        edge.child.layer._remove_edge(edge)
+        edge.parent.layer._remove_edge(edge)
 
     def _change_edge_tag(self, edge, old_tag):
         """Updates the :class:Passage and :class:Layer objects with the change.
