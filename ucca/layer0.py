@@ -74,12 +74,9 @@ class Terminal(core.Node):
     def get_terminals(self, punct=True, *args, **kwargs):
         """Returns a list containing just this Terminal.
 
-        Args:
-            punct: whether to include punctuation Terminals, defaults to True
+        :param punct: whether to include punctuation Terminals, defaults to True
 
-        Returns:
-            a list of :class:layer0.Terminal objects
-
+        :return a list of :class:layer0.Terminal objects
         """
         del punct, args, kwargs
         return [] if self.punct else [self]
@@ -87,13 +84,10 @@ class Terminal(core.Node):
     def equals(self, other, *, ordered=False, **kwargs):
         """Equals if the Terminals are of the same Layer, tag, position & text.
 
-        Args:
-            other: another Terminal to equal to
-            ordered: unused, here for API conformness.
+        :param other: another Terminal to equal to
+        :param ordered: unused, here for API conformity.
 
-        Returns:
-            True iff the two Terminals are equal.
-
+        :return True iff the two Terminals are equal.
         """
         return (self.layer.ID == other.layer.ID and self.text == other.text
                 and self.position == other.position and self.tag == other.tag
@@ -149,15 +143,9 @@ class Layer0(core.Layer):
     def by_position(self, pos):
         """Returns the Terminals at the position given.
 
-        Args:
-            pos: the position of the Terminal object
-
-        Returns:
-            the Terminal in this position
-
-        Raises:
-            IndexError if the position is out of bounds
-
+        :param pos: the position of the Terminal object
+        :return the Terminal in this position
+        :raise IndexError if the position is out of bounds
         """
         return self._all[pos - 1]  # positions start at 1, not 0
 
@@ -167,28 +155,19 @@ class Layer0(core.Layer):
         Creates a :class:Terminal object with the next position, assuming that
         all positions are filled (no holes).
 
-        Args:
-            text: the text of the Terminal
-            punct: boolean, whether it's a punctuation mark
-            paragraph: paragraph number, defaults to 1
+        :param text: the text of the Terminal
+        :param punct: boolean, whether it's a punctuation mark
+        :param paragraph: paragraph number, defaults to 1
 
-        Returns:
-            the created Terminal
+        :return the created Terminal
 
-        Raises:
-            DuplicateIdError: if trying to add an already existing Terminal,
+        :raise DuplicateIdError: if trying to add an already existing Terminal,
                 caused by un-ordered Terminal positions in the layer
-
         """
         position = len(self._all) + 1  # we want positions to start with 1
-        if position > 1 and paragraph == self._all[-1].paragraph:
-            para_pos = self._all[-1].para_pos + 1
-        else:
-            para_pos = 1
-
+        para_pos = self._all[-1].para_pos + 1 if position > 1 and paragraph == self._all[-1].paragraph else 1
         tag = NodeTags.Punct if punct else NodeTags.Word
-        return Terminal(ID="{}{}{}".format(LAYER_ID, core.Node.ID_SEPARATOR,
-                                           position),
+        return Terminal(ID="{}{}{}".format(LAYER_ID, core.Node.ID_SEPARATOR, position),
                         root=self.root, tag=tag,
                         attrib={'text': text,
                                 'paragraph': paragraph,
@@ -197,8 +176,7 @@ class Layer0(core.Layer):
     def copy(self, other_passage):
         """Creates a copied Layer0 object and Terminals in other_passage.
 
-        Args:
-            other_passage: the Passage to copy self to
+        :param other_passage: the Passage to copy self to
 
         """
         other = Layer0(root=other_passage, attrib=self.attrib.copy())

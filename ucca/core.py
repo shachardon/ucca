@@ -112,17 +112,14 @@ class ModifyPassage:
     def __call__(self, *args, **kwargs):
         """Decorating functions which modify :class:Passage elements.
 
-        Args:
-            args: list of all arguments, assuming the first is the object
+        :param args: list of all arguments, assuming the first is the object
                 which modifies :class:Passage, and it has an attribute root
                 which points to the Passage it is part of.
-            kwargs: list of all keyword arguments
+        :param kwargs: list of all keyword arguments
 
-        Returns:
-            The decorated function result.
+        :return The decorated function result.
 
-        Raises:
-            FrozenPassageError: if the :class:Passage is frozen and can't be
+        :raise FrozenPassageError: if the :class:Passage is frozen and can't be
                 modified.
 
         """
@@ -160,11 +157,9 @@ class _AttributeDict:
     def equals(self, other):
         """True iff the two objects are equal (only dicts, w.o.r.t Passage).
 
-        Args:
-            other: AttributeDict to compare to
+        :param other: AttributeDict to compare to
 
-        Returns:
-            True iff the dictionaries are equal.
+        :return True iff the dictionaries are equal.
 
         """
         def omit_irrelevant(d):
@@ -220,11 +215,9 @@ class Edge:
     def __init__(self, root, tag, parent, child, attrib=None):
         """Creates a new :class:Edge object.
 
-        Args:
-            see :class:Edge documentation.
+        :param see :class:Edge documentation.
 
-        Raises:
-            FrozenPassageError: if the :class:Passage object we are part of
+        :raise FrozenPassageError: if the :class:Passage object we are part of
                 is frozen and can't be modified.
 
         """
@@ -284,8 +277,7 @@ class Edge:
         :param ignore_edge: function that returns whether to ignore a given edge
 
 
-        Returns:
-            True iff the Edges are equal.
+        :return True iff the Edges are equal.
 
         """
         return self.tag == other.tag and \
@@ -332,11 +324,9 @@ class Node:
                  orderkey=edge_id_orderkey):
         """Creates a new :class:Node object.
 
-        Args:
-            see :class:Node documentation.
+        :param see :class:Node documentation.
 
-        Raises:
-            FrozenPassageError: if the :class:Passage object we are part of
+        :raise FrozenPassageError: if the :class:Passage object we are part of
                 is frozen and can't be modified.
 
         """
@@ -414,18 +404,15 @@ class Node:
     def add(self, edge_tag, node, *, edge_attrib=None):
         """Adds another :class:Node object as a child of self.
 
-        Args:
-            edge_tag: the label of the :class:Edge connecting between the
+        :param edge_tag: the label of the :class:Edge connecting between the
                 Nodes
             node: the Node object which we want to have an Edge to
             edge_attrib: Keyword only, dictionary of attributes to be passed
                 to the Edge initializer.
 
-        Returns:
-            the newly created Edge object
+        :return the newly created Edge object
 
-        Raises:
-            FrozenPassageError: if the :class:Passage object we are part of
+        :raise FrozenPassageError: if the :class:Passage object we are part of
                 is frozen and can't be modified.
 
         """
@@ -447,11 +434,9 @@ class Node:
         remove the target or originating Node from the graph but just unlinks
         them.
 
-        Args:
-            edge_or_node: either an Edge or Node object to remove/unlink
+        :param edge_or_node: either an Edge or Node object to remove/unlink
 
-        Raises:
-            MissingNodeError: if the Node or Edge is not connected with self.
+        :raise MissingNodeError: if the Node or Edge is not connected with self.
 
         """
         if edge_or_node not in self._outgoing:  # a Node, or an error
@@ -513,8 +498,7 @@ class Node:
         :param ignore_node: function that returns whether to ignore a given node
         :param ignore_edge: function that returns whether to ignore a given edge
 
-        Returns:
-            True iff the Nodes are equal in the terms given.
+        :return True iff the Nodes are equal in the terms given.
 
         """
         if self.tag != other.tag or not self._attrib.equals(other._attrib):
@@ -553,8 +537,7 @@ class Node:
         :param other: the Node object to compare to
         :param ignore_node: function that returns whether to ignore a given node
 
-        Returns:
-            List of edges present in this node but missing in the other.
+        :return List of edges present in this node but missing in the other.
 
         """
         edges, other_edges = [[edge for edge in node
@@ -567,8 +550,7 @@ class Node:
     def iter(self, obj="nodes", method="dfs", duplicates=False, key=None):
         """Iterates the :class:Node objects in the subtree of self.
 
-        Args:
-            obj: yield Node objects (use value "nodes", default) or Edge
+        :param obj: yield Node objects (use value "nodes", default) or Edge
                 objects (use values "edges")
             method: do breadth-first iteration (use value "bfs") or depth-first
                 iteration (value "dfs", default).
@@ -636,11 +618,9 @@ class Layer:
     def __init__(self, ID, root, attrib=None, *, orderkey=id_orderkey):
         """Creates a new :class:Layer object.
 
-        Args:
-            see :class:Layer documentation.
+        :param see :class:Layer documentation.
 
-        Raises:
-            FrozenPassageError: if the :class:Passage object we are part of
+        :raise FrozenPassageError: if the :class:Passage object we are part of
                 is frozen and can't be modified.
 
         """
@@ -699,8 +679,7 @@ class Layer:
         :param ignore_node: function that returns whether to ignore a given node
         :param ignore_edge: function that returns whether to ignore a given edge
 
-        Returns:
-            True iff self and other are Layer-equal.
+        :return True iff self and other are Layer-equal.
 
         """
         if not self._attrib.equals(other._attrib):
@@ -732,8 +711,7 @@ class Layer:
         Should be called when both :class:Node objects of the edge are part
         of this Layer (and hence part of the subgraph of it).
 
-        Args:
-            edge: the Edge added to the Layer subgraph
+        :param edge: the Edge added to the Layer subgraph
 
         """
         if edge.child in self._heads:
@@ -748,8 +726,7 @@ class Layer:
         Should be called when both :class:Node objects of the edge are part
         of this Layer (and hence part of the subgraph of it).
 
-        Args:
-            edge: the Edge removed from the Layer subgraph
+        :param edge: the Edge removed from the Layer subgraph
 
         """
         if all(p.layer != edge.child.layer for p in edge.child.parents):
@@ -782,8 +759,7 @@ class Layer:
     def _change_edge_tag(self, edge, old_tag):
         """Updates the :class:Layer objects with the change.
 
-        Args:
-            edge: the updated :class:Edge object
+        :param edge: the updated :class:Edge object
             old_tag: the Edge's tag before the change
 
         """
@@ -792,8 +768,7 @@ class Layer:
     def _change_node_tag(self, node, old_tag):
         """Updates the :class:Layer objects with the change.
 
-        Args:
-            node: the updated :class:Node object
+        :param node: the updated :class:Node object
             old_tag: the Node's tag before the change
 
         """
@@ -821,8 +796,7 @@ class Passage:
     def __init__(self, ID, attrib=None):
         """Creates a new :class:Passage object.
 
-        Args:
-            see :class:Passage documentation.
+        :param see :class:Passage documentation.
 
         """
         self._ID = ID
@@ -855,11 +829,9 @@ class Passage:
     def layer(self, ID):
         """Returns the :class:Layer object whose ID is given.
 
-        Args:
-            ID: ID of the Layer requested.
+        :param ID: ID of the Layer requested.
 
-        Raises:
-            KeyError: if no Layer with this ID is present
+        :raise KeyError: if no Layer with this ID is present
 
         """
         return self._layers[ID]
@@ -875,8 +847,7 @@ class Passage:
         :param ignore_node: function that returns whether to ignore a given node
         :param ignore_edge: function that returns whether to ignore a given edge
 
-        Returns:
-            True iff self is Passage-equivalent to other.
+        :return True iff self is Passage-equivalent to other.
 
         """
         if not self._attrib.equals(other._attrib):
@@ -901,8 +872,7 @@ class Passage:
         :param ignore_node: function that returns whether to ignore a given node
         :param ignore_edge: function that returns whether to ignore a given edge
 
-        Returns:
-            List of nodes present in this passage but missing in the other.
+        :return List of nodes present in this passage but missing in the other.
 
         """
         nodes, other_nodes = [[node for node in passage.nodes.values()
@@ -922,14 +892,11 @@ class Passage:
         truly copying the Passage attributes (attrib, extra, ID, frozen)
         and creating the equivalent layers (each layer for itself).
 
-        Args:
-            layers: sequence of layer IDs to copy to the new object.
+        :param layers: sequence of layer IDs to copy to the new object.
 
-        Returns:
-            A new Passage object.
+        :return A new Passage object.
 
-        Raises:
-            KeyError if a given layer ID doesn't exist.
+        :raise KeyError if a given layer ID doesn't exist.
             UnimplementedMethodError if copying for a layer is unimplemented.
 
         """
@@ -946,14 +913,11 @@ class Passage:
     def by_id(self, ID):
         """Returns a Node whose ID is given.
 
-        Args:
-            ID: ID string
+        :param ID: ID string
 
-        Returns:
-            The node.Node object whose ID matches
+        :return The node.Node object whose ID matches
 
-        Raises:
-            KeyError if no Node with this ID is found
+        :raise KeyError if no Node with this ID is found
 
         """
         return self._nodes[ID]
@@ -962,11 +926,9 @@ class Passage:
     def _add_layer(self, layer):
         """Adds a :class:Layer object to the :class:Passage.
 
-        Args:
-            layer: the Layer object to add
+        :param layer: the Layer object to add
 
-        Raises:
-            DuplicateIdError: if layer.ID is identical to a Layer already
+        :raise DuplicateIdError: if layer.ID is identical to a Layer already
                 present in the Passage.
             FrozenPassageError: if the :class:Passage object we are part of
                 is frozen and can't be modified.
@@ -980,11 +942,9 @@ class Passage:
     def _add_node(self, node):
         """Adds a :class:Node object to the :class:Passage.
 
-        Args:
-            node: the Node object to add
+        :param node: the Node object to add
 
-        Raises:
-            DuplicateIdError: if node.ID is identical to a Node already
+        :raise DuplicateIdError: if node.ID is identical to a Node already
                 present in the Passage.
             FrozenPassageError: if the :class:Passage object we are part of
                 is frozen and can't be modified.
@@ -997,12 +957,10 @@ class Passage:
     def _remove_node(self, node):
         """Removes a :class:Node object from the :class:Passage.
 
-        Args:
-            node: the Node object to remove, must be unlinked with any other
+        :param node: the Node object to remove, must be unlinked with any other
                 Node objects and removed from its :class:Layer.
 
-        Raises:
-            KeyError: if no Node with this ID is present
+        :raise KeyError: if no Node with this ID is present
 
         """
         del self._nodes[node.ID]
@@ -1013,8 +971,7 @@ class Passage:
 
         Handles altering the Passage and :class:Layer objects accordingly.
 
-        Args:
-            edge: the Edge object to add
+        :param edge: the Edge object to add
 
         """
         # Currently no work is done in the Passage level
@@ -1025,8 +982,7 @@ class Passage:
 
         Handles altering the Passage and :class:Layer objects accordingly.
 
-        Args:
-            edge: the Edge object to remove
+        :param edge: the Edge object to remove
 
         """
         # Currently no work is done in the Passage level
@@ -1035,8 +991,7 @@ class Passage:
     def _change_edge_tag(self, edge, old_tag):
         """Updates the :class:Passage and :class:Layer objects with the change.
 
-        Args:
-            edge: the updated :class:Edge object
+        :param edge: the updated :class:Edge object
             old_tag: the Edge's tag before the change
 
         """
@@ -1046,8 +1001,7 @@ class Passage:
     def _change_node_tag(self, node, old_tag):
         """Updates the :class:Passage and :class:Layer objects with the change.
 
-        Args:
-            node: the updated :class:Node object
+        :param node: the updated :class:Node object
             old_tag: the Node's tag before the change
 
         """

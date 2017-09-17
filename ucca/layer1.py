@@ -262,13 +262,11 @@ class FoundationalNode(core.Node):
     def get_terminals(self, punct=True, remotes=False):
         """Returns a list of all terminals under the span of this FNode.
 
-        Args:
-            punct: whether to include punctuation Terminals, defaults to True
-            remotes: whether to include Terminals from remote FNodes, defaults
+        :param punct: whether to include punctuation Terminals, defaults to True
+        :param remotes: whether to include Terminals from remote FNodes, defaults
                 to false
 
-        Returns:
-            a list of :class:layer0.Terminal objects
+        :return a list of :class:layer0.Terminal objects
 
         """
         terms = []
@@ -390,11 +388,9 @@ class PunctNode(FoundationalNode):
     def get_terminals(self, punct=True, *args, **kwargs):
         """Returns a list of all terminals under the span of this PunctNode.
 
-        Args:
-            punct: whether to include punctuation Terminals, defaults to True
+        :param punct: whether to include punctuation Terminals, defaults to True
 
-        Returns:
-            a list of :class:layer0.Terminal objects
+        :return a list of :class:layer0.Terminal objects
 
         """
         return self.children if punct else ()
@@ -439,18 +435,14 @@ class Layer1(core.Layer):
     def add_fnode(self, parent, edge_tag, *, implicit=False):
         """Adds a new :class:FNode whose parent and Edge tag are given.
 
-        Args:
-            parent: the FNode which will be the parent of the new FNode.
+        :param parent: the FNode which will be the parent of the new FNode.
                 If the parent is None, adds under the layer head FNode.
-            edge_tag: the tag on the Edge between the parent and the new FNode.
-            implicit: whether to set the new FNode as implicit (default False)
+        :param edge_tag: the tag on the Edge between the parent and the new FNode.
+        :param implicit: whether to set the new FNode as implicit (default False)
 
-        Returns:
-            the newly created FNode
+        :return the newly created FNode
 
-        Raises:
-            core.FrozenPassageError if the Passage is frozen
-
+        :raise core.FrozenPassageError if the Passage is frozen
         """
         if parent is None:
             parent = self._head_fnode
@@ -463,30 +455,24 @@ class Layer1(core.Layer):
     def add_remote(self, parent, edge_tag, child):
         """Adds a new :class:core.Edge with remote attribute between the nodes.
 
-        Args:
-            parent: the parent of the remote Edge
-            edge_tag: tag of the Edge
-            child: the child of the remote Edge
+        :param parent: the parent of the remote Edge
+        :param edge_tag: tag of the Edge
+        :param child: the child of the remote Edge
 
-        Raises:
-            core.FrozenPassageError if the Passage is frozen
-
+        :raise core.FrozenPassageError if the Passage is frozen
         """
         parent.add(edge_tag, child, edge_attrib={'remote': True})
 
     def add_punct(self, parent, terminal):
         """Adds a PunctNode as the child of parent and the Terminal under it.
 
-        Args:
-            parent: the parent of the newly created PunctNode. If None, adds
+        :param parent: the parent of the newly created PunctNode. If None, adds
                 under rhe layer head FNode.
-            terminal: the punctuation Terminal we want to put under parent.
+        :param terminal: the punctuation Terminal we want to put under parent.
 
-        Returns:
-            the newly create PunctNode.
+        :return the newly create PunctNode.
 
-        Raises:
-            core.FrozenPassageError if the Passage is frozen.
+        :raise core.FrozenPassageError if the Passage is frozen.
 
         """
         if parent is None:
@@ -502,15 +488,12 @@ class Layer1(core.Layer):
 
         Linkage objects are all heads and have no parents.
 
-        Args:
-            relation: the link relation FNode.
-            args: any number (at least 1) of linkage arguments FNodes.
+        :param relation: the link relation FNode.
+        :param args: any number (at least 1) of linkage arguments FNodes.
 
-        Returns:
-            the newly created Linkage
+        :return the newly created Linkage
 
-        Raises:
-            core.FrozenPassageError if the Passage is frozen.
+        :raise core.FrozenPassageError if the Passage is frozen.
 
         """
         linkage = Linkage(root=self.root, tag=NodeTags.Linkage,
@@ -525,11 +508,9 @@ class Layer1(core.Layer):
 
         A top level scene is one which is not embedded in any other scene.
 
-        Args:
-            node: the FNode to check.
+        :param node: the FNode to check.
 
-        Returns:
-            True iff node is a top-level scenes.
+        :return True iff node is a top-level scenes.
 
         """
         if not node.is_scene():
