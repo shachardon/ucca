@@ -110,10 +110,10 @@ def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, conve
 
 
 def write_passage(passage, output_format, binary, outdir, prefix, converter=None):
-    suffix = output_format or ("pickle" if binary else "xml")
+    suffix = output_format if output_format and output_format != "ucca" else ("pickle" if binary else "xml")
     outfile = outdir + os.path.sep + prefix + passage.ID + "." + suffix
     print("Writing passage '%s'..." % outfile)
-    if output_format is None or output_format in ("pickle", "xml"):
+    if output_format is None or output_format in ("ucca", "pickle", "xml"):
         passage2file(passage, outfile, binary=binary)
     else:
         output = "\n".join(line for line in (converter or to_text)(passage))
