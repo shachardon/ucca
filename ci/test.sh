@@ -7,6 +7,8 @@ unit)
     PASSAGES=../doc/toy.xml
     ;;
 convert)
+    mkdir pickle
+    curl -L http://www.cs.huji.ac.il/~danielh/ucca/ucca_corpus_pickle.tgz | tar xz -C pickle || curl -L https://www.dropbox.com/s/q4ycn45zlmhuf9k/ucca_corpus_pickle.tgz | tar xz -C pickle
     PASSAGES=../pickle/*.pickle
     ;;
 esac
