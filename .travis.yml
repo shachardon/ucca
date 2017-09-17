@@ -1,12 +1,12 @@
 sudo: false
 language: python
-python: '3.6'
+python: "3.6"
 addons:
   apt:
     packages:
       - pandoc
 install:
-- pip install .
+- python setup.py install
 - python -m spacy download en
 env:
   global:
@@ -15,8 +15,7 @@ env:
   matrix:
   - TEST_SUITE=unit
   - TEST_SUITE=convert
-script:
-- ci/test.sh
+script: ci/test.sh
 deploy:
   provider: script
   script: ci/deploy.sh
