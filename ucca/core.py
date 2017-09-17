@@ -723,13 +723,13 @@ class Layer:
     def _remove_edge(self, edge):
         """Alters self.heads if an :class:Edge has been removed.
 
-        Should be called when both :class:Node objects of the edge are part
+        Should be called when the child :class:Node object of the edge is part
         of this Layer (and hence part of the subgraph of it).
 
         :param edge: the Edge removed from the Layer subgraph
 
         """
-        if all(p.layer != edge.child.layer for p in edge.child.parents):
+        if all(p.layer != self for p in edge.child.parents):
             self._heads.append(edge.child)
             self._heads.sort(key=self._orderkey)
         # Order may depend on edges, so re-order
@@ -986,7 +986,7 @@ class Passage:
 
         """
         # Currently no work is done in the Passage level
-        edge.parent.layer._remove_edge(edge)
+        edge.child.layer._remove_edge(edge)
 
     def _change_edge_tag(self, edge, old_tag):
         """Updates the :class:Passage and :class:Layer objects with the change.
