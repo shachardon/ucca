@@ -428,7 +428,7 @@ class Layer1(core.Layer):
         for n in itertools.count(start=len(self._all) + 1):
             id_str = "{}{}{}".format(LAYER_ID, core.Node.ID_SEPARATOR, n)
             try:
-                self._root.by_ID(id_str)
+                self._root.by_id(id_str)
             except KeyError:
                 return id_str
 
