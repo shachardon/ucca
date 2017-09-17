@@ -8,6 +8,7 @@ the type of relation between the Nodes.
 
 """
 
+import itertools
 import operator
 
 from ucca import core, layer0
@@ -428,13 +429,12 @@ class Layer1(core.Layer):
 
     def next_id(self):
         """Returns the next available ID string for this layer."""
-        n = len(self._all) + 1
-        while True:
-            ID = "{}{}{}".format(LAYER_ID, core.Node.ID_SEPARATOR, n)
-            if ID not in self._all:
-                return ID
-            else:
-                n += 1
+        for n in itertools.count(start=len(self._all) + 1):
+            id_str = "{}{}{}".format(LAYER_ID, core.Node.ID_SEPARATOR, n)
+            try:
+                self._root.by_ID(id_str)
+            except KeyError:
+                return id_str
 
     def add_fnode(self, parent, edge_tag, *, implicit=False):
         """Adds a new :class:FNode whose parent and Edge tag are given.
