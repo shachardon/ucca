@@ -1298,7 +1298,7 @@ class DependencyConverter(FormatConverter):
 
 class ConllConverter(DependencyConverter):
     def __init__(self, *args, **kwargs):
-        super(ConllConverter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @staticmethod
     def read_line(line, previous_node):
@@ -1340,7 +1340,7 @@ class ConllConverter(DependencyConverter):
 
 class SdpConverter(DependencyConverter):
     def __init__(self, *args, **kwargs):
-        super(SdpConverter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def read_line(self, line, previous_node):
         fields = line.split()
