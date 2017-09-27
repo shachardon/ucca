@@ -4,7 +4,11 @@ from setuptools import setup, find_packages
 
 try:
     import pypandoc
-    long_description = pypandoc.convert("README.md", "rst")
+    try:
+        pypandoc.convert_file("README.md", "rst", outputfile="README.rst")
+    except (IOError, ImportError, RuntimeError):
+        pass
+    long_description = pypandoc.convert_file("README.md", "rst")
 except (IOError, ImportError, RuntimeError):
     long_description = ""
 
