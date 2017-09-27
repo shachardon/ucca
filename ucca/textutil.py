@@ -23,6 +23,8 @@ def get_nlp():
         nlp.tokenizer = nlp.instance.tokenizer
         nlp.instance.tokenizer = nlp.tokenizer.tokens_from_list
     return nlp.instance
+
+
 nlp.instance = None
 nlp.tokenizer = None
 
@@ -46,7 +48,7 @@ def get_word_vectors(dim=None, size=None, filename=None):
                 vocab.load_vectors(f)
         except OSError as e:
             raise IOError("Failed loading word vectors from '%s'" % filename) from e
-    elif dim is not None and dim != vocab.vectors_length:
+    elif dim is not None and dim < vocab.vectors_length:
         vocab.resize_vectors(dim)
     lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
     return {l.orth_: l.vector for l in lexemes}, vocab.vectors_length
