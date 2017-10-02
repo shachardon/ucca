@@ -50,19 +50,19 @@ class ServerAccessor(object):
     def get_source(self, source_id):
         logging.debug("Getting source %d" % source_id)
         source_out = self.request("get", "sources/%d/" % source_id).json()
-        logging.debug("Got source: " + json.dumps(self.source))
+        logging.debug("Got source: " + json.dumps(source_out))
         return source_out
 
     def get_project(self, project_id):
         logging.debug("Getting project %d" % project_id)
         project_out = self.request("get", "projects/%d/" % project_id).json()
-        logging.debug("Got project: " + json.dumps(self.project))
+        logging.debug("Got project: " + json.dumps(project_out))
         return project_out
 
     def get_layer(self, layer_id):
         logging.debug("Getting layer %d" % layer_id)
         layer_out = self.request("get", "layers/%d/" % layer_id).json()
-        logging.debug("Got layer: " + json.dumps(self.layer))
+        logging.debug("Got layer: " + json.dumps(layer_out))
         return layer_out
 
     def get_task(self, task_id):
