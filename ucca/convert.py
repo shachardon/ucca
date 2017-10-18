@@ -760,7 +760,7 @@ UNANALYZABLE = "Unanalyzable"
 IGNORED_CATEGORIES = {UNANALYZABLE}
 
 
-def from_json(lines, *args, all_categories=None, **kwargs):
+def from_json(lines, *args, all_categories=None, skip_category_mapping=False, **kwargs):
     """Convert text (or dict) in UCCA-App JSON format to a Passage object.
         According to the API, annotation units are organized in a tree, where the full unit is included as a child of
           its parent: https://github.com/omriabnd/UCCA-App/blob/master/UCCAApp_REST_API_Reference.pdf
@@ -772,6 +772,7 @@ def from_json(lines, *args, all_categories=None, **kwargs):
         parent_id: the annotation_unit_tree_id of the node's parent, where 0 is the root
     :param lines: iterable of lines in JSON format, describing a single passage.
     :param all_categories: list of category dicts so that IDs can be resolved to names, if available
+    :param skip_category_mapping: if False, translate category names to edge tag abbreviations; if True, don't
     :return generator of Passage objects
     """
     del args, kwargs
@@ -800,6 +801,7 @@ def from_json(lines, *args, all_categories=None, **kwargs):
             parent_node = tree_id_to_node[parent_id]
         except KeyError:
             raise ValueError("Unit %s appears before its parent" % tree_id)
+        category_name_to_edge_tag = {} if skip_category_mapping else EdgeTags.__dict__
         for category in unit["categories"]:
             try:
                 category_name = category.get("name") or category_id_to_name[category["id"]]
@@ -809,10 +811,7 @@ def from_json(lines, *args, all_categories=None, **kwargs):
                 raise ValueError("Category missing from layer: " + category["id"])
             if category_name in IGNORED_CATEGORIES:
                 continue
-            try:
-                tag = EdgeTags.__dict__[category_name.replace(" ", "")]
-            except KeyError:
-                raise ValueError("Unknown category name: '%s'" % category_name)
+            tag = category_name_to_edge_tag.get(category_name.replace(" ", ""), category_name)
             if remote:
                 try:
                     node = tree_id_to_node[tree_id]
@@ -833,12 +832,14 @@ def from_json(lines, *args, all_categories=None, **kwargs):
 IGNORED_EDGE_TAGS = {EdgeTags.Punctuation, EdgeTags.Terminal}
 
 
-def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=None, **kwargs):
+def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=None, skip_category_mapping=False,
+            **kwargs):
     """Convert a Passage object to text (or dict) in UCCA-App JSON
     :param passage: the Passage object to convert
     :param return_dict: whether to return dict rather than list of lines
     :param tok_task: completed tokenization task with token IDs, or if True, return tokenization instead of annotation
     :param all_categories: list of category dicts so that IDs can be added, if available
+    :param skip_category_mapping: if False, translate edge tag abbreviations to category names; if True, don't
     :return list of lines in JSON format (or dict)
     """
     del args, kwargs
@@ -873,7 +874,8 @@ def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=Non
         annotation_units.append(root_unit)
         node_id_to_primary_annotation_unit = {root_node.ID: root_unit}
         node_id_to_remote_annotation_units = defaultdict(list)
-        edge_tag_to_category_name = {v: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", k) for k, v in EdgeTags.__dict__.items()}
+        edge_tag_to_category_name = {} if skip_category_mapping else \
+            {v: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", k) for k, v in EdgeTags.__dict__.items()}
         root_outgoing = [e for e in root_node if e.tag not in IGNORED_EDGE_TAGS]
         queue = [([i + 1], e) for i, e in enumerate(root_outgoing)]  # (tree id elements, edge) for each edge
         while queue:  # breadth-first search
@@ -881,7 +883,7 @@ def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=Non
             node = edge.child
             remote = edge.attrib.get("remote", False)
             parent_annotation_unit = node_id_to_primary_annotation_unit[edge.parent.ID]
-            categories = [dict(name=edge_tag_to_category_name[edge.tag])]
+            categories = [dict(name=edge_tag_to_category_name.get(edge.tag, edge.tag))]
             terminals = node.get_terminals()
             outgoing = [e for e in node if e.tag not in IGNORED_EDGE_TAGS]
             if not outgoing and len(terminals) > 1:
