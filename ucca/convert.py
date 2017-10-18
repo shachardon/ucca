@@ -812,20 +812,29 @@ def from_json(lines, *args, all_categories=None, skip_category_mapping=False, **
             if category_name in IGNORED_CATEGORIES:
                 continue
             tag = category_name_to_edge_tag.get(category_name.replace(" ", ""), category_name)
+            children_tokens = unit["children_tokens"]
+            try:
+                terminal = token_id_to_terminal[children_tokens[0]["id"]] if len(children_tokens) == 1 else None
+            except (IndexError, KeyError):
+                terminal = None
             if remote:
                 try:
                     node = tree_id_to_node[tree_id]
                 except KeyError:
                     raise ValueError("Remote copy of unit %s appears before its first non-remote copy" % tree_id)
                 l1.add_remote(parent_node, tag, node)
+            elif not skip_category_mapping and terminal and layer0.is_punct(terminal):
+                tree_id_to_node[tree_id] = l1.add_punct(None, terminal)
             else:
                 node = tree_id_to_node[tree_id] = l1.add_fnode(parent_node, tag, implicit=(unit["type"] == "IMPLICIT"))
-                for token in unit["children_tokens"]:
+                for token in children_tokens:
                     token_id_to_preterminal[token["id"]] = node
                 remote = True  # Any further categories between the same pair of units will result in remote edges
     # Attach terminals to non-terminals
     for token_id, node in token_id_to_preterminal.items():
-        node.add(EdgeTags.Terminal, token_id_to_terminal[token_id])
+        terminal = token_id_to_terminal[token_id]
+        if skip_category_mapping or not layer0.is_punct(terminal):
+            node.add(EdgeTags.Terminal, terminal)
     return passage
 
 
