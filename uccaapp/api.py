@@ -98,7 +98,7 @@ class ServerAccessor(object):
     def submit_tokenization_task(self, **kwargs):
         logging.debug("Submitting tokenization task: " + json.dumps(kwargs))
         self.request("put", "user_tasks/%d/draft" % kwargs["id"], json=kwargs)
-        tok_user_task_out = self.request("put", "user_tasks/%d/submit" % kwargs["id"], json=kwargs).json()
+        tok_user_task_out = self.request("put", "user_tasks/%d/submit" % kwargs["id"]).json()
         logging.debug("Submitted tokenization task: " + json.dumps(tok_user_task_out))
         return tok_user_task_out
 
@@ -111,6 +111,6 @@ class ServerAccessor(object):
     def submit_annotation_task(self, **kwargs):
         logging.debug("Submitting annotation task: " + json.dumps(kwargs))
         self.request("put", "user_tasks/%d/draft" % kwargs["id"], json=kwargs)
-        ann_user_task_out = self.request("put", "user_tasks/%d/submit" % kwargs["id"], json=kwargs).json()
+        ann_user_task_out = self.request("put", "user_tasks/%d/submit" % kwargs["id"]).json()
         logging.debug("Submitted annotation task: " + json.dumps(ann_user_task_out))
         return ann_user_task_out
