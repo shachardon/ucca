@@ -21,6 +21,8 @@ and `convert` modules under the `ucca` package).
 
 The `scripts` package contains various utilities for processing passage files.
 
+To parse text to UCCA graphs, use [TUPA, the UCCA parser](http://www.cs.huji.ac.il/~danielh/ucca).
+
 
 Authors
 ------
