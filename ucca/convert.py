@@ -937,11 +937,11 @@ class FormatConverter(object):
 
 class DependencyConverter(FormatConverter):
     ROOT = "ROOT"
-    TEXT_ATTRIB = "text"
+    MULTI_WORD_TEXT_ATTRIB = "multi_word_text"
 
     class Node:
         def __init__(self, position=0, incoming=None, token=None, terminal=None, is_head=True, is_top=False,
-                     is_multi_word=False):
+                     is_multi_word=False, parent_multi_word=None):
             self.position = position
             self.incoming = []
             if incoming is not None:
@@ -952,7 +952,8 @@ class DependencyConverter(FormatConverter):
             self.is_head = is_head
             self.is_top = is_top
             self.is_multi_word = is_multi_word
-            self.parent_multi_word = self.node = self.level = self.preterminal = None
+            self.parent_multi_word = parent_multi_word
+            self.node = self.level = self.preterminal = None
             self.heads_visited = set()  # for topological sort
 
         def add_edges(self, edges):
@@ -1020,7 +1021,8 @@ class DependencyConverter(FormatConverter):
             for edge in dep_node.incoming:
                 edge.link_head(heads)
         for dep_node in multi_word_nodes:
-            for position in dep_node.position:
+            start, end = dep_node.position
+            for position in range(start, end + 1):
                 dep_nodes[position].parent_multi_word = dep_node
 
     def omit_edge(self, edge, tree):
@@ -1164,14 +1166,13 @@ class DependencyConverter(FormatConverter):
 
     def create_terminals(self, dep_nodes, l0):
         for dep_node in dep_nodes:
-            # For multi-word tokens (e.g. zum = zu + dem), create terminal just for the surface token (e.g. zum)
-            node = dep_node.parent_multi_word if dep_node.parent_multi_word else dep_node
-            if node.token and not node.terminal:  # not the root
-                node.terminal = l0.add_terminal(
-                    text=node.token.text,
-                    punct=(node.token.tag == layer0.NodeTags.Punct),
-                    paragraph=node.token.paragraph)
-            dep_node.terminal = node.terminal
+            if dep_node.token and not dep_node.terminal:  # not the root
+                dep_node.terminal = l0.add_terminal(
+                    text=dep_node.token.text,
+                    punct=(dep_node.token.tag == layer0.NodeTags.Punct),
+                    paragraph=dep_node.token.paragraph)
+                if dep_node.parent_multi_word:  # part of a multi-word token (e.g. zum = zu + dem)
+                    dep_node.terminal.attrib[self.MULTI_WORD_TEXT_ATTRIB] = dep_node.parent_multi_word.token.text
 
     def link_pre_terminals(self, dep_nodes):
         for dep_node in dep_nodes:
@@ -1179,8 +1180,6 @@ class DependencyConverter(FormatConverter):
                 dep_node.preterminal.add(EdgeTags.Terminal, dep_node.terminal)
                 if layer0.is_punct(dep_node.terminal):
                     dep_node.preterminal.tag = layer1.NodeTags.Punctuation
-                if dep_node.parent_multi_word:  # part of a multi-word token (e.g. zum = zu + dem)
-                    dep_node.preterminal.attrib[self.TEXT_ATTRIB] = dep_node.token.text  # keep text of original word
 
     def from_format(self, lines, passage_id, split=False):
         """Converts from parsed text in dependency format to a Passage object.
@@ -1298,6 +1297,7 @@ class DependencyConverter(FormatConverter):
         lines = []  # list of output lines to return
         terminals = passage.layer(layer0.LAYER_ID).all  # terminal units from the passage
         dep_nodes = []
+        multi_word = None
         for terminal in sorted(terminals, key=operator.attrgetter("position")):
             edges = list(self.find_top_headed_edges(terminal))
             head_indices = [self.find_head_terminal(e.parent).position - 1 for e in edges]
@@ -1306,7 +1306,15 @@ class DependencyConverter(FormatConverter):
                         for e, head_index in zip(edges, head_indices)
                         if head_index != terminal.position - 1 and  # avoid self loops
                         not self.omit_edge(e, tree)}  # different implementation for each subclass
-            dep_nodes.append(self.Node(terminal.position, incoming, terminal=terminal, is_top=self.is_top(terminal)))
+            multi_word_text = terminal.attrib.get(self.MULTI_WORD_TEXT_ATTRIB)
+            if multi_word_text is None:
+                multi_word = None
+            elif multi_word is None or multi_word_text != multi_word.token.text:
+                multi_word = self.Node(2 * [terminal.position], token=self.Token(multi_word_text, tag="_"))
+            else:
+                multi_word.position[-1] = terminal.position
+            dep_nodes.append(self.Node(terminal.position, incoming, terminal=terminal, is_top=self.is_top(terminal),
+                                       token=self.Token(terminal.text, terminal.tag), parent_multi_word=multi_word))
         self._link_heads(dep_nodes)
         self.break_cycles(dep_nodes)
         lines += ["\t".join(str(field) for field in entry)
@@ -1341,18 +1349,20 @@ class ConllConverter(DependencyConverter):
         for i, dep_node in enumerate(dep_nodes):
             position = i + 1
             assert position == dep_node.position
-            tag = dep_node.terminal.tag
-            fields = [position, dep_node.terminal.text, "_", tag, tag, "_"]
+            if dep_node.parent_multi_word and position == dep_node.parent_multi_word.position[0]:
+                yield ["-".join(map(str, dep_node.parent_multi_word.position)), dep_node.parent_multi_word.text] + \
+                      (6 if test else 8) * ["_"]
+            tag = dep_node.token.tag
+            fields = [position, dep_node.token.text, "_", tag, tag, "_"]
             if test:
-                fields += ["_", "_"]   # projective head, projective dependency relation (optional)
-                yield fields
+                yield fields + 2 * ["_"]   # projective head, projective dependency relation (optional)
             else:
                 heads = [(e.head_index + 1, e.rel + ("*" if e.remote else "")) for e in dep_node.incoming] or \
                         [(0, DependencyConverter.ROOT)]
                 if tree:
                     heads = [heads[0]]
                 for head in heads:
-                    yield fields + list(head) + ["_", "_"]
+                    yield fields + list(head) + 2 * ["_"]
 
     def omit_edge(self, edge, tree, linkage=False):
         return (tree or not linkage) and edge.tag == EdgeTags.LinkArgument or tree and edge.attrib.get("remote")
@@ -1376,17 +1386,16 @@ class SdpConverter(DependencyConverter):
     def edges_for_orphan(top):
         return [DependencyConverter.Edge(0, DependencyConverter.ROOT, False)]
 
-    @staticmethod
-    def generate_lines(passage_id, dep_nodes, test, tree):
+    def generate_lines(self, passage_id, dep_nodes, test, tree):
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
         preds = sorted({e.head_index for dep_node in dep_nodes for e in dep_node.incoming})
         for i, dep_node in enumerate(dep_nodes):
             heads = {e.head_index: e.rel + ("*" if e.remote else "") for e in dep_node.incoming}
             position = i + 1
             assert position == dep_node.position
-            tag = dep_node.terminal.tag
+            tag = dep_node.token.tag
             pred = "+" if i in preds else "-"
-            fields = [position, dep_node.terminal.text, "_", tag]
+            fields = [position, dep_node.token.text, "_", tag]
             if not test:
                 head_preds = [heads.get(pred, "_") for pred in preds]
                 if tree and head_preds:
