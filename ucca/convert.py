@@ -937,6 +937,7 @@ class FormatConverter(object):
 
 class DependencyConverter(FormatConverter):
     ROOT = "ROOT"
+    TEXT_ATTRIB = "text"
 
     class Node:
         def __init__(self, position=0, incoming=None, token=None, terminal=None, is_head=True, is_top=False,
@@ -1178,6 +1179,8 @@ class DependencyConverter(FormatConverter):
                 dep_node.preterminal.add(EdgeTags.Terminal, dep_node.terminal)
                 if layer0.is_punct(dep_node.terminal):
                     dep_node.preterminal.tag = layer1.NodeTags.Punctuation
+                if dep_node.parent_multi_word:  # part of a multi-word token (e.g. zum = zu + dem)
+                    dep_node.preterminal.attrib[self.TEXT_ATTRIB] = dep_node.token.text  # keep text of original word
 
     def from_format(self, lines, passage_id, split=False):
         """Converts from parsed text in dependency format to a Passage object.
