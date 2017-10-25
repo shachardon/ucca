@@ -931,24 +931,28 @@ class FormatConverter(object):
     def to_format(self, passage, test=False, tree=True):
         pass
 
+    def split_line(self, line):
+        return line.split()
+
 
 class DependencyConverter(FormatConverter):
     ROOT = "ROOT"
 
     class Node:
-        def __init__(self, position=0, incoming=None, terminal=None, is_head=True, is_top=False):
+        def __init__(self, position=0, incoming=None, token=None, terminal=None, is_head=True, is_top=False,
+                     is_multi_word=False):
             self.position = position
             self.incoming = []
             if incoming is not None:
                 self.add_edges(incoming)
             self.outgoing = []
+            self.token = token
             self.terminal = terminal
             self.is_head = is_head
             self.is_top = is_top
-            self.node = None
-            self.level = None
+            self.is_multi_word = is_multi_word
+            self.parent_multi_word = self.node = self.level = self.preterminal = None
             self.heads_visited = set()  # for topological sort
-            self.preterminal = None
 
         def add_edges(self, edges):
             for edge in edges:
@@ -956,7 +960,7 @@ class DependencyConverter(FormatConverter):
                 edge.dependent = self
 
         def __repr__(self):
-            return self.terminal.text if self.terminal else DependencyConverter.ROOT
+            return self.token.text if self.token else DependencyConverter.ROOT
 
         def __eq__(self, other):
             return self.position == other.position
@@ -993,7 +997,7 @@ class DependencyConverter(FormatConverter):
         def __hash__(self):
             return hash((self.head_index, self.dependent, self.rel, self.remote))
 
-    class Terminal:
+    class Token:
         def __init__(self, text, tag):
             self.text = text
             self.tag = tag
@@ -1002,20 +1006,21 @@ class DependencyConverter(FormatConverter):
     def __init__(self, mark_aux=False):
         self.mark_aux = mark_aux
 
-    @staticmethod
-    def read_line(line, previous_node):
+    def read_line(self, line, previous_node):
         return DependencyConverter.Node()
 
-    @staticmethod
-    def generate_lines(passage_id, dep_nodes, test, tree):
+    def generate_lines(self, passage_id, dep_nodes, test, tree):
         yield ""
 
     @staticmethod
-    def _link_heads(dep_nodes):
+    def _link_heads(dep_nodes, multi_word_nodes=()):
         heads = [n for n in dep_nodes if n.is_head]
         for dep_node in dep_nodes:
             for edge in dep_node.incoming:
                 edge.link_head(heads)
+        for dep_node in multi_word_nodes:
+            for position in dep_node.position:
+                dep_nodes[position].parent_multi_word = dep_node
 
     def omit_edge(self, edge, tree):
         return False
@@ -1064,11 +1069,12 @@ class DependencyConverter(FormatConverter):
 
     def build_nodes(self, lines, split=False):
         # read dependencies and terminals from lines and create nodes
-        sentence_id = dep_nodes = previous_node = None
+        sentence_id = dep_nodes = multi_word_nodes = previous_node = None
         paragraph = 1
         for line in lines:
             if dep_nodes is None:
                 dep_nodes = [DependencyConverter.Node()]  # dummy root
+                multi_word_nodes = []
             if line.startswith("#"):  # comment
                 m = re.match("#\s*(\d+).*", line) or re.match("#\s*sent_id\s*=\s*(\S+)", line)
                 if m:  # comment may optionally contain the sentence ID
@@ -1077,11 +1083,11 @@ class DependencyConverter(FormatConverter):
                 dep_node = self.read_line(line, previous_node)  # different implementation for each subclass
                 if dep_node is not None:
                     previous_node = dep_node
-                    dep_node.terminal.paragraph = paragraph  # mark down which paragraph this is in
-                    dep_nodes.append(dep_node)
+                    dep_node.token.paragraph = paragraph  # mark down which paragraph this is in
+                    (multi_word_nodes if dep_node.is_multi_word else dep_nodes).append(dep_node)
             elif split:
                 try:
-                    self._link_heads(dep_nodes)
+                    self._link_heads(dep_nodes, multi_word_nodes)
                     yield dep_nodes, sentence_id
                 except Exception as e:
                     print("Skipped passage '%s': %s" % (sentence_id, e), file=sys.stderr)
@@ -1090,7 +1096,7 @@ class DependencyConverter(FormatConverter):
             else:
                 paragraph += 1
         if not split:
-            self._link_heads(dep_nodes)
+            self._link_heads(dep_nodes, multi_word_nodes)
             yield dep_nodes, sentence_id
 
     def build_passage(self, dep_nodes, passage_id):
@@ -1155,20 +1161,20 @@ class DependencyConverter(FormatConverter):
                 link_relation.node = link_relation.preterminal = l1.add_fnode(None, EdgeTags.Linker)
             l1.add_linkage(link_relation.node, *args)
 
-    @staticmethod
-    def create_terminals(dep_nodes, l0):
+    def create_terminals(self, dep_nodes, l0):
         for dep_node in dep_nodes:
-            if dep_node.terminal is not None:  # not the root
-                dep_node.terminal = l0.add_terminal(  # replace DependencyConverter.Terminal by layer0.Terminal
-                    text=dep_node.terminal.text,
-                    punct=(dep_node.terminal.tag == layer0.NodeTags.Punct),
-                    paragraph=dep_node.terminal.paragraph)
+            # For multi-word tokens (e.g. zum = zu + dem), create terminal just for the surface token (e.g. zum)
+            node = dep_node.parent_multi_word if dep_node.parent_multi_word else dep_node
+            if node.token and not node.terminal:  # not the root
+                node.terminal = l0.add_terminal(
+                    text=node.token.text,
+                    punct=(node.token.tag == layer0.NodeTags.Punct),
+                    paragraph=node.token.paragraph)
+            dep_node.terminal = node.terminal
 
-    @staticmethod
-    def link_pre_terminals(dep_nodes):
+    def link_pre_terminals(self, dep_nodes):
         for dep_node in dep_nodes:
-            if dep_node.preterminal is not None:
-                # link pre-terminal to terminal
+            if dep_node.preterminal is not None:  # link pre-terminal to terminal
                 dep_node.preterminal.add(EdgeTags.Terminal, dep_node.terminal)
                 if layer0.is_punct(dep_node.terminal):
                     dep_node.preterminal.tag = layer1.NodeTags.Punctuation
@@ -1274,8 +1280,7 @@ class DependencyConverter(FormatConverter):
                        key=lambda e: (not e.remote, e.rel != EdgeTags.Linker))
             edge.remove()
 
-    @staticmethod
-    def is_top(unit):
+    def is_top(self, unit):
         return False
 
     def to_format(self, passage, test=False, tree=True):
@@ -1298,7 +1303,7 @@ class DependencyConverter(FormatConverter):
                         for e, head_index in zip(edges, head_indices)
                         if head_index != terminal.position - 1 and  # avoid self loops
                         not self.omit_edge(e, tree)}  # different implementation for each subclass
-            dep_nodes.append(self.Node(terminal.position, incoming, terminal, is_top=self.is_top(terminal)))
+            dep_nodes.append(self.Node(terminal.position, incoming, terminal=terminal, is_top=self.is_top(terminal)))
         self._link_heads(dep_nodes)
         self.break_cycles(dep_nodes)
         lines += ["\t".join(str(field) for field in entry)
@@ -1311,9 +1316,8 @@ class ConllConverter(DependencyConverter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @staticmethod
-    def read_line(line, previous_node):
-        fields = line.split()
+    def read_line(self, line, previous_node):
+        fields = self.split_line(line)
         # id, form, lemma, coarse pos, fine pos, features, head, relation
         position, text, _, tag, _, _, head_position, rel = fields[:8]
         if "." in position:
@@ -1321,12 +1325,14 @@ class ConllConverter(DependencyConverter):
         edges = []
         if head_position and head_position != "_":
             edges.append(DependencyConverter.Edge(int(head_position), rel.rstrip("*"), rel.endswith("*")))
-        if not edges or previous_node is None or previous_node.position != int(position):
-            return DependencyConverter.Node(int(position), edges, DependencyConverter.Terminal(text, tag))
+        positions = list(map(int, position.split("-")))
+        if not edges or previous_node is None or previous_node.position != positions[0]:
+            is_multi_word = len(positions) > 1
+            return DependencyConverter.Node(positions if is_multi_word else positions[0], edges,
+                                            token=DependencyConverter.Token(text, tag), is_multi_word=is_multi_word)
         previous_node.add_edges(edges)
 
-    @staticmethod
-    def generate_lines(passage_id, dep_nodes, test, tree):
+    def generate_lines(self, passage_id, dep_nodes, test, tree):
         yield ["# sent_id = " + passage_id]
         # id, form, lemma, coarse pos, fine pos, features
         for i, dep_node in enumerate(dep_nodes):
@@ -1354,14 +1360,14 @@ class SdpConverter(DependencyConverter):
         super().__init__(*args, **kwargs)
 
     def read_line(self, line, previous_node):
-        fields = line.split()
+        fields = self.split_line(line)
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
         position, text, _, tag, top, pred, _ = fields[:7]
         # incoming: (head positions, dependency relations, is remote for each one)
         return DependencyConverter.Node(
             int(position), [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
                             for i, rel in enumerate(fields[7:]) if rel != "_"] or self.edges_for_orphan(top == "+"),
-            DependencyConverter.Terminal(text, tag), is_head=(pred == "+"), is_top=(top == "+"))
+            token=DependencyConverter.Token(text, tag), is_head=(pred == "+"), is_top=(top == "+"))
 
     @staticmethod
     def edges_for_orphan(top):
@@ -1429,7 +1435,7 @@ class ExportConverter(FormatConverter):
         return tag, edge_tag
     
     def _read_line(self, line):
-        fields = line.split()
+        fields = self.split_line(line)
         text, tag = fields[:2]
         m = re.match("#(\d+)", text)
         if m and int(m.group(1)) == ExportConverter.MIN_TERMINAL_ID:
