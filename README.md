@@ -34,6 +34,6 @@ License
 -------
 This package is licensed under the GPLv3 or later license.
 
-[![Build Status](https://travis-ci.org/danielhers/ucca.svg?branch=master)](https://travis-ci.org/danielhers/ucca)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/danielhers/ucca?svg=true)](https://ci.appveyor.com/project/danielh/ucca)
+[![Build Status (Travis CI)](https://travis-ci.org/danielhers/ucca.svg?branch=master)](https://travis-ci.org/danielhers/ucca)
+[![Build Status (AppVeyor)](https://ci.appveyor.com/api/projects/status/github/danielhers/ucca?svg=true)](https://ci.appveyor.com/project/danielh/ucca)
 [![PyPI version](https://badge.fury.io/py/UCCA.svg)](https://badge.fury.io/py/UCCA)
