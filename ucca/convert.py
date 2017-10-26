@@ -1075,6 +1075,7 @@ class DependencyConverter(FormatConverter):
         sentence_id = dep_nodes = multi_word_nodes = previous_node = None
         paragraph = 1
         for line in lines:
+            line = line.strip()
             if dep_nodes is None:
                 dep_nodes = [DependencyConverter.Node()]  # dummy root
                 multi_word_nodes = []
@@ -1082,7 +1083,7 @@ class DependencyConverter(FormatConverter):
                 m = re.match("#\s*(\d+).*", line) or re.match("#\s*sent_id\s*=\s*(\S+)", line)
                 if m:  # comment may optionally contain the sentence ID
                     sentence_id = m.group(1)
-            elif line.strip():
+            elif line:
                 dep_node = self.read_line(line, previous_node)  # different implementation for each subclass
                 if dep_node is not None:
                     previous_node = dep_node
@@ -1317,8 +1318,7 @@ class DependencyConverter(FormatConverter):
                                        token=self.Token(terminal.text, terminal.tag), parent_multi_word=multi_word))
         self._link_heads(dep_nodes)
         self.break_cycles(dep_nodes)
-        lines += ["\t".join(str(field) for field in entry)
-                  for entry in self.generate_lines(passage.ID, dep_nodes, test, tree)] + \
+        lines += ["\t".join(map(str, entry)) for entry in self.generate_lines(passage.ID, dep_nodes, test, tree)] + \
                  [""]  # different for each subclass
         return lines
 
