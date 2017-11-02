@@ -655,13 +655,15 @@ def from_standard(root, extra_funcs=None):
     return passage
 
 
-def from_text(text, passage_id="1", tokenized=False, *args, **kwargs):
+def from_text(text, passage_id="1", tokenized=False, one_per_line=False, extra_format=None, *args, **kwargs):
     """Converts from tokenized strings to a Passage object.
 
     :param text: a multi-line string or a sequence of strings:
                  each line will be a new paragraph, and blank lines separate passages
     :param passage_id: prefix of ID to set for returned passages
     :param tokenized: whether the text is already given as a list of tokens
+    :param one_per_line: each line will be a new passage rather than just a new paragraph
+    :param extra_format: value to set in passage.extra["format"]
 
     :return generator of Passage object with only Terminal units
     """
@@ -675,16 +677,18 @@ def from_text(text, passage_id="1", tokenized=False, *args, **kwargs):
     for line in text:
         if not tokenized:
             line = line.strip()
-        if line:
+        if line or one_per_line:
             if p is None:
                 p = core.Passage("%s_%d" % (passage_id, i))
+                if extra_format is not None:
+                    p.extra["format"] = extra_format
                 l0 = layer0.Layer0(p)
                 layer1.Layer1(p)
                 paragraph = 1
             for lex in textutil.get_tokenizer(tokenized)(line):
                 l0.add_terminal(text=lex.orth_, punct=lex.is_punct, paragraph=paragraph)
             paragraph += 1
-        elif p:  # blank line
+        if p and (not line or one_per_line):
             yield p
             p = None
             i += 1
