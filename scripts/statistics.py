@@ -7,7 +7,7 @@ import sys
 import numpy as np
 
 from ucca import layer0, layer1
-from ucca.ioutil import file2passage
+from ucca.ioutil import file2passage, read_files_and_dirs
 from ucca.layer1 import NodeTags
 from ucca.textutil import break2sentences
 
@@ -19,14 +19,14 @@ def main():
     argparser = argparse.ArgumentParser(description=desc)
     argparser.add_argument("filenames", nargs="+", help="files to process")
     argparser.add_argument("-o", "--outfile", help="output file for data")
+    argparser.add_argument("-s", "--summary", help="show only summary", action="store_true")
     args = argparser.parse_args()
 
     print("id,passages,paragraphs,sentences,nodes,terminals,non-terminals,implicit,linkage,discont,"
           "edges,primary,remote,linkage,parents,children,mult-parents")
     data = []
     for pattern in args.filenames:
-        for filename in glob.glob(pattern):
-            passage = file2passage(filename)
+        for passage in read_files_and_dirs(glob.glob(pattern)):
             terminals = passage.layer(layer0.LAYER_ID).all
             non_terminals = [n for n in passage.layer(layer1.LAYER_ID).all if n.ID != "1.1"]
             non_linkage = [n for n in non_terminals if n.tag != NodeTags.Linkage]
@@ -52,11 +52,14 @@ def main():
                       sum(len(n.children) for n in non_linkage),
                       len([n for n in non_linkage if len([p for p in n.parents if p.ID != "1.1"]) > 1]),
                       )
-            print(",".join("%d" % f for f in fields))
+            if not args.summary:
+                print(",".join("%d" % f for f in fields))
             data.append(fields)
     data = np.array(data, dtype=int)
     if args.outfile:
         np.savetxt(args.outfile, data[data[:, 0].argsort()], fmt="%i", delimiter="\t")
+    if args.summary:
+        print(",".join("%d" % f for f in data.sum(axis=0)))
 
     sys.exit(0)
 
