@@ -186,6 +186,10 @@ class Scores(object):
         """
         self.evaluators = dict(evaluator_results)
 
+    @staticmethod
+    def name():
+        return "UCCA"
+
     def average_f1(self, mode=LABELED):
         """
         Calculate the average F1 score across primary and remote edges
@@ -207,7 +211,7 @@ class Scores(object):
     def print(self, **kwargs):
         for eval_type in EVAL_TYPES:
             evaluator = self.evaluators.get(eval_type)
-            if evaluator is not None:
+            if evaluator:
                 print("Evaluation type: (" + eval_type + ")", **kwargs)
                 evaluator.print(**kwargs)
 
@@ -263,6 +267,9 @@ class EvaluatorResults(object):
         except KeyError as e:
             raise ValueError("Default constructions missing from evaluation results: " +
                              ", ".join(map(str, self.results.keys()))) from e
+
+    def __bool__(self):
+        return bool(self.results)
 
 
 class SummaryStatistics(object):
