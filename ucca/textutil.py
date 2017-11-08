@@ -13,7 +13,7 @@ def nlp(*args, **kwargs):
 def get_nlp():
     if nlp.instance is None:
         import spacy
-        model_name = os.environ.get("SPACY_MODEL", "en")
+        model_name = os.environ.get("SPACY_MODEL", "en_core_web_md")
         nlp.instance = spacy.load(model_name)
         if nlp.instance.tagger is None:  # Model not really loaded
             spacy.cli.download(model_name)
