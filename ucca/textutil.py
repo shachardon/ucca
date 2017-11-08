@@ -16,12 +16,16 @@ def get_nlp():
     if nlp.instance is None:
         import spacy
         model_name = os.environ.get("SPACY_MODEL", "en_core_web_md")
-        nlp.instance = spacy.load(model_name)
-        if nlp.instance.tagger is None:  # Model not really loaded
-            spacy.cli.download(None, model_name)
+        try:
             nlp.instance = spacy.load(model_name)
-            assert nlp.instance.tagger, "Failed to get spaCy model. " \
-                                        "Download it manually using `python -m spacy download %s`." % model_name
+        except OSError:
+            spacy.cli.download(None, model_name)
+            try:
+                nlp.instance = spacy.load(model_name)
+            except OSError as e:
+                raise OSError("Failed to get spaCy model. "
+                    "Download it manually using "
+                    "`python -m spacy download %s`." % model_name) from e
         nlp.tokenizer = nlp.instance.tokenizer
         nlp.instance.tokenizer = lambda words: spacy.tokens.Doc(nlp.instance.vocab, words=words)
     return nlp.instance
