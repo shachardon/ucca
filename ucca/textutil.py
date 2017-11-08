@@ -1,7 +1,9 @@
 """Utility functions for UCCA package."""
 import os
-from itertools import groupby
 from operator import attrgetter
+
+import numpy as np
+from itertools import groupby
 
 from ucca import layer0, layer1
 
@@ -40,16 +42,28 @@ def get_word_vectors(dim=None, size=None, filename=None):
         print("Loading word vectors from '%s'..." % filename)
         try:
             with open(filename, encoding="utf-8") as f:
-                first_line = f.readline().split()
-                if len(first_line) == 2 and all(s.isdigit() for s in first_line):
-                    vocab.resize_vectors(int(first_line[1]))
-                else:
-                    f.seek(0)  # First line is already a vector and not a header, so let load_vectors read it
-                vocab.load_vectors(f)
+                first_line = True
+                nr_dim = None
+                for line in f:
+                    fields = line.split()
+                    if first_line:
+                        first_line = False
+                        try:
+                            nr_row, nr_dim = map(int, fields)
+                            continue
+                        except ValueError:
+                            pass
+                        vocab.clear_vectors(new_dim=nr_dim)
+                        if nr_dim is not None:  # First line is indeed header, continue to next one
+                            continue
+                    word, *vector = fields
+                    vocab.set_vector(word, np.asarray(vector, dtype="f"))
         except OSError as e:
             raise IOError("Failed loading word vectors from '%s'" % filename) from e
-    elif dim is not None and dim < vocab.vectors_length:
-        vocab.resize_vectors(dim)
+    elif dim is not None:
+        nr_row, nr_dim = vocab.vectors.shape
+        if dim < nr_dim:
+            vocab.vectors.resize((size or nr_row, dim))
     lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
     return {l.orth_: l.vector for l in lexemes}, vocab.vectors_length
 
