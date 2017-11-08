@@ -21,7 +21,7 @@ def get_nlp():
             assert nlp.instance.tagger, "Failed to get spaCy model. " \
                                         "Download it manually using `python -m spacy download %s`." % model_name
         nlp.tokenizer = nlp.instance.tokenizer
-        nlp.instance.tokenizer = nlp.tokenizer.tokens_from_list
+        nlp.instance.tokenizer = lambda words: spacy.tokens.Doc(nlp.instance.vocab, words=words)
     return nlp.instance
 
 
