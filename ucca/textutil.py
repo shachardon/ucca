@@ -53,7 +53,7 @@ def get_word_vectors(dim=None, size=None, filename=None):
                             continue
                         except ValueError:
                             pass
-                        vocab.clear_vectors(new_dim=nr_dim)
+                        vocab.reset_vectors(width=nr_dim)
                         if nr_dim is not None:  # First line is indeed header, continue to next one
                             continue
                     word, *vector = fields
