@@ -63,7 +63,7 @@ def get_word_vectors(dim=None, size=None, filename=None):
     elif dim is not None:
         nr_row, nr_dim = vocab.vectors.shape
         if dim < nr_dim:
-            vocab.vectors.resize((size or nr_row, dim))
+            vocab.vectors.resize(shape=(int(size or nr_row), int(dim)))
     lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
     return {l.orth_: l.vector for l in lexemes}, vocab.vectors_length
 
