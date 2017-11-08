@@ -16,7 +16,7 @@ def get_nlp():
         model_name = os.environ.get("SPACY_MODEL", "en_core_web_md")
         nlp.instance = spacy.load(model_name)
         if nlp.instance.tagger is None:  # Model not really loaded
-            spacy.cli.download(model_name)
+            spacy.cli.download(None, model_name)
             nlp.instance = spacy.load(model_name)
             assert nlp.instance.tagger, "Failed to get spaCy model. " \
                                         "Download it manually using `python -m spacy download %s`." % model_name
