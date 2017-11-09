@@ -23,8 +23,7 @@ def get_nlp():
             try:
                 nlp.instance = spacy.load(model_name)
             except OSError as e:
-                raise OSError("Failed to get spaCy model. "
-                    "Download it manually using "
+                raise OSError("Failed to get spaCy model. Download it manually using "
                     "`python -m spacy download %s`." % model_name) from e
         nlp.tokenizer = nlp.instance.tokenizer
         nlp.instance.tokenizer = lambda words: spacy.tokens.Doc(nlp.instance.vocab, words=words)
@@ -45,16 +44,15 @@ def get_word_vectors(dim=None, size=None, filename=None):
     if filename is not None:
         print("Loading word vectors from '%s'..." % filename)
         try:
+            first_line = True
+            nr_dim = None
             with open(filename, encoding="utf-8") as f:
-                first_line = True
-                nr_dim = None
                 for line in f:
                     fields = line.split()
                     if first_line:
                         first_line = False
                         try:
                             nr_row, nr_dim = map(int, fields)
-                            continue
                         except ValueError:
                             pass
                         vocab.reset_vectors(width=nr_dim)
@@ -64,10 +62,10 @@ def get_word_vectors(dim=None, size=None, filename=None):
                     vocab.set_vector(word, np.asarray(vector, dtype="f"))
         except OSError as e:
             raise IOError("Failed loading word vectors from '%s'" % filename) from e
-    elif dim is not None:
-        nr_row, nr_dim = vocab.vectors.shape
-        if dim < nr_dim:
-            vocab.vectors.resize(shape=(int(size or nr_row), int(dim)))
+    # elif dim is not None:  # Disabled due to explosion/spaCy#1518
+    #     nr_row, nr_dim = vocab.vectors.shape
+    #     if dim < nr_dim:
+    #         vocab.vectors.resize(shape=(int(size or nr_row), int(dim)))
     lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
     return {l.orth_: l.vector for l in lexemes}, vocab.vectors_length
 
