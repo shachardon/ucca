@@ -1,9 +1,9 @@
 """Utility functions for UCCA package."""
 import os
+from itertools import groupby, islice
 from operator import attrgetter
 
 import numpy as np
-from itertools import groupby
 
 from ucca import layer0, layer1
 
@@ -47,22 +47,30 @@ def get_word_vectors(dim=None, size=None, filename=None):
             first_line = True
             nr_row = nr_dim = None
             with open(filename, encoding="utf-8") as f:
-                for line in f:
+                for line in islice(f, size):
                     fields = line.split()
                     if first_line:
                         first_line = False
                         try:
                             nr_row, nr_dim = map(int, fields)
+                            first_line_is_header = True
                         except ValueError:
                             nr_dim = len(fields) - 1  # No header, just get vector length from first one
+                            first_line_is_header = False
+                        if nr_row is None:
+                            nr_row = size
+                        if dim is not None and dim < nr_dim:
+                            nr_dim = dim
                         if nr_row is None:
                             vocab.reset_vectors(width=nr_dim)
                         else:  # First line is indeed header
                             vocab.reset_vectors(shape=(nr_row, nr_dim))
                             continue  # Start at second line
+                        if first_line_is_header:
+                            continue
                     word, *vector = fields
-                    if len(vector) == nr_dim:  # May not be equal if word is whitespace
-                        vocab.set_vector(word, np.asarray(vector, dtype="f"))
+                    if len(vector) >= nr_dim:  # May not be equal if word is whitespace
+                        vocab.set_vector(word, np.asarray(vector[:nr_dim], dtype="f"))
         except OSError as e:
             raise IOError("Failed loading word vectors from '%s'" % filename) from e
     # elif dim is not None:  # Disabled due to explosion/spaCy#1518
