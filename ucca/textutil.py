@@ -45,7 +45,7 @@ def get_word_vectors(dim=None, size=None, filename=None):
         print("Loading word vectors from '%s'..." % filename)
         try:
             first_line = True
-            nr_dim = None
+            nr_row = nr_dim = None
             with open(filename, encoding="utf-8") as f:
                 for line in f:
                     fields = line.split()
@@ -54,12 +54,15 @@ def get_word_vectors(dim=None, size=None, filename=None):
                         try:
                             nr_row, nr_dim = map(int, fields)
                         except ValueError:
-                            pass
-                        vocab.reset_vectors(width=nr_dim)
-                        if nr_dim is not None:  # First line is indeed header, continue to next one
-                            continue
+                            nr_dim = len(fields) - 1  # No header, just get vector length from first one
+                        if nr_row is None:
+                            vocab.reset_vectors(width=nr_dim)
+                        else:  # First line is indeed header
+                            vocab.reset_vectors(shape=(nr_row, nr_dim))
+                            continue  # Start at second line
                     word, *vector = fields
-                    vocab.set_vector(word, np.asarray(vector, dtype="f"))
+                    if len(vector) == nr_dim:  # May not be equal if word is whitespace
+                        vocab.set_vector(word, np.asarray(vector, dtype="f"))
         except OSError as e:
             raise IOError("Failed loading word vectors from '%s'" % filename) from e
     # elif dim is not None:  # Disabled due to explosion/spaCy#1518
