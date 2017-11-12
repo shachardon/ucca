@@ -24,7 +24,7 @@ def get_nlp():
                 nlp.instance = spacy.load(model_name)
             except OSError as e:
                 raise OSError("Failed to get spaCy model. Download it manually using "
-                    "`python -m spacy download %s`." % model_name) from e
+                              "`python -m spacy download %s`." % model_name) from e
         nlp.tokenizer = nlp.instance.tokenizer
         nlp.instance.tokenizer = lambda words: spacy.tokens.Doc(nlp.instance.vocab, words=words)
     return nlp.instance
