@@ -4,6 +4,7 @@ from itertools import groupby, islice
 from operator import attrgetter
 
 import numpy as np
+from tqdm import tqdm
 
 from ucca import layer0, layer1
 
@@ -47,7 +48,7 @@ def get_word_vectors(dim=None, size=None, filename=None):
             first_line = True
             nr_row = nr_dim = None
             with open(filename, encoding="utf-8") as f:
-                for line in islice(f, size):
+                for line in tqdm(islice(f, size), total=size, unit=" vectors"):
                     fields = line.split()
                     if first_line:
                         first_line = False
