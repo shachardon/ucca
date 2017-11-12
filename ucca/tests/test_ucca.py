@@ -709,6 +709,11 @@ class UtilTests(unittest.TestCase):
         print("Shuffled passages:\n" + "\n".join(str(p.layer(layer1.LAYER_ID).heads[0]) for p in passages))
         self.assertEqual(len(files), len(passages))
 
+    def test_word_vectors(self):
+        vectors, dim = textutil.get_word_vectors()
+        for word, vector in vectors.items():
+            self.assertEqual(len(vector), dim, "Vector dimension for %s is %d != %d" % (word, len(vector), dim))
+
 
 class TestUtil:
     """Utilities for tests."""
