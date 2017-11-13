@@ -44,42 +44,54 @@ def get_word_vectors(dim=None, size=None, filename=None):
     vocab = get_nlp().vocab
     if filename is not None:
         print("Loading word vectors from '%s'..." % filename)
-        try:
-            first_line = True
-            nr_row = nr_dim = None
-            with open(filename, encoding="utf-8") as f:
-                for line in tqdm(islice(f, size), total=size, unit=" vectors"):
-                    fields = line.split()
-                    if first_line:
-                        first_line = False
-                        try:
-                            nr_row, nr_dim = map(int, fields)
-                            first_line_is_header = True
-                        except ValueError:
-                            nr_dim = len(fields) - 1  # No header, just get vector length from first one
-                            first_line_is_header = False
-                        if nr_row is None:
-                            nr_row = size
-                        if dim is not None and dim < nr_dim:
-                            nr_dim = dim
-                        if nr_row is None:
-                            vocab.reset_vectors(width=nr_dim)
-                        else:  # First line is indeed header
-                            vocab.reset_vectors(shape=(nr_row, nr_dim))
-                            continue  # Start at second line
-                        if first_line_is_header:
-                            continue
-                    word, *vector = fields
-                    if len(vector) >= nr_dim:  # May not be equal if word is whitespace
-                        vocab.set_vector(word, np.asarray(vector[:nr_dim], dtype="f"))
-        except OSError as e:
-            raise IOError("Failed loading word vectors from '%s'" % filename) from e
+        it = read_word_vectors(dim, size, filename)
+        nr_row, nr_dim = next(it)
+        i = 0
+        if nr_row is None:
+            vocab.reset_vectors(width=nr_dim)
+        else:
+            vocab.reset_vectors(shape=(nr_row, nr_dim))
+        for word, vector in tqdm(it, total=nr_row, unit=" vectors", leave=False, mininterval=3):
+            vocab_word = vocab[word]
+            if not vocab_word.has_vector:
+                vocab.set_vector(vocab_word.orth, np.asarray(vector[:nr_dim], dtype="f"))
+                if vocab_word.has_vector:
+                    i += 1
+                    if nr_row and i >= nr_row:
+                        break
     # elif dim is not None:  # Disabled due to explosion/spaCy#1518
     #     nr_row, nr_dim = vocab.vectors.shape
     #     if dim < nr_dim:
     #         vocab.vectors.resize(shape=(int(size or nr_row), int(dim)))
     lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
     return {l.orth_: l.vector for l in lexemes}, vocab.vectors_length
+
+
+def read_word_vectors(dim, size, filename):
+    try:
+        first_line = True
+        nr_row = nr_dim = None
+        with open(filename, encoding="utf-8") as f:
+            for line in f:
+                fields = line.split()
+                if first_line:
+                    first_line = False
+                    try:
+                        nr_row, nr_dim = map(int, fields)
+                        is_header = True
+                    except ValueError:
+                        nr_dim = len(fields) - 1  # No header, just get vector length from first one
+                        is_header = False
+                    if dim and dim < nr_dim:
+                        nr_dim = dim
+                    yield size or nr_row, nr_dim
+                    if is_header:
+                        continue  # Read next line
+                word, *vector = fields
+                if len(vector) >= nr_dim:  # May not be equal if word is whitespace
+                    yield word, np.asarray(vector[:nr_dim], dtype="f")
+    except OSError as e:
+        raise IOError("Failed loading word vectors from '%s'" % filename) from e
 
 
 TAG_KEY = "tag"  # fine-grained POS tag
