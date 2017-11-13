@@ -89,7 +89,7 @@ def read_word_vectors(dim, size, filename):
                         continue  # Read next line
                 word, *vector = fields
                 if len(vector) >= nr_dim:  # May not be equal if word is whitespace
-                    yield word, np.asarray(vector[:nr_dim], dtype="f")
+                    yield word, np.asarray(vector[-nr_dim:], dtype="f")
     except OSError as e:
         raise IOError("Failed loading word vectors from '%s'" % filename) from e
 
