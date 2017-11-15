@@ -1,7 +1,10 @@
 """Utility functions for UCCA package."""
 import os
-from itertools import groupby
+from itertools import groupby, islice
 from operator import attrgetter
+
+import numpy as np
+from tqdm import tqdm
 
 from ucca import layer0, layer1
 
@@ -13,15 +16,18 @@ def nlp(*args, **kwargs):
 def get_nlp():
     if nlp.instance is None:
         import spacy
-        model_name = os.environ.get("SPACY_MODEL", "en")
-        nlp.instance = spacy.load(model_name)
-        if nlp.instance.tagger is None:  # Model not really loaded
-            spacy.cli.download(model_name)
+        model_name = os.environ.get("SPACY_MODEL", "en_core_web_md")
+        try:
             nlp.instance = spacy.load(model_name)
-            assert nlp.instance.tagger, "Failed to get spaCy model. " \
-                                        "Download it manually using `python -m spacy download %s`." % model_name
+        except OSError:
+            spacy.cli.download(None, model_name)
+            try:
+                nlp.instance = spacy.load(model_name)
+            except OSError as e:
+                raise OSError("Failed to get spaCy model. Download it manually using "
+                              "`python -m spacy download %s`." % model_name) from e
         nlp.tokenizer = nlp.instance.tokenizer
-        nlp.instance.tokenizer = nlp.tokenizer.tokens_from_list
+        nlp.instance.tokenizer = lambda words: spacy.tokens.Doc(nlp.instance.vocab, words=words)
     return nlp.instance
 
 
@@ -38,20 +44,54 @@ def get_word_vectors(dim=None, size=None, filename=None):
     vocab = get_nlp().vocab
     if filename is not None:
         print("Loading word vectors from '%s'..." % filename)
-        try:
-            with open(filename, encoding="utf-8") as f:
-                first_line = f.readline().split()
-                if len(first_line) == 2 and all(s.isdigit() for s in first_line):
-                    vocab.resize_vectors(int(first_line[1]))
-                else:
-                    f.seek(0)  # First line is already a vector and not a header, so let load_vectors read it
-                vocab.load_vectors(f)
-        except OSError as e:
-            raise IOError("Failed loading word vectors from '%s'" % filename) from e
-    elif dim is not None and dim < vocab.vectors_length:
-        vocab.resize_vectors(dim)
+        it = read_word_vectors(dim, size, filename)
+        nr_row, nr_dim = next(it)
+        i = 0
+        if nr_row is None:
+            vocab.reset_vectors(width=nr_dim)
+        else:
+            vocab.reset_vectors(shape=(nr_row, nr_dim))
+        for word, vector in tqdm(it, total=nr_row, unit=" vectors", leave=False, mininterval=3):
+            vocab_word = vocab[word]
+            if not vocab_word.has_vector:
+                vocab.set_vector(vocab_word.orth, np.asarray(vector[:nr_dim], dtype="f"))
+                if vocab_word.has_vector:
+                    i += 1
+                    if nr_row and i >= nr_row:
+                        break
+    # elif dim is not None:  # Disabled due to explosion/spaCy#1518
+    #     nr_row, nr_dim = vocab.vectors.shape
+    #     if dim < nr_dim:
+    #         vocab.vectors.resize(shape=(int(size or nr_row), int(dim)))
     lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
     return {l.orth_: l.vector for l in lexemes}, vocab.vectors_length
+
+
+def read_word_vectors(dim, size, filename):
+    try:
+        first_line = True
+        nr_row = nr_dim = None
+        with open(filename, encoding="utf-8") as f:
+            for line in f:
+                fields = line.split()
+                if first_line:
+                    first_line = False
+                    try:
+                        nr_row, nr_dim = map(int, fields)
+                        is_header = True
+                    except ValueError:
+                        nr_dim = len(fields) - 1  # No header, just get vector length from first one
+                        is_header = False
+                    if dim and dim < nr_dim:
+                        nr_dim = dim
+                    yield size or nr_row, nr_dim
+                    if is_header:
+                        continue  # Read next line
+                word, *vector = fields
+                if len(vector) >= nr_dim:  # May not be equal if word is whitespace
+                    yield word, np.asarray(vector[-nr_dim:], dtype="f")
+    except OSError as e:
+        raise IOError("Failed loading word vectors from '%s'" % filename) from e
 
 
 TAG_KEY = "tag"  # fine-grained POS tag

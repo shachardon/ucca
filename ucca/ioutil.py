@@ -103,6 +103,7 @@ def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, conve
     :return: list of (lazy-loaded) passages from all files given,
              plus any files directly under any directory given
     """
+    # TODO fix to a single list comprehension to preserve order; currently directories are moved to the end
     files = list(files_and_dirs)
     files += [os.path.join(d, f) for d in files if os.path.isdir(d) for f in os.listdir(d)]
     files = [f for f in files if not os.path.isdir(f)]

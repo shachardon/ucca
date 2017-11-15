@@ -6,7 +6,7 @@ environment:
 install:
   - "%PYTHON% -m pip install -U pip wheel"
   - "%PYTHON% setup.py install"
-  - "%PYTHON% -m spacy download en"
+  - "%PYTHON% -m spacy download en_core_web_md"
 
 build: off
 

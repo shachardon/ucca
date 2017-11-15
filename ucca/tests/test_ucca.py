@@ -1,10 +1,9 @@
 """Testing code for the ucca package, unit-testing only."""
 
 import operator
+import random
 import unittest
 import xml.etree.ElementTree as ETree
-
-import random
 
 from ucca import core, layer0, layer1, convert, textutil, ioutil, diffutil
 
@@ -708,6 +707,18 @@ class UtilTests(unittest.TestCase):
         random.shuffle(passages)
         print("Shuffled passages:\n" + "\n".join(str(p.layer(layer1.LAYER_ID).heads[0]) for p in passages))
         self.assertEqual(len(files), len(passages))
+
+    def test_word_vectors(self):
+        vectors, dim = textutil.get_word_vectors()
+        for word, vector in vectors.items():
+            self.assertEqual(len(vector), dim, "Vector dimension for %s is %d != %d" % (word, len(vector), dim))
+
+    def test_annotate_passage(self):
+        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
+        textutil.annotate(passage)
+        for terminal in passage.layer(layer0.LAYER_ID).all:
+            for key in textutil.ANNOTATION_KEYS:
+                self.assertTrue(key in terminal.extra, "Terminal %s has no %s" % (terminal, key))
 
 
 class TestUtil:

@@ -7,7 +7,7 @@ addons:
       - pandoc
 install:
 - python setup.py install
-- python -m spacy download en
+- python -m spacy download en_core_web_md
 env:
   global:
     - TWINE_USERNAME=danielh
