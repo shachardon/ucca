@@ -1,4 +1,5 @@
-import json
+import json, pdb
+from time import sleep
 import logging
 import os
 
@@ -12,7 +13,7 @@ EMAIL_ENV_VAR = "UCCA_APP_EMAIL"
 PASSWORD_ENV_VAR = "UCCA_APP_PASSWORD"
 PROJECT_ID_ENV_VAR = "UCCA_APP_PROJECT_ID"
 SOURCE_ID_ENV_VAR = "UCCA_APP_SOURCE_ID"
-
+MAX_RETRIES = 3
 
 class ServerAccessor(object):
     def __init__(self, server_address, email, password, auth_token, project_id, source_id, verbose, **kwargs):
@@ -40,8 +41,13 @@ class ServerAccessor(object):
         argparser.add_argument("-v", "--verbose", action="store_true", help="detailed output")
 
     def request(self, method, url_suffix, **kwargs):
-        response = requests.request(method, self.prefix + str(url_suffix), headers=self.headers, **kwargs)
-        response.raise_for_status()
+        for i in range(MAX_RETRIES):
+            response = requests.request(method, self.prefix + str(url_suffix), headers=self.headers, **kwargs)
+            if response.status_code != 500:
+                response.raise_for_status()
+                break
+            else:
+                sleep(60)
         return response
 
     def login(self, email, password):
