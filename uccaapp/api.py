@@ -44,7 +44,7 @@ class ServerAccessor(object):
         for i in range(MAX_RETRIES):
             response = requests.request(method, self.prefix + str(url_suffix), headers=self.headers, **kwargs)
             if response.status_code != 500:
-                response.raise_for_status()
+                #response.raise_for_status()
                 break
             else:
                 sleep(60)
@@ -70,6 +70,13 @@ class ServerAccessor(object):
         layer_out = self.request("get", "layers/%d/" % layer_id).json()
         logging.debug("Got layer: " + json.dumps(layer_out))
         return layer_out
+
+    def get_user(self, user_id):
+        logging.debug("Getting user "+user_id)
+        user_out = self.request("get", "users/%s/" % user_id).json()
+        logging.debug("Got user: " + json.dumps(user_out))
+        return user_out
+
 
     def get_task(self, task_id):
         logging.debug("Getting task " + str(task_id))
