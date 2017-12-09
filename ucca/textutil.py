@@ -137,7 +137,7 @@ def annotate(passage, verbose=False, replace=False, lang="en"):
             extra = [["text"] + list(ANNOTATION_KEYS)] + [[t.text] + [t.extra[k] for k in ANNOTATION_KEYS] for t in p]
             width = [max(len(f) for f in t) for t in extra]
             for i in range(1 + len(ANNOTATION_KEYS)):
-                print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)))
+                print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)).encode("utf-8"))
             print()
 
 
