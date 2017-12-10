@@ -104,13 +104,13 @@ def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, conve
              plus any files directly under any directory given
     """
     # TODO fix to a single list comprehension to preserve order; currently directories are moved to the end
-    files = list(files_and_dirs)
+    files = [files_and_dirs] if isinstance(files_and_dirs, str) else list(files_and_dirs)
     files += [os.path.join(d, f) for d in files if os.path.isdir(d) for f in os.listdir(d)]
     files = [f for f in files if not os.path.isdir(f)]
     return LazyLoadedPassages(files, sentences, paragraphs, converters)
 
 
-def write_passage(passage, output_format, binary, outdir, prefix, converter=None):
+def write_passage(passage, output_format=None, binary=False, outdir=".", prefix="", converter=None):
     suffix = output_format if output_format and output_format != "ucca" else ("pickle" if binary else "xml")
     outfile = outdir + os.path.sep + prefix + passage.ID + "." + suffix
     print("Writing passage '%s'..." % outfile)

@@ -1,9 +1,10 @@
 """Utility functions for UCCA package."""
 import os
-from itertools import groupby
 from operator import attrgetter
 
 import numpy as np
+import sys
+from itertools import groupby
 from tqdm import tqdm
 
 from ucca import layer0, layer1
@@ -137,7 +138,8 @@ def annotate(passage, verbose=False, replace=False, lang="en"):
             extra = [["text"] + list(ANNOTATION_KEYS)] + [[t.text] + [t.extra[k] for k in ANNOTATION_KEYS] for t in p]
             width = [max(len(f) for f in t) for t in extra]
             for i in range(1 + len(ANNOTATION_KEYS)):
-                print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)).encode("utf-8"))
+                sys.stdout.write(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)).encode("utf-8"))
+                print()
             print()
 
 
@@ -192,10 +194,7 @@ def break2paragraphs(passage):
         of a paragraph.
     """
     terminals = list(extract_terminals(passage))
-    paragraph_ends = [(t.position - 1) for t in terminals
-                      if t.position != 1 and t.para_pos == 1]
-    paragraph_ends.append(terminals[-1].position)
-    return paragraph_ends
+    return [t.position - 1 for t in terminals if t.position > 1 and t.para_pos == 1] + [terminals[-1].position]
 
 
 def indent_xml(xml_as_string):

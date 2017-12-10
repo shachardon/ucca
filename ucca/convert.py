@@ -19,7 +19,7 @@ import sys
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
 from collections import defaultdict
-from itertools import islice
+from itertools import islice, repeat
 
 from ucca import textutil, core, layer0, layer1
 from ucca.layer1 import EdgeTags
@@ -1715,19 +1715,20 @@ def split2segments(passage, is_sentences, remarks=False):
     return split_passage(passage, ends, remarks=remarks)
 
 
-def split_passage(passage, ends, remarks=False):
+def split_passage(passage, ends, remarks=False, ids=None):
     """
     Split the passage on the given terminal positions
     :param passage: passage to split
     :param ends: sequence of positions at which the split passages will end
-    :return: sequence of passages
     :param remarks: add original node ID as remarks to the new nodes
+    :param ids: optional iterable of ids, the same length as ends, to set passage IDs for each split
+    :return: sequence of passages
     """
     passages = []
-    for i, (start, end) in enumerate(zip([0] + ends[:-1], ends)):
+    for i, (start, end, index) in enumerate(zip([0] + ends[:-1], ends, ids or repeat(None))):
         if start == end:
             continue
-        other = core.Passage(ID="%s%03d" % (passage.ID, i), attrib=passage.attrib.copy())
+        other = core.Passage(ID=index or "%s%03d" % (passage.ID, i), attrib=passage.attrib.copy())
         other.extra = passage.extra.copy()
         # Create terminals and find layer 1 nodes to be included
         l0 = passage.layer(layer0.LAYER_ID)
