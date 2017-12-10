@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 
+import os
+import sys
+
 from setuptools import setup, find_packages
+
+try:
+    this_file = __file__
+except NameError:
+    this_file = sys.argv[0]
+os.chdir(os.path.dirname(os.path.abspath(this_file)))
 
 try:
     import pypandoc
