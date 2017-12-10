@@ -5,6 +5,7 @@ import pickle
 import sqlite3
 import sys
 from xml.etree.ElementTree import ElementTree, tostring, fromstring
+import os
 
 import ucca.convert
 from ucca.textutil import indent_xml
@@ -16,7 +17,7 @@ and user name, and the output is either the standard format XML or
 a pickled object.
 Possible input methods are using a DB file with pid and user, which gets the
 annotation of the specified user for the specified passage from teh DB file,
-or using filename of a site-formatted XML file.
+or using filenames of a site-formatted XML file.
 
 """
 
@@ -38,45 +39,50 @@ def db2passage(handle, pid, user):
     return ucca.convert.from_site(fromstring(raw_xml))
 
 
+def outfile(source, target, suffix):
+    return os.path.join(target, os.path.splitext(source)[0] + suffix) if os.path.isdir(target) else target
+
+
 def main():
     argparser = argparse.ArgumentParser(description=desc)
-    argparser.add_argument("filename", nargs="?", help="XML file name to convert")
+    argparser.add_argument("filenames", nargs="*", help="XML file name to convert")
     argparser.add_argument("-o", "--outfile", help="output file for standard XML")
-    argparser.add_argument("-b", "--binary", help="output file for binary pickel")
+    argparser.add_argument("-b", "--binary", help="output file for binary pickle")
     argparser.add_argument("-d", "--db", help="DB file to get input from")
-    argparser.add_argument("-p", "--pid", type=int, help="PassageID to query DB")
+    argparser.add_argument("-p", "--pids", nargs="*", type=int, help="PassageIDs to query DB")
     argparser.add_argument("-u", "--user", help="Username to DB query")
     args = argparser.parse_args()
 
     # Checking for illegal combinations
-    if args.db and args.filename:
+    if args.db and args.filenames:
         argparser.error("Only one source, XML or DB file, can be used")
-    if (not args.db) and (not args.filename):
+    if (not args.db) and (not args.filenames):
         argparser.error("Must specify one source, XML or DB file")
-    if args.db and not (args.pid and args.user):
+    if args.db and not (args.pids and args.user):
         argparser.error("Must specify a username and a passage ID when " +
                      "using DB file option")
-    if (args.pid or args.user) and not args.db:
+    if (args.pids or args.user) and not args.db:
         argparser.error("Cannot use user and passage ID options without DB file")
 
-    if args.filename:
-        passage = site2passage(args.filename)
+    if args.filenames:
+        passages = ((filename, site2passage(filename)) for filename in args.filenames)
     else:
         conn = sqlite3.connect(args.db)
         c = conn.cursor()
-        passage = db2passage(c, args.pid, args.user)
+        passages = ((pid, db2passage(c, pid, args.user)) for pid in args.pids)
 
-    if args.binary:
-        with open(args.binary, "wb") as binf:
-            pickle.dump(passage, binf)
-    else:
-        root = ucca.convert.to_standard(passage)
-        output = indent_xml(tostring(root).decode())
-        if args.outfile:
-            with open(args.outfile, "w", encoding="utf-8") as outf:
-                outf.write(output)
+    for filename, passage in passages:
+        if args.binary:
+            with open(outfile(filename, args.binary, ".pickle"), "wb") as binf:
+                pickle.dump(passage, binf)
         else:
-            print(output)
+            root = ucca.convert.to_standard(passage)
+            output = indent_xml(tostring(root).decode())
+            if args.outfile:
+                with open(outfile(filename, args.outfile, ".xml"), "w", encoding="utf-8") as outf:
+                    outf.write(output)
+            else:
+                print(output)
 
     sys.exit(0)
 
