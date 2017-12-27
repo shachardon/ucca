@@ -13,12 +13,14 @@ EMAIL_ENV_VAR = "UCCA_APP_EMAIL"
 PASSWORD_ENV_VAR = "UCCA_APP_PASSWORD"
 PROJECT_ID_ENV_VAR = "UCCA_APP_PROJECT_ID"
 SOURCE_ID_ENV_VAR = "UCCA_APP_SOURCE_ID"
+USER_ID_ENV_VAR = "UCCA_APP_USER_ID"
 MAX_RETRIES = 3
 RETRY_WAIT_DURATION = 60
 
 
 class ServerAccessor(object):
-    def __init__(self, server_address, email, password, auth_token, project_id, source_id, verbose, **kwargs):
+    def __init__(self, server_address, email, password, auth_token, project_id, source_id, verbose, user_id=None,
+                 **kwargs):
         if verbose:
             logging.basicConfig(level=logging.DEBUG)
         server_address = server_address or os.environ.get(SERVER_ADDRESS_ENV_VAR, DEFAULT_SERVER)
@@ -29,6 +31,7 @@ class ServerAccessor(object):
         self.headers["Authorization"] = "Token " + token
         self.source = self.get_source(source_id or int(os.environ[SOURCE_ID_ENV_VAR]))
         self.project = self.get_project(project_id or int(os.environ[PROJECT_ID_ENV_VAR]))
+        self.user = dict(id=user_id or int(os.environ[USER_ID_ENV_VAR])) if user_id else None
         self.layer = self.get_layer(self.project["layer"]["id"])
 
     @staticmethod
@@ -41,6 +44,10 @@ class ServerAccessor(object):
         argparser.add_argument("--project-id", type=int, help="project id, otherwise set by " + PROJECT_ID_ENV_VAR)
         argparser.add_argument("--source-id", type=int, help="source id, otherwise set by " + SOURCE_ID_ENV_VAR)
         argparser.add_argument("-v", "--verbose", action="store_true", help="detailed output")
+
+    @staticmethod
+    def add_user_id_argument(argparser):
+        argparser.add_argument("--user-id", type=int, help="user id, otherwise set by " + USER_ID_ENV_VAR)
 
     def request(self, method, url_suffix, **kwargs):
         response = None

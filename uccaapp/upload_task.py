@@ -27,13 +27,10 @@ desc = """Convert a passage file to JSON format and upload to UCCA-App as a comp
 # 4. POST task y (of type annotation with parent x; this is the more complicated format)
 # 5. PUT task y (submit)
 
-USER_ID_ENV_VAR = "UCCA_APP_USER_ID"
-
 
 class TaskUploader(ServerAccessor):
     def __init__(self, user_id, **kwargs):
-        super().__init__(**kwargs)
-        self.user = dict(id=user_id or int(os.environ[USER_ID_ENV_VAR]))
+        super().__init__(user_id=user_id, **kwargs)
         
     def upload_tasks(self, filenames, **kwargs):
         del kwargs
@@ -70,7 +67,7 @@ class TaskUploader(ServerAccessor):
     @staticmethod
     def add_arguments(argparser):
         argparser.add_argument("filenames", nargs="+", help="passage file names to convert and upload")
-        argparser.add_argument("--user-id", type=int, help="user id, otherwise set by " + USER_ID_ENV_VAR)
+        ServerAccessor.add_user_id_argument(argparser)
         ServerAccessor.add_arguments(argparser)
 
 
