@@ -1,7 +1,7 @@
 import json
+from time import sleep
 import logging
 import os
-from time import sleep
 
 import requests
 
@@ -72,6 +72,13 @@ class ServerAccessor(object):
         layer_out = self.request("get", "layers/%d/" % layer_id).json()
         logging.debug("Got layer: " + json.dumps(layer_out))
         return layer_out
+
+    def get_user(self, user_id):
+        logging.debug("Getting user "+user_id)
+        user_out = self.request("get", "users/%s/" % user_id).json()
+        logging.debug("Got user: " + json.dumps(user_out))
+        return user_out
+
 
     def get_task(self, task_id):
         logging.debug("Getting task " + str(task_id))
