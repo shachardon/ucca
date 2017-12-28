@@ -105,48 +105,55 @@ LEMMA_KEY = "lemma"
 ANNOTATION_KEYS = (TAG_KEY, POS_KEY, NER_KEY, IOB_KEY, DEP_KEY, HEAD_KEY, LEMMA_KEY)
 
 
-def annotate_all(passages, verbose=False, replace=False, lang="en"):
-    """
-    POS tag the tokens in the given passage and parse with a dependency parser
-    :param passages: iterable of Passage objects, whose layer 0 nodes will be added entries in the `extra' dict
-    :param verbose: whether to print annotated text
-    :param replace: even if a given passage is already annotated, replace with new annotation
-    :param lang: optional two-letter language code
-    :return generator of annotated passages, which are actually modified in-place (same objects as input)
-    """
-    for passage in passages:
-        paragraphs = break2paragraphs(passage, return_terminals=True)
-        if replace or any(k not in t.extra for p in paragraphs for t in p for k in ANNOTATION_KEYS):
-            text_paragraphs = (([t.text for t in paragraph], paragraph) for paragraph in paragraphs)
-            for doc, paragraph in get_nlp(lang=lang).pipe(text_paragraphs, as_tuples=True):
-                for lex, terminal in zip(doc, paragraph):
-                    terminal.extra[TAG_KEY] = lex.tag_
-                    terminal.extra[POS_KEY] = lex.pos_
-                    terminal.extra[NER_KEY] = lex.ent_type_
-                    terminal.extra[IOB_KEY] = str(lex.ent_iob)
-                    terminal.extra[DEP_KEY] = lex.dep_
-                    terminal.extra[HEAD_KEY] = str(lex.head.i + 1)
-                    terminal.extra[LEMMA_KEY] = lex.lemma_
-        if verbose:
-            for p in paragraphs:
-                extra = [["text"] + list(ANNOTATION_KEYS)] + \
-                        [[t.text] + [t.extra[k] for k in ANNOTATION_KEYS] for t in p]
-                width = [max(len(f) for f in t) for t in extra]
-                for i in range(1 + len(ANNOTATION_KEYS)):
-                    print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)))
-                print()
-        yield passage
-
-
 def annotate(passage, verbose=False, replace=False, lang="en"):
     """
-    POS tag the tokens in the given passage and parse with a dependency parser
+    Run spaCy pipeline on the given passage
     :param passage: Passage object, whose layer 0 nodes will be added entries in the `extra' dict
     :param verbose: whether to print annotated text
     :param replace: even if a given passage is already annotated, replace with new annotation
     :param lang: optional two-letter language code
     """
     list(annotate_all([passage], verbose=verbose, replace=replace, lang=lang))
+
+
+def annotate_all(passages, verbose=False, replace=False, lang="en"):
+    """
+    Run spaCy pipeline on the given passages
+    :param passages: iterable of Passage objects, whose layer 0 nodes will be added entries in the `extra' dict
+    :param verbose: whether to print annotated text
+    :param replace: even if a given passage is already annotated, replace with new annotation
+    :param lang: optional two-letter language code
+    :return generator of annotated passages, which are actually modified in-place (same objects as input)
+    """
+    to_annotate = (([t.text for t in paragraph] if replace or not is_annotated(paragraph) else [], (paragraph, passage))
+                   for passage in passages for paragraph in break2paragraphs(passage, return_terminals=True))
+    annotated = get_nlp(lang=lang).pipe(to_annotate, as_tuples=True)
+    yield from (passage for passage, _ in groupby(apply_annotations(annotated, verbose)))
+
+
+def is_annotated(paragraph):
+    return all(key in terminal.extra for terminal in paragraph for key in ANNOTATION_KEYS)
+
+
+def apply_annotations(annotated, verbose):
+    for doc, (paragraph, passage) in annotated:
+        if doc:
+            for lex, terminal in zip(doc, paragraph):
+                terminal.extra[TAG_KEY] = lex.tag_
+                terminal.extra[POS_KEY] = lex.pos_
+                terminal.extra[NER_KEY] = lex.ent_type_
+                terminal.extra[IOB_KEY] = str(lex.ent_iob)
+                terminal.extra[DEP_KEY] = lex.dep_
+                terminal.extra[HEAD_KEY] = str(lex.head.i + 1)
+                terminal.extra[LEMMA_KEY] = lex.lemma_
+        if verbose:
+            extra = [["text"] + list(ANNOTATION_KEYS)] + \
+                    [[t.text] + [t.extra[k] for k in ANNOTATION_KEYS] for t in paragraph]
+            width = [max(len(f) for f in t) for t in extra]
+            for i in range(1 + len(ANNOTATION_KEYS)):
+                print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)))
+            print()
+        yield passage
 
 
 SENTENCE_END_MARKS = ('.', '?', '!')
