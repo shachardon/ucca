@@ -1,50 +1,44 @@
 """Utility functions for UCCA package."""
 import os
+from itertools import groupby
 from operator import attrgetter
 
 import numpy as np
-import sys
-from itertools import groupby
 from tqdm import tqdm
 
 from ucca import layer0, layer1
-
-
-def nlp(*args, lang="en", **kwargs):
-    return get_nlp(lang)(*args, **kwargs)
-
 
 MODEL_ENV_VAR = "SPACY_MODEL"
 DEFAULT_MODEL = {"en": "en_core_web_md", "fr": "fr_core_news_md", "de": "de_core_news_sm"}
 
 
 def get_nlp(lang="en"):
-    instance = nlp.instance.get(lang)
+    instance = nlp.get(lang)
     if instance is None:
         import spacy
-        model_name = os.environ.get(MODEL_ENV_VAR + "_" + lang.upper(), os.environ.get(MODEL_ENV_VAR,
-                                                                                       DEFAULT_MODEL.get(lang, "xx")))
+        model_name = os.environ.get("_".join((MODEL_ENV_VAR, lang.upper()))) or os.environ.get(MODEL_ENV_VAR) or \
+            DEFAULT_MODEL.get(lang, "xx")
         try:
-            nlp.instance[lang] = instance = spacy.load(model_name)
+            nlp[lang] = instance = spacy.load(model_name)
         except OSError:
             spacy.cli.download(None, model_name)
             try:
-                nlp.instance[lang] = instance = spacy.load(model_name)
+                nlp[lang] = instance = spacy.load(model_name)
             except OSError as e:
                 raise OSError("Failed to get spaCy model. Download it manually using "
                               "`python -m spacy download %s`." % model_name) from e
-        nlp.tokenizer[lang] = instance.tokenizer
+        tokenizer[lang] = instance.tokenizer
         instance.tokenizer = lambda words: spacy.tokens.Doc(instance.vocab, words=words)
     return instance
 
 
-nlp.instance = {}
-nlp.tokenizer = {}
+nlp = {}
+tokenizer = {}
 
 
 def get_tokenizer(tokenized=False, lang="en"):
     instance = get_nlp(lang)
-    return instance.tokenizer if tokenized else nlp.tokenizer[lang]
+    return instance.tokenizer if tokenized else tokenizer[lang]
 
 
 def get_word_vectors(dim=None, size=None, filename=None, lang="en"):
@@ -120,12 +114,11 @@ def annotate(passage, verbose=False, replace=False, lang="en"):
     :param lang: optional two-letter language code
     :return: list of annotated terminal nodes
     """
-    l0 = passage.layer(layer0.LAYER_ID)
-    paragraphs = [sorted(p, key=attrgetter("position")) for _, p in groupby(l0.all, key=attrgetter("paragraph"))]
+    paragraphs = break2paragraphs(passage, return_terminals=True)
     if replace or any(k not in t.extra for p in paragraphs for t in p for k in ANNOTATION_KEYS):
-        for p in paragraphs:
-            annotated = nlp([t.text for t in p], lang=lang)
-            for terminal, lex in zip(p, annotated):
+        text_paragraphs = (([t.text for t in paragraph], paragraph) for paragraph in paragraphs)
+        for doc, paragraph in get_nlp(lang=lang).pipe(text_paragraphs, as_tuples=True):
+            for lex, terminal in zip(doc, paragraph):
                 terminal.extra[TAG_KEY] = lex.tag_
                 terminal.extra[POS_KEY] = lex.pos_
                 terminal.extra[NER_KEY] = lex.ent_type_
@@ -138,8 +131,7 @@ def annotate(passage, verbose=False, replace=False, lang="en"):
             extra = [["text"] + list(ANNOTATION_KEYS)] + [[t.text] + [t.extra[k] for k in ANNOTATION_KEYS] for t in p]
             width = [max(len(f) for f in t) for t in extra]
             for i in range(1 + len(ANNOTATION_KEYS)):
-                sys.stdout.write(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)).encode("utf-8"))
-                print()
+                print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)))
             print()
 
 
@@ -168,13 +160,12 @@ def break2sentences(passage, lang="en"):
         # in any way (hence it probably just "hangs" there), it's a sentence end
         marks = [x for x in marks if x in ps_ends or ((x - 1) in ps_ends and x not in ps_starts)]
     else:  # Not labeled, split using spaCy
-        annotated = nlp([t.text for t in terminals], lang=lang)
+        annotated = get_nlp(lang=lang)([t.text for t in terminals])
         marks = [span.end for span in annotated.sents]
     marks = sorted(set(marks + break2paragraphs(passage)))
     # Avoid punctuation-only sentences
     if len(marks) > 1:
-        marks = [x for x, y in zip(marks[:-1], marks[1:])
-                 if not all(layer0.is_punct(t) for t in terminals[x:y])] +\
+        marks = [x for x, y in zip(marks[:-1], marks[1:]) if not all(layer0.is_punct(t) for t in terminals[x:y])] + \
                 [marks[-1]]
     return marks
 
@@ -184,17 +175,18 @@ def extract_terminals(p):
     return p.layer(layer0.LAYER_ID).all
 
 
-def break2paragraphs(passage):
+def break2paragraphs(passage, return_terminals=False):
     """
     Breaks into paragraphs according to the annotation.
 
     Uses the `paragraph' attribute of layer 0 to find paragraphs.
     :param passage: the Passage object to operate on
-    :return: a list of positions in the Passage, each denotes a closing Terminal
-        of a paragraph.
+    :param return_terminals: whether to return actual Terminal objects of all terminals rather than just end positions
+    :return: a list of positions in the Passage, each denotes a closing Terminal of a paragraph.
     """
     terminals = list(extract_terminals(passage))
-    return [t.position - 1 for t in terminals if t.position > 1 and t.para_pos == 1] + [terminals[-1].position]
+    return [list(p) for _, p in groupby(terminals, key=attrgetter("paragraph"))] if return_terminals else \
+        [t.position - 1 for t in terminals if t.position > 1 and t.para_pos == 1] + [terminals[-1].position]
 
 
 def indent_xml(xml_as_string):
