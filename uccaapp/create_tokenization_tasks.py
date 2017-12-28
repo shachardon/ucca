@@ -24,7 +24,7 @@ class TokenizationTaskCreator(ServerAccessor):
                 user_obj = self.get_user(user_id)
                 passage_obj = self.get_passage(fields[1])
                 task_in = dict(type="TOKENIZATION", status="NOT_STARTED", project=self.project,
-                               user=self.user, passage=passage_obj,
+                               user=user_obj, passage=passage_obj,
                                manager_comment="passage #%s" % passage_obj["id"],
                                user_comment="", parent=None,
                                is_demo=False, is_active=True)

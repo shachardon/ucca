@@ -2,9 +2,11 @@
 import argparse
 import sys
 
+from ucca.convert import from_text, to_json
 from uccaapp.api import ServerAccessor
 
 desc = """Upload a passage from a streussel format file"""
+
 
 class StreusselPassageUploader(ServerAccessor):
     def __init__(self, user_id, **kwargs):
@@ -41,7 +43,7 @@ class StreusselPassageUploader(ServerAccessor):
                 passage = list(from_text(passage_text.split(),tokenized=True))[0]
                 tok_user_task_in.update(to_json(passage, return_dict=True, tok_task=True))
 
-                tok_user_task_out = self.submit_tokenization_task(**tok_user_task_in)
+                self.submit_tokenization_task(**tok_user_task_in)
                 print("Uploaded Passage "+filename+" successful.", file=sys.stderr)
             
 

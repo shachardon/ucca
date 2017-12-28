@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
-import sys
 import re
+import sys
 from glob import glob
 
 from ucca.convert import to_json, from_text
@@ -13,6 +13,7 @@ except ImportError:
     from json.decoder import JSONDecodeError
 
 desc = """Upload passages from CoNLL-U files"""
+
 
 class ConlluPassageUploader(ServerAccessor):
     def __init__(self, user_id, **kwargs):

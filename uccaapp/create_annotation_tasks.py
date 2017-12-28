@@ -28,7 +28,7 @@ class AnnotationTaskCreator(ServerAccessor):
                                passage=tok_task_out["passage"], manager_comment="Reviews corpus",
                                user_comment="Test", parent=tok_task_out,
                                is_demo=False, is_active=True)
-                ann_user_task_in = self.create_annotation_task(**task_in)
+                self.create_annotation_task(**task_in)
                 num += 1
             print("Uploaded %d tasks successfully." % num, file=sys.stderr)
 
