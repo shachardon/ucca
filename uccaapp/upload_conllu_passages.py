@@ -16,9 +16,10 @@ desc = """Upload passages from CoNLL-U files"""
 
 
 class ConlluPassageUploader(ServerAccessor):
-    def __init__(self, user_id, **kwargs):
+    def __init__(self, user_id, annotation_user_id, **kwargs):
         super().__init__(**kwargs)
         self.set_user(user_id)
+        self.annotation_user = dict(id=annotation_user_id) if annotation_user_id else self.user
         
     def upload_passages(self, filenames, **kwargs):
         del kwargs
@@ -52,20 +53,25 @@ class ConlluPassageUploader(ServerAccessor):
         assert tokens, "Empty passage %s" % external_id
         passage_out = self.create_passage(text=" ".join(tokens), external_id=external_id, type="PUBLIC",
                                           source=self.source)
-        task_in = dict(type="TOKENIZATION", status="SUBMITTED", project=self.project,
-                       user=self.user, passage=passage_out, manager_comment="External ID: "+external_id,
+        task_in = dict(type="TOKENIZATION", status="SUBMITTED", project=self.project, user=self.user,
+                       passage=passage_out, manager_comment="External ID: "+external_id,
                        user_comment="", parent=None, is_demo=False, is_active=True)
         tok_task_out = self.create_tokenization_task(**task_in)
         tok_user_task_in = dict(tok_task_out)
         passage = list(from_text(tokens, tokenized=True))[0]
         tok_user_task_in.update(to_json(passage, return_dict=True, tok_task=True))
         self.submit_tokenization_task(**tok_user_task_in)
+        task_in = dict(type="ANNOTATION", status="NOT_STARTED", project=self.project, user=self.annotation_user,
+                       passage=tok_task_out["passage"], manager_comment="External ID: "+external_id,
+                       user_comment="", parent=tok_task_out, is_demo=False, is_active=True)
+        self.create_annotation_task(**task_in)
         print("Uploaded passage "+external_id+" successfully")
-            
+
     @staticmethod
     def add_arguments(argparser):
         argparser.add_argument("filenames", nargs="+", help="filename pattern of CoNLL-U files")
         ServerAccessor.add_user_id_argument(argparser)
+        argparser.add_argument("--annotation-user-id", type=int, help="user id for annotation tasks, if different")
         ServerAccessor.add_arguments(argparser)
 
 
