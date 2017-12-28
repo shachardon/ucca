@@ -122,13 +122,20 @@ def annotate_all(passages, verbose=False, replace=False, lang="en"):
     :param passages: iterable of Passage objects, whose layer 0 nodes will be added entries in the `extra' dict
     :param verbose: whether to print annotated text
     :param replace: even if a given passage is already annotated, replace with new annotation
-    :param lang: optional two-letter language code
+    :param lang: optional two-letter language code, will be overridden if passage has "lang" attrib
     :return generator of annotated passages, which are actually modified in-place (same objects as input)
     """
-    to_annotate = (([t.text for t in paragraph] if replace or not is_annotated(paragraph) else [], (paragraph, passage))
-                   for passage in passages for paragraph in break2paragraphs(passage, return_terminals=True))
-    annotated = get_nlp(lang=lang).pipe(to_annotate, as_tuples=True)
-    yield from (passage for passage, _ in groupby(apply_annotations(annotated, verbose)))
+    for passage_lang, passages_by_lang in groupby(passages, get_lang):
+        to_annotate = (([t.text for t in paragraph] if replace or not is_annotated(paragraph) else [],
+                        (paragraph, passage))
+                       for passage in passages_by_lang
+                       for paragraph in break2paragraphs(passage, return_terminals=True))
+        annotated = get_nlp(lang=passage_lang or lang).pipe(to_annotate, as_tuples=True)
+        yield from (passage for passage, _ in groupby(apply_annotations(annotated, verbose)))
+
+
+def get_lang(passage):
+    return passage.attrib.get("lang")
 
 
 def is_annotated(paragraph):
