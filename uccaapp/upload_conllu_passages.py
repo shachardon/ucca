@@ -17,7 +17,8 @@ desc = """Upload passages from CoNLL-U files"""
 
 class ConlluPassageUploader(ServerAccessor):
     def __init__(self, user_id, **kwargs):
-        super().__init__(user_id=user_id, **kwargs)
+        super().__init__(**kwargs)
+        self.set_user(user_id)
         
     def upload_passages(self, filenames, **kwargs):
         del kwargs
@@ -25,7 +26,7 @@ class ConlluPassageUploader(ServerAccessor):
             filenames = glob(pattern)
             if not filenames:
                 raise IOError("Not found: " + pattern)
-            for filename in filenames:
+            for filename in sorted(filenames):
                 with open(filename, encoding="utf-8") as f:
                     external_id = None
                     tokens = []
@@ -56,14 +57,11 @@ class ConlluPassageUploader(ServerAccessor):
                        user_comment="", parent=None, is_demo=False, is_active=True)
         tok_task_out = self.create_tokenization_task(**task_in)
         tok_user_task_in = dict(tok_task_out)
-
         passage = list(from_text(tokens, tokenized=True))[0]
         tok_user_task_in.update(to_json(passage, return_dict=True, tok_task=True))
-
         self.submit_tokenization_task(**tok_user_task_in)
-        print("Uploaded Passage "+external_id+" successfully")
+        print("Uploaded passage "+external_id+" successfully")
             
-
     @staticmethod
     def add_arguments(argparser):
         argparser.add_argument("filenames", nargs="+", help="filename pattern of CoNLL-U files")

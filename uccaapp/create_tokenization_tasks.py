@@ -9,7 +9,8 @@ desc = """Upload a list of tokenization tasks to a project"""
 
 class TokenizationTaskCreator(ServerAccessor):
     def __init__(self, user_id, **kwargs):
-        super().__init__(user_id=user_id, **kwargs)
+        super().__init__(**kwargs)
+        self.set_user(user_id)
 
     def create_task(self, filename, **kwargs):
         del kwargs

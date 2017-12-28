@@ -9,7 +9,8 @@ desc = """Convert a passage file to JSON format and upload to UCCA-App as a comp
 
 class AnnotationTaskCreator(ServerAccessor):
     def __init__(self, user_id, **kwargs):
-        super().__init__(user_id=user_id, **kwargs)
+        super().__init__(**kwargs)
+        self.set_user(user_id)
 
     def create_task(self, filename, **kwargs):
         del kwargs

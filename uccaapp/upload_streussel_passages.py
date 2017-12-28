@@ -10,7 +10,8 @@ desc = """Upload a passage from a streussel format file"""
 
 class StreusselPassageUploader(ServerAccessor):
     def __init__(self, user_id, **kwargs):
-        super().__init__(user_id=user_id, **kwargs)
+        super().__init__(**kwargs)
+        self.set_user(user_id)
         
     def upload_streussel_passage_file(self, filenames, **kwargs):
         del kwargs

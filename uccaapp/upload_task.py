@@ -29,7 +29,8 @@ desc = """Convert a passage file to JSON format and upload to UCCA-App as a comp
 
 class TaskUploader(ServerAccessor):
     def __init__(self, user_id, **kwargs):
-        super().__init__(user_id=user_id, **kwargs)
+        super().__init__(**kwargs)
+        self.set_user(user_id)
         
     def upload_tasks(self, filenames, **kwargs):
         del kwargs

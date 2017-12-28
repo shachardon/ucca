@@ -19,8 +19,7 @@ RETRY_WAIT_DURATION = 60
 
 
 class ServerAccessor(object):
-    def __init__(self, server_address, email, password, auth_token, project_id, source_id, verbose, user_id=None,
-                 **kwargs):
+    def __init__(self, server_address, email, password, auth_token, project_id, source_id, verbose, **kwargs):
         if verbose:
             logging.basicConfig(level=logging.DEBUG)
         server_address = server_address or os.environ.get(SERVER_ADDRESS_ENV_VAR, DEFAULT_SERVER)
@@ -31,8 +30,11 @@ class ServerAccessor(object):
         self.headers["Authorization"] = "Token " + token
         self.source = self.get_source(source_id or int(os.environ[SOURCE_ID_ENV_VAR]))
         self.project = self.get_project(project_id or int(os.environ[PROJECT_ID_ENV_VAR]))
-        self.user = dict(id=user_id or int(os.environ[USER_ID_ENV_VAR])) if user_id else None
         self.layer = self.get_layer(self.project["layer"]["id"])
+        self.user = None
+
+    def set_user(self, user_id=None):
+        self.user = dict(id=user_id or int(os.environ[USER_ID_ENV_VAR]))
 
     @staticmethod
     def add_arguments(argparser):
