@@ -1,33 +1,30 @@
 #!/usr/bin/env python3
 
 import argparse
-import glob
-import sys
+from glob import glob
 
-from ucca.ioutil import file2passage, passage2file
+from tqdm import tqdm
+
+from ucca.ioutil import read_files_and_dirs, write_passage
 from ucca.textutil import annotate
 
 desc = """Read UCCA standard format in XML or binary pickle, and write back with POS tags and dependency parse."""
 
 
-def main():
-    argparser = argparse.ArgumentParser(description=desc)
-    argparser.add_argument("filenames", nargs="+", help="passage file names to annotate")
-    argparser.add_argument("-v", "--verbose", action="store_true", help="print tagged text for each passage")
-    args = argparser.parse_args()
-
+def main(args):
     for pattern in args.filenames:
-        filenames = glob.glob(pattern)
+        filenames = glob(pattern)
         if not filenames:
             raise IOError("Not found: " + pattern)
-        for filename in filenames:
-            passage = file2passage(filename)
+        passages = read_files_and_dirs(filenames)
+        for passage in passages if args.verbose else tqdm(passages, unit=" passages", desc="Annotating " + pattern):
             annotate(passage, verbose=args.verbose, replace=True)
-            sys.stderr.write("Writing '%s'...\n" % filename)
-            passage2file(passage, filename, binary=not filename.endswith("xml"))
-
-    sys.exit(0)
+            write_passage(passage, outdir=args.out_dir, verbose=args.verbose)
 
 
 if __name__ == '__main__':
-    main()
+    argparser = argparse.ArgumentParser(description=desc)
+    argparser.add_argument("filenames", nargs="+", help="passage file names to annotate")
+    argparser.add_argument("-o", "--out-dir", default=".", help="directory to write annotated files to")
+    argparser.add_argument("-v", "--verbose", action="store_true", help="print tagged text for each passage")
+    main(argparser.parse_args())
