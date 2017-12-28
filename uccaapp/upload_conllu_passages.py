@@ -12,7 +12,7 @@ try:
 except ImportError:
     from json.decoder import JSONDecodeError
 
-desc = """Upload passages from CoNLL-U files"""
+desc = """Upload passages from CoNLL-U files including complete tokenization, and create annotation task for each"""
 
 
 class ConlluPassageUploader(ServerAccessor):
