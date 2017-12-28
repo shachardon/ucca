@@ -6,7 +6,7 @@ from glob import glob
 from tqdm import tqdm
 
 from ucca.ioutil import read_files_and_dirs, write_passage
-from ucca.textutil import annotate
+from ucca.textutil import annotate_all
 
 desc = """Read UCCA standard format in XML or binary pickle, and write back with POS tags and dependency parse."""
 
@@ -17,8 +17,9 @@ def main(args):
         if not filenames:
             raise IOError("Not found: " + pattern)
         passages = read_files_and_dirs(filenames)
-        for passage in passages if args.verbose else tqdm(passages, unit=" passages", desc="Annotating " + pattern):
-            annotate(passage, verbose=args.verbose, replace=True)
+        for passage in annotate_all(passages if args.verbose else
+                                tqdm(passages, unit=" passages", desc="Annotating " + pattern),
+                                verbose=args.verbose, replace=True):
             write_passage(passage, outdir=args.out_dir, verbose=args.verbose)
 
 

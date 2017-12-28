@@ -105,34 +105,48 @@ LEMMA_KEY = "lemma"
 ANNOTATION_KEYS = (TAG_KEY, POS_KEY, NER_KEY, IOB_KEY, DEP_KEY, HEAD_KEY, LEMMA_KEY)
 
 
+def annotate_all(passages, verbose=False, replace=False, lang="en"):
+    """
+    POS tag the tokens in the given passage and parse with a dependency parser
+    :param passages: iterable of Passage objects, whose layer 0 nodes will be added entries in the `extra' dict
+    :param verbose: whether to print annotated text
+    :param replace: even if a given passage is already annotated, replace with new annotation
+    :param lang: optional two-letter language code
+    :return generator of annotated passages, which are actually modified in-place (same objects as input)
+    """
+    for passage in passages:
+        paragraphs = break2paragraphs(passage, return_terminals=True)
+        if replace or any(k not in t.extra for p in paragraphs for t in p for k in ANNOTATION_KEYS):
+            text_paragraphs = (([t.text for t in paragraph], paragraph) for paragraph in paragraphs)
+            for doc, paragraph in get_nlp(lang=lang).pipe(text_paragraphs, as_tuples=True):
+                for lex, terminal in zip(doc, paragraph):
+                    terminal.extra[TAG_KEY] = lex.tag_
+                    terminal.extra[POS_KEY] = lex.pos_
+                    terminal.extra[NER_KEY] = lex.ent_type_
+                    terminal.extra[IOB_KEY] = str(lex.ent_iob)
+                    terminal.extra[DEP_KEY] = lex.dep_
+                    terminal.extra[HEAD_KEY] = str(lex.head.i + 1)
+                    terminal.extra[LEMMA_KEY] = lex.lemma_
+        if verbose:
+            for p in paragraphs:
+                extra = [["text"] + list(ANNOTATION_KEYS)] + \
+                        [[t.text] + [t.extra[k] for k in ANNOTATION_KEYS] for t in p]
+                width = [max(len(f) for f in t) for t in extra]
+                for i in range(1 + len(ANNOTATION_KEYS)):
+                    print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)))
+                print()
+        yield passage
+
+
 def annotate(passage, verbose=False, replace=False, lang="en"):
     """
     POS tag the tokens in the given passage and parse with a dependency parser
-    :param passage: Passage whose layer 0 nodes will be added these entries in the extra dict: tag, pos, dep, head
+    :param passage: Passage object, whose layer 0 nodes will be added entries in the `extra' dict
     :param verbose: whether to print annotated text
-    :param replace: even if given passage is already annotated, replace with new annotation
+    :param replace: even if a given passage is already annotated, replace with new annotation
     :param lang: optional two-letter language code
-    :return: list of annotated terminal nodes
     """
-    paragraphs = break2paragraphs(passage, return_terminals=True)
-    if replace or any(k not in t.extra for p in paragraphs for t in p for k in ANNOTATION_KEYS):
-        text_paragraphs = (([t.text for t in paragraph], paragraph) for paragraph in paragraphs)
-        for doc, paragraph in get_nlp(lang=lang).pipe(text_paragraphs, as_tuples=True):
-            for lex, terminal in zip(doc, paragraph):
-                terminal.extra[TAG_KEY] = lex.tag_
-                terminal.extra[POS_KEY] = lex.pos_
-                terminal.extra[NER_KEY] = lex.ent_type_
-                terminal.extra[IOB_KEY] = str(lex.ent_iob)
-                terminal.extra[DEP_KEY] = lex.dep_
-                terminal.extra[HEAD_KEY] = str(lex.head.i + 1)
-                terminal.extra[LEMMA_KEY] = lex.lemma_
-    if verbose:
-        for p in paragraphs:
-            extra = [["text"] + list(ANNOTATION_KEYS)] + [[t.text] + [t.extra[k] for k in ANNOTATION_KEYS] for t in p]
-            width = [max(len(f) for f in t) for t in extra]
-            for i in range(1 + len(ANNOTATION_KEYS)):
-                print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)))
-            print()
+    list(annotate_all([passage], verbose=verbose, replace=replace, lang=lang))
 
 
 SENTENCE_END_MARKS = ('.', '?', '!')
@@ -146,7 +160,7 @@ def break2sentences(passage, lang="en"):
     SENTENCE_END_MARKS, and is also the end of a paragraph or parallel scene.
     :param passage: the Passage object to operate on
     :param lang: optional two-letter language code
-    :return: a list of positions in the Passage, each denotes a closing Terminal of a sentence.
+    :return a list of positions in the Passage, each denotes a closing Terminal of a sentence.
     """
     l1 = passage.layer(layer1.LAYER_ID)
     terminals = extract_terminals(passage)
@@ -182,7 +196,7 @@ def break2paragraphs(passage, return_terminals=False):
     Uses the `paragraph' attribute of layer 0 to find paragraphs.
     :param passage: the Passage object to operate on
     :param return_terminals: whether to return actual Terminal objects of all terminals rather than just end positions
-    :return: a list of positions in the Passage, each denotes a closing Terminal of a paragraph.
+    :return a list of positions in the Passage, each denotes a closing Terminal of a paragraph.
     """
     terminals = list(extract_terminals(passage))
     return [list(p) for _, p in groupby(terminals, key=attrgetter("paragraph"))] if return_terminals else \
@@ -196,7 +210,7 @@ def indent_xml(xml_as_string):
     This works only for units with no text or tail members, and only for
     strings whose leaves are written as <tag /> and not <tag></tag>.
     :param xml_as_string: XML string to indent
-    :return: indented XML string
+    :return indented XML string
     """
     tabs = 0
     lines = str(xml_as_string).replace('><', '>\n<').splitlines()
