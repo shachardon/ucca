@@ -4,43 +4,43 @@
     <attributes />
     <node ID="0.1" type="Word">
       <attributes paragraph="1" paragraph_position="1" text="After" />
-      <extra dep="prep" head="5" pos="ADP" tag="IN" />
+      <extra dep="prep" head="5" iob="2" lemma="after" ner="" pos="ADP" tag="IN" />
     </node>
     <node ID="0.2" type="Word">
       <attributes paragraph="1" paragraph_position="2" text="graduation" />
-      <extra dep="pobj" head="1" pos="NOUN" tag="NN" />
+      <extra dep="pobj" head="1" iob="2" lemma="graduation" ner="" pos="NOUN" tag="NN" />
     </node>
     <node ID="0.3" type="Punctuation">
       <attributes paragraph="1" paragraph_position="3" text="," />
-      <extra dep="punct" head="5" pos="PUNCT" tag="," />
+      <extra dep="punct" head="5" iob="2" lemma="," ner="" pos="PUNCT" tag="," />
     </node>
     <node ID="0.4" type="Word">
       <attributes paragraph="1" paragraph_position="4" text="Mary" />
-      <extra dep="nsubj" head="5" pos="PROPN" tag="NNP" />
+      <extra dep="nsubj" head="5" iob="3" lemma="mary" ner="PERSON" pos="PROPN" tag="NNP" />
     </node>
     <node ID="0.5" type="Word">
       <attributes paragraph="1" paragraph_position="5" text="moved" />
-      <extra dep="ROOT" head="5" pos="VERB" tag="VBD" />
+      <extra dep="ROOT" head="5" iob="2" lemma="move" ner="" pos="VERB" tag="VBD" />
     </node>
     <node ID="0.6" type="Word">
       <attributes paragraph="1" paragraph_position="6" text="to" />
-      <extra dep="prep" head="5" pos="ADP" tag="IN" />
+      <extra dep="prep" head="5" iob="2" lemma="to" ner="" pos="ADP" tag="IN" />
     </node>
     <node ID="0.7" type="Word">
       <attributes paragraph="1" paragraph_position="7" text="New" />
-      <extra dep="compound" head="9" pos="PROPN" tag="NNP" />
+      <extra dep="compound" head="8" iob="3" lemma="new" ner="GPE" pos="PROPN" tag="NNP" />
     </node>
     <node ID="0.8" type="Word">
       <attributes paragraph="1" paragraph_position="8" text="York" />
-      <extra dep="compound" head="9" pos="PROPN" tag="NNP" />
+      <extra dep="compound" head="9" iob="1" lemma="york" ner="GPE" pos="PROPN" tag="NNP" />
     </node>
     <node ID="0.9" type="Word">
       <attributes paragraph="1" paragraph_position="9" text="City" />
-      <extra dep="pobj" head="6" pos="PROPN" tag="NNP" />
+      <extra dep="pobj" head="6" iob="1" lemma="city" ner="GPE" pos="PROPN" tag="NNP" />
     </node>
     <node ID="0.10" type="Punctuation">
       <attributes paragraph="1" paragraph_position="10" text="." />
-      <extra dep="punct" head="5" pos="PUNCT" tag="." />
+      <extra dep="punct" head="5" iob="2" lemma="." ner="" pos="PUNCT" tag="." />
     </node>
   </layer>
   <layer layerID="1">
