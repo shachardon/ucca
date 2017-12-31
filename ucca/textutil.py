@@ -130,8 +130,9 @@ def annotate_all(passages, verbose=False, replace=False, lang="en"):
                         (paragraph, passage))
                        for passage in passages_by_lang
                        for paragraph in break2paragraphs(passage, return_terminals=True))
-        annotated = get_nlp(lang=passage_lang or lang).pipe(to_annotate, as_tuples=True)
-        yield from (passage for passage, _ in groupby(apply_annotations(annotated, verbose)))
+        for need_annotation, stream in groupby(to_annotate, lambda x: bool(x[0])):
+            annotated = get_nlp(lang=passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
+            yield from (passage for passage, _ in groupby(set_annotations(annotated, verbose)))
 
 
 def get_lang(passage):
@@ -142,7 +143,7 @@ def is_annotated(paragraph):
     return all(key in terminal.extra for terminal in paragraph for key in ANNOTATION_KEYS)
 
 
-def apply_annotations(annotated, verbose):
+def set_annotations(annotated, verbose):
     for doc, (paragraph, passage) in annotated:
         if doc:
             for lex, terminal in zip(doc, paragraph):
