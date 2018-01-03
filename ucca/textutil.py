@@ -1,5 +1,6 @@
 """Utility functions for UCCA package."""
 import os
+import time
 from collections import OrderedDict
 from itertools import groupby
 from operator import attrgetter
@@ -16,9 +17,11 @@ DEFAULT_MODEL = {"en": "en_core_web_md", "fr": "fr_core_news_md", "de": "de_core
 def get_nlp(lang="en"):
     instance = nlp.get(lang)
     if instance is None:
-        import spacy
         model_name = os.environ.get("_".join((MODEL_ENV_VAR, lang.upper()))) or os.environ.get(MODEL_ENV_VAR) or \
             DEFAULT_MODEL.get(lang, "xx")
+        started = time.time()
+        print("Loading spaCy model '%s'... " % model_name, end="", flush=True)
+        import spacy
         try:
             nlp[lang] = instance = spacy.load(model_name)
         except OSError:
@@ -30,6 +33,7 @@ def get_nlp(lang="en"):
                               "`python -m spacy download %s`." % model_name) from e
         tokenizer[lang] = instance.tokenizer
         instance.tokenizer = lambda words: spacy.tokens.Doc(instance.vocab, words=words)
+        print("Done (%.3fs)." % (time.time() - started))
     return instance
 
 
