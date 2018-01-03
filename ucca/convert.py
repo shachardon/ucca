@@ -13,6 +13,7 @@ The possible other formats are:
 
 import json
 import operator
+import os
 import pickle
 import re
 import sys
@@ -1665,16 +1666,28 @@ def file2passage(filename):
     Tries to read both as a standard XML file and as a binary pickle
     :param filename: file name to write to
     """
-    try:
-        with open(filename, encoding="utf-8") as f:
-            etree = ET.ElementTree().parse(f)
-        return from_standard(etree)
-    except Exception as e:
+    methods = [pickle2passage, xml2passage]
+    ext = os.path.splitext(filename)
+    if ext and ext[1] == "xml":
+        methods = methods[::-1]
+    exception = None
+    for method in methods:
         try:
-            with open(filename, "rb") as h:
-                return pickle.load(h)
-        except Exception:
-            raise e
+            return method(filename)
+        except Exception as e:
+            exception = e
+    if exception:
+        raise exception
+
+
+def xml2passage(filename):
+    with open(filename, encoding="utf-8") as f:
+        return from_standard(ET.ElementTree().parse(f))
+
+
+def pickle2passage(filename):
+    with open(filename, "rb") as h:
+        return pickle.load(h)
 
 
 def passage2file(passage, filename, indent=True, binary=False):
