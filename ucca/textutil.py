@@ -1,5 +1,6 @@
 """Utility functions for UCCA package."""
 import os
+from collections import OrderedDict
 from itertools import groupby
 from operator import attrgetter
 
@@ -65,7 +66,7 @@ def get_word_vectors(dim=None, size=None, filename=None, lang="en"):
     #     if dim < nr_dim:
     #         vocab.vectors.resize(shape=(int(size or nr_row), int(dim)))
     lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
-    return {l.orth_: l.vector for l in lexemes}, vocab.vectors_length
+    return OrderedDict((l.orth_, l.vector) for l in lexemes), vocab.vectors_length
 
 
 def read_word_vectors(dim, size, filename):
