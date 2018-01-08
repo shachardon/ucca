@@ -717,7 +717,8 @@ class UtilTests(unittest.TestCase):
         passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
         textutil.annotate(passage)
         for terminal in passage.layer(layer0.LAYER_ID).all:
-            for key in textutil.ATTRS:
+            for attr in textutil.ATTRS:
+                key = textutil.NAMES[attr]
                 self.assertTrue(key in terminal.extra, "Terminal %s has no %s" % (terminal, key))
 
 
