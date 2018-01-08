@@ -594,6 +594,19 @@ def to_standard(passage):
 
 
 def from_standard(root, extra_funcs=None):
+    def _str2bool(x):
+        return x == "True"
+
+    attribute_converters = {
+        'paragraph': int,
+        'paragraph_position': int,
+        'remote': _str2bool,
+        'implicit': _str2bool,
+        'uncertain': _str2bool,
+        'suggest': _str2bool,
+        None: str,
+    }
+
     def _loads(x):
         try:
             return False if x == "False" else x == "True" or json.loads(x)
@@ -610,7 +623,8 @@ def from_standard(root, extra_funcs=None):
                  layer1.NodeTags.Punctuation: layer1.PunctNode}
 
     def _get_attrib(elem):
-        return {k: _loads(v) for k, v in elem.find('attributes').items()}
+        return {k: attribute_converters.get(k, str)(v)
+                for k, v in elem.find('attributes').items()}
 
     def _add_extra(obj, elem):
         if elem.find('extra') is not None:

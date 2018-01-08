@@ -26,6 +26,10 @@ class Attr(Enum):
 
     def __call__(self, value, vocab=None):
         return int(np.int64(value)) if self in (Attr.ENT_IOB, Attr.HEAD) else vocab[value].text if vocab else int(value)
+    
+    @property
+    def key(self):
+        return self.name.lower()
 
 
 def get_nlp(lang="en"):
@@ -166,10 +170,10 @@ def set_docs(annotated, as_array, lang, verbose):
                 vocab = get_nlp(lang).vocab
                 for terminal, values in zip(terminals, arr):
                     for attr, value in zip(Attr, values):
-                        terminal.extra[attr.name.lower()] = attr(value, vocab)
+                        terminal.extra[attr.key] = attr(value, vocab)
         if verbose:
-            data = [["text"] + [a.name.lower() for a in Attr]] + \
-                   [[t.text] + [str(a(t.tok[a.value], get_nlp(lang).vocab) if as_array else t.extra[a.name.lower()])
+            data = [["text"] + [a.key for a in Attr]] + \
+                   [[t.text] + [str(a(t.tok[a.value], get_nlp(lang).vocab) if as_array else t.extra[a.key])
                                 for a in Attr] for j, t in enumerate(terminals)]
             width = [max(len(f) for f in t) for t in data]
             for j in range(1 + len(Attr)):
