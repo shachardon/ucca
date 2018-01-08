@@ -6,12 +6,17 @@ from itertools import groupby
 from operator import attrgetter
 
 import numpy as np
+import spacy
+from spacy.attrs import NAMES, TAG, POS, ENT_TYPE, ENT_IOB, DEP, HEAD, LEMMA
 from tqdm import tqdm
 
 from ucca import layer0, layer1
 
 MODEL_ENV_VAR = "SPACY_MODEL"
 DEFAULT_MODEL = {"en": "en_core_web_md", "fr": "fr_core_news_md", "de": "de_core_news_sm"}
+LEX_ATTRS = (TAG, POS, ENT_TYPE, DEP, LEMMA)
+NUM_ATTRS = (ENT_IOB, HEAD)
+ATTRS = LEX_ATTRS + NUM_ATTRS
 
 
 def get_nlp(lang="en"):
@@ -21,7 +26,6 @@ def get_nlp(lang="en"):
             DEFAULT_MODEL.get(lang, "xx")
         started = time.time()
         print("Loading spaCy model '%s'... " % model_name, end="", flush=True)
-        import spacy
         try:
             nlp[lang] = instance = spacy.load(model_name)
         except OSError:
@@ -100,16 +104,6 @@ def read_word_vectors(dim, size, filename):
         raise IOError("Failed loading word vectors from '%s'" % filename) from e
 
 
-TAG_KEY = "tag"  # fine-grained POS tag
-POS_KEY = "pos"  # coarse-grained POS tag
-NER_KEY = "ner"  # named entity type
-IOB_KEY = "iob"  # integer named entity IOB tag (0: unknown, 1: I, 2: O, 3: B)
-DEP_KEY = "dep"  # dependency relation to syntactic head
-HEAD_KEY = "head"  # integer position of syntactic head within paragraph (para_pos)
-LEMMA_KEY = "lemma"
-ANNOTATION_KEYS = (TAG_KEY, POS_KEY, NER_KEY, IOB_KEY, DEP_KEY, HEAD_KEY, LEMMA_KEY)
-
-
 def annotate(passage, verbose=False, replace=False, lang="en"):
     """
     Run spaCy pipeline on the given passage
@@ -136,8 +130,8 @@ def annotate_all(passages, verbose=False, replace=False, lang="en"):
                        for passage in passages_by_lang
                        for paragraph in break2paragraphs(passage, return_terminals=True))
         for need_annotation, stream in groupby(to_annotate, lambda x: bool(x[0])):
-            annotated = get_nlp(lang=passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
-            yield from (passage for passage, _ in groupby(set_annotations(annotated, verbose)))
+            annotated = get_nlp(passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
+            yield from (passage for passage, _ in groupby(set_annotations(annotated, passage_lang or lang, verbose)))
 
 
 def get_lang(passage):
@@ -145,25 +139,21 @@ def get_lang(passage):
 
 
 def is_annotated(paragraph):
-    return all(key in terminal.extra for terminal in paragraph for key in ANNOTATION_KEYS)
+    return all(key in terminal.extra for terminal in paragraph for key in ATTRS)
 
 
-def set_annotations(annotated, verbose):
-    for doc, (paragraph, passage) in annotated:
+def set_annotations(annotated, lang, verbose):
+    for doc, (terminals, passage) in annotated:
         if doc:
-            for lex, terminal in zip(doc, paragraph):
-                terminal.extra[TAG_KEY] = lex.tag_
-                terminal.extra[POS_KEY] = lex.pos_
-                terminal.extra[NER_KEY] = lex.ent_type_
-                terminal.extra[IOB_KEY] = str(lex.ent_iob)
-                terminal.extra[DEP_KEY] = lex.dep_
-                terminal.extra[HEAD_KEY] = str(lex.head.i + 1)
-                terminal.extra[LEMMA_KEY] = lex.lemma_
+            for terminal, values in zip(terminals, doc.to_array(ATTRS)):
+                for attr, value in zip(ATTRS, values):
+                    terminal.extra[NAMES[attr]] = np.int64(value) if attr in NUM_ATTRS else value
         if verbose:
-            extra = [["text"] + list(ANNOTATION_KEYS)] + \
-                    [[t.text] + [t.extra[k] for k in ANNOTATION_KEYS] for t in paragraph]
+            extra = [["text"] + [NAMES[a] for a in ATTRS]] + \
+                    [[t.text] + [str(t.extra[NAMES[a]]) if a in NUM_ATTRS else
+                                 get_nlp(lang).vocab[t.extra[NAMES[a]]].text for a in ATTRS] for t in terminals]
             width = [max(len(f) for f in t) for t in extra]
-            for i in range(1 + len(ANNOTATION_KEYS)):
+            for i in range(1 + len(ATTRS)):
                 print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)))
             print()
         yield passage
