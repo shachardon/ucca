@@ -1667,9 +1667,11 @@ def file2passage(filename):
     :param filename: file name to write to
     """
     methods = [pickle2passage, xml2passage]
-    ext = os.path.splitext(filename)
-    if ext and ext[1] == "xml":
-        methods = methods[::-1]
+    _, ext = os.path.splitext(filename)
+    if ext == ".xml":
+        del methods[0]
+    elif ext == ".pickle":
+        del methods[1]
     exception = None
     for method in methods:
         try:
