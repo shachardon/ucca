@@ -25,6 +25,11 @@ from itertools import islice, repeat
 from ucca import textutil, core, layer0, layer1
 from ucca.layer1 import EdgeTags
 
+try:
+    from simplejson.scanner import JSONDecodeError
+except ImportError:
+    from json.decoder import JSONDecodeError
+
 
 class SiteXMLUnknownElement(core.UCCAError):
     pass
@@ -556,16 +561,16 @@ def to_standard(passage):
     # This utility stringifies the Unit's attributes for proper XML
     # we don't need to escape the character - the serializer of the XML element
     # will do it (e.g. tostring())
-    def _stringify(dic):
-        return {str(k): str(v) for k, v in dic.items()}
+    def _dumps(dic):
+        return {str(k): str(v) if type(v) in (str, bool) else json.dumps(v) for k, v in dic.items()}
 
     # Utility to add an extra element if exists in the object
     def _add_extra(obj, elem):
-        return obj.extra and ET.SubElement(elem, 'extra', _stringify(obj.extra))
+        return obj.extra and ET.SubElement(elem, 'extra', _dumps(obj.extra))
 
     # Adds attributes element (even if empty)
     def _add_attrib(obj, elem):
-        return ET.SubElement(elem, 'attributes', _stringify(obj.attrib))
+        return ET.SubElement(elem, 'attributes', _dumps(obj.attrib))
 
     root = ET.Element('root', passageID=str(passage.ID), annotationID='0')
     _add_attrib(passage, root)
@@ -589,18 +594,11 @@ def to_standard(passage):
 
 
 def from_standard(root, extra_funcs=None):
-    def _str2bool(x):
-        return x == "True"
-
-    attribute_converters = {
-        'paragraph': int,
-        'paragraph_position': int,
-        'remote': _str2bool,
-        'implicit': _str2bool,
-        'uncertain': _str2bool,
-        'suggest': _str2bool,
-        None: str,
-    }
+    def _loads(x):
+        try:
+            return False if x == "False" else x == "True" or json.loads(x)
+        except JSONDecodeError:
+            return x
 
     layer_objs = {layer0.LAYER_ID: layer0.Layer0,
                   layer1.LAYER_ID: layer1.Layer1}
@@ -611,17 +609,13 @@ def from_standard(root, extra_funcs=None):
                  layer1.NodeTags.Linkage: layer1.Linkage,
                  layer1.NodeTags.Punctuation: layer1.PunctNode}
 
-    if extra_funcs is None:
-        extra_funcs = {}
-
     def _get_attrib(elem):
-        return {k: attribute_converters.get(k, str)(v)
-                for k, v in elem.find('attributes').items()}
+        return {k: _loads(v) for k, v in elem.find('attributes').items()}
 
     def _add_extra(obj, elem):
         if elem.find('extra') is not None:
             for k, v in elem.find('extra').items():
-                obj.extra[k] = extra_funcs.get(k, str)(v)
+                obj.extra[k] = (extra_funcs or {}).get(k, _loads)(v)
 
     passage = core.Passage(root.get('passageID'), attrib=_get_attrib(root))
     _add_extra(passage, root)

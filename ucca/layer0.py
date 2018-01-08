@@ -64,6 +64,13 @@ class Terminal(core.Node):
         return self.attrib['paragraph']
 
     @property
+    def tok(self):
+        try:
+            return self.layer.extra["doc"][self.paragraph - 1][self.para_pos - 1]
+        except (KeyError, IndexError):
+            return None
+
+    @property
     def attrib(self):
         return self._attrib.copy()
 

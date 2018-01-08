@@ -2,26 +2,36 @@
 import os
 import time
 from collections import OrderedDict
+from enum import Enum
 from itertools import groupby
 from operator import attrgetter
 
 import numpy as np
-import spacy
-from spacy.attrs import NAMES, TAG, POS, ENT_TYPE, ENT_IOB, DEP, HEAD, LEMMA
 from tqdm import tqdm
 
 from ucca import layer0, layer1
 
 MODEL_ENV_VAR = "SPACY_MODEL"
 DEFAULT_MODEL = {"en": "en_core_web_md", "fr": "fr_core_news_md", "de": "de_core_news_sm"}
-LEX_ATTRS = (TAG, POS, ENT_TYPE, DEP, LEMMA)
-NUM_ATTRS = (ENT_IOB, HEAD)
-ATTRS = LEX_ATTRS + NUM_ATTRS
+
+
+class Attr(Enum):
+    TAG = 0
+    POS = 1
+    ENT_TYPE = 2
+    ENT_IOB = 3
+    DEP = 4
+    HEAD = 5
+    LEMMA = 6
+
+    def __call__(self, value, vocab=None):
+        return int(np.int64(value)) if self in (Attr.ENT_IOB, Attr.HEAD) else vocab[value].text if vocab else int(value)
 
 
 def get_nlp(lang="en"):
     instance = nlp.get(lang)
     if instance is None:
+        import spacy
         model_name = os.environ.get("_".join((MODEL_ENV_VAR, lang.upper()))) or os.environ.get(MODEL_ENV_VAR) or \
             DEFAULT_MODEL.get(lang, "xx")
         started = time.time()
@@ -104,57 +114,66 @@ def read_word_vectors(dim, size, filename):
         raise IOError("Failed loading word vectors from '%s'" % filename) from e
 
 
-def annotate(passage, verbose=False, replace=False, lang="en"):
+def annotate(passage, replace=False, as_array=False, lang="en", verbose=False):
     """
-    Run spaCy pipeline on the given passage
+    Run spaCy pipeline on the given passage, unless already annotated
     :param passage: Passage object, whose layer 0 nodes will be added entries in the `extra' dict
-    :param verbose: whether to print annotated text
     :param replace: even if a given passage is already annotated, replace with new annotation
+    :param as_array: instead of adding `extra' entries to each terminal, set layer 0 extra["doc"] to array of ids
     :param lang: optional two-letter language code
-    """
-    list(annotate_all([passage], verbose=verbose, replace=replace, lang=lang))
-
-
-def annotate_all(passages, verbose=False, replace=False, lang="en"):
-    """
-    Run spaCy pipeline on the given passages
-    :param passages: iterable of Passage objects, whose layer 0 nodes will be added entries in the `extra' dict
     :param verbose: whether to print annotated text
+    """
+    list(annotate_all([passage], verbose=verbose, replace=replace, as_array=as_array, lang=lang))
+
+
+def annotate_all(passages, replace=False, as_array=False, lang="en", verbose=False):
+    """
+    Run spaCy pipeline on the given passages, unless already annotated
+    :param passages: iterable of Passage objects, whose layer 0 nodes will be added entries in the `extra' dict
     :param replace: even if a given passage is already annotated, replace with new annotation
+    :param as_array: instead of adding `extra' entries to each terminal, set layer 0 extra["doc"] to array of ids
     :param lang: optional two-letter language code, will be overridden if passage has "lang" attrib
+    :param verbose: whether to print annotated text
     :return generator of annotated passages, which are actually modified in-place (same objects as input)
     """
     for passage_lang, passages_by_lang in groupby(passages, get_lang):
-        to_annotate = (([t.text for t in paragraph] if replace or not is_annotated(paragraph) else [],
-                        (paragraph, passage))
-                       for passage in passages_by_lang
-                       for paragraph in break2paragraphs(passage, return_terminals=True))
-        for need_annotation, stream in groupby(to_annotate, lambda x: bool(x[0])):
+        for need_annotation, stream in groupby(to_annotate(passages_by_lang, replace, as_array), lambda x: bool(x[0])):
             annotated = get_nlp(passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
-            yield from (passage for passage, _ in groupby(set_annotations(annotated, passage_lang or lang, verbose)))
+            yield from (passage for passage, _ in groupby(set_docs(annotated, as_array, passage_lang or lang, verbose)))
 
 
 def get_lang(passage):
     return passage.attrib.get("lang")
 
 
-def is_annotated(paragraph):
-    return all(key in terminal.extra for terminal in paragraph for key in ATTRS)
+def to_annotate(passages, replace, as_array):
+    return (([t.text for t in terminals] if replace or not as_array or "doc" not in passage.layer(
+        layer0.LAYER_ID).extra else (), (i, terminals, passage)) for passage in passages
+            for i, terminals in enumerate(break2paragraphs(passage, return_terminals=True)))
 
 
-def set_annotations(annotated, lang, verbose):
-    for doc, (terminals, passage) in annotated:
-        if doc:
-            for terminal, values in zip(terminals, doc.to_array(ATTRS)):
-                for attr, value in zip(ATTRS, values):
-                    terminal.extra[NAMES[attr]] = np.int64(value) if attr in NUM_ATTRS else value
+def set_docs(annotated, as_array, lang, verbose):
+    for doc, (i, terminals, passage) in annotated:
+        if doc:  # Not empty, so copy values
+            from spacy import attrs
+            arr = doc.to_array([getattr(attrs, a.name) for a in Attr])
+            if as_array:
+                docs = passage.layer(layer0.LAYER_ID).extra.setdefault("doc", [[]])
+                while len(docs) < i + 1:
+                    docs.append([])
+                docs[i] = [[a(v) for a, v in zip(Attr, values)] for values in arr]
+            else:
+                vocab = get_nlp(lang).vocab
+                for terminal, values in zip(terminals, arr):
+                    for attr, value in zip(Attr, values):
+                        terminal.extra[attr.name.lower()] = attr(value, vocab)
         if verbose:
-            extra = [["text"] + [NAMES[a] for a in ATTRS]] + \
-                    [[t.text] + [str(t.extra[NAMES[a]]) if a in NUM_ATTRS else
-                                 get_nlp(lang).vocab[t.extra[NAMES[a]]].text for a in ATTRS] for t in terminals]
-            width = [max(len(f) for f in t) for t in extra]
-            for i in range(1 + len(ATTRS)):
-                print(" ".join("%-*s" % (w, f[i]) for f, w in zip(extra, width)))
+            data = [["text"] + [a.name.lower() for a in Attr]] + \
+                   [[t.text] + [str(a(t.tok[a.value], get_nlp(lang).vocab) if as_array else t.extra[a.name.lower()])
+                                for a in Attr] for j, t in enumerate(terminals)]
+            width = [max(len(f) for f in t) for t in data]
+            for j in range(1 + len(Attr)):
+                print(" ".join("%-*s" % (w, f[j]) for f, w in zip(data, width)))
             print()
         yield passage
 
