@@ -2,6 +2,7 @@
 import os
 import time
 from collections import OrderedDict
+from collections import deque
 from enum import Enum
 from itertools import groupby
 from operator import attrgetter
@@ -143,7 +144,8 @@ def annotate_all(passages, replace=False, as_array=False, lang="en", verbose=Fal
     for passage_lang, passages_by_lang in groupby(passages, get_lang):
         for need_annotation, stream in groupby(to_annotate(passages_by_lang, replace, as_array), lambda x: bool(x[0])):
             annotated = get_nlp(passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
-            yield from (passage for passage, _ in groupby(set_docs(annotated, as_array, passage_lang or lang, verbose)))
+            annotated = set_docs(annotated, as_array, passage_lang or lang, verbose)
+            yield from (deque(passages, maxlen=1).pop() for passage, passages in groupby(annotated))  # get last one
 
 
 def get_lang(passage):
@@ -151,9 +153,17 @@ def get_lang(passage):
 
 
 def to_annotate(passages, replace, as_array):
-    return (([t.text for t in terminals] if replace or not as_array or "doc" not in passage.layer(
-        layer0.LAYER_ID).extra else (), (i, terminals, passage)) for passage in passages
+    return (([t.text for t in terminals] if replace or not is_annotated(passage, as_array) else (),
+             (i, terminals, passage)) for passage in passages
             for i, terminals in enumerate(break2paragraphs(passage, return_terminals=True)))
+
+
+def is_annotated(passage, as_array):
+    l0 = passage.layer(layer0.LAYER_ID)
+    if as_array:
+        docs = l0.extra.get("doc")
+        return docs is not None and len(docs) == max(t.paragraph for t in l0.all)
+    return all(a.key in t.extra for t in l0.all for a in Attr)
 
 
 def set_docs(annotated, as_array, lang, verbose):

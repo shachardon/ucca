@@ -6,6 +6,7 @@ import unittest
 import xml.etree.ElementTree as ETree
 
 from ucca import core, layer0, layer1, convert, textutil, ioutil, diffutil
+from ucca.textutil import is_annotated
 
 
 class CoreTests(unittest.TestCase):
@@ -716,16 +717,33 @@ class UtilTests(unittest.TestCase):
     def test_annotate_passage(self):
         passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
         textutil.annotate(passage)
-        for terminal in passage.layer(layer0.LAYER_ID).all:
-            for attr in textutil.Attr:
-                self.assertTrue(attr.key in terminal.extra, "Terminal %s has no %s" % (terminal, attr))
-
-    def test_annotate_passage_as_array(self):
-        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
         textutil.annotate(passage, as_array=True)
-        for terminal in passage.layer(layer0.LAYER_ID).all:
-            self.assertTrue(terminal.tok, "Terminal %s has no annotation" % terminal)
-            self.assertEqual(len(terminal.tok), len(textutil.Attr))
+        for p in passage, convert.from_standard(convert.to_standard(passage)):
+            self.assertTrue(is_annotated(p, as_array=True), "Passage %s is not annotated" % passage.ID)
+            self.assertTrue(is_annotated(p, as_array=False), "Passage %s is not annotated" % passage.ID)
+            for terminal in p.layer(layer0.LAYER_ID).all:
+                for attr in textutil.Attr:
+                    self.assertIn(attr.key, terminal.extra, "Terminal %s has no %s" % (terminal, attr.name))
+                self.assertIsNotNone(terminal.tok, "Terminal %s has no annotation" % terminal)
+                self.assertEqual(len(terminal.tok), len(textutil.Attr))
+
+    def test_annotate_all(self):
+        passages = [convert.from_standard(TestUtil.load_xml("test_files/standard3.xml")),
+                    TestUtil.create_passage(), TestUtil.create_crossing_passage(),
+                    TestUtil.create_discontiguous(), TestUtil.create_multi_passage()]
+        list(textutil.annotate_all(passages))
+        list(textutil.annotate_all(passages, as_array=True))
+        for passage in passages:
+            for p in passage, convert.from_standard(convert.to_standard(passage)):
+                self.assertTrue(is_annotated(p, as_array=True), "Passage %s is not annotated" % passage.ID)
+                self.assertTrue(is_annotated(p, as_array=False), "Passage %s is not annotated" % passage.ID)
+                for terminal in p.layer(layer0.LAYER_ID).all:
+                    for attr in textutil.Attr:
+                        self.assertIn(attr.key, terminal.extra, "Terminal %s in passage %s has no %s" % (
+                            terminal, passage.ID, attr.name))
+                    self.assertIsNotNone(terminal.tok, "Terminal %s in passage %s has no annotation" % (
+                        terminal, passage.ID))
+                    self.assertEqual(len(terminal.tok), len(textutil.Attr))
 
 
 class TestUtil:
