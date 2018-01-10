@@ -11,7 +11,7 @@ desc = """Parses files in UCCA standard format, and writes a text file with a li
 
 def numeric(x):
     try:
-        return int(next(re.finditer("\d+", x)).group(0))
+        return tuple(map(int, re.findall("\d+", x)))
     except ValueError:
         return x
 
