@@ -17,13 +17,14 @@ DEFAULT_MODEL = {"en": "en_core_web_md", "fr": "fr_core_news_md", "de": "de_core
 
 
 class Attr(Enum):
-    TAG = 0
-    POS = 1
-    ENT_TYPE = 2
-    ENT_IOB = 3
-    DEP = 4
-    HEAD = 5
-    LEMMA = 6
+    ORTH = 0
+    LEMMA = 1
+    TAG = 2
+    POS = 3
+    ENT_TYPE = 4
+    ENT_IOB = 5
+    DEP = 6
+    HEAD = 7
 
     def __call__(self, value, vocab=None):
         return int(np.int64(value)) if self in (Attr.ENT_IOB, Attr.HEAD) else vocab[value].text if vocab else int(value)
@@ -182,11 +183,11 @@ def set_docs(annotated, as_array, lang, verbose):
                     for attr, value in zip(Attr, values):
                         terminal.extra[attr.key] = attr(value, vocab)
         if verbose:
-            data = [["text"] + [a.key for a in Attr]] + \
-                   [[t.text] + [str(a(t.tok[a.value], get_nlp(lang).vocab) if as_array else t.extra[a.key])
-                                for a in Attr] for j, t in enumerate(terminals)]
+            data = [[a.key for a in Attr]] + \
+                   [[str(a(t.tok[a.value], get_nlp(lang).vocab) if as_array else t.extra[a.key])
+                     for a in Attr] for j, t in enumerate(terminals)]
             width = [max(len(f) for f in t) for t in data]
-            for j in range(1 + len(Attr)):
+            for j in range(len(Attr)):
                 print(" ".join("%-*s" % (w, f[j]) for f, w in zip(data, width)))
             print()
         yield passage
