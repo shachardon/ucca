@@ -25,6 +25,9 @@ class Attr(Enum):
     ENT_IOB = 5
     DEP = 6
     HEAD = 7
+    SHAPE = 8
+    PREFIX = 9
+    SUFFIX = 10
 
     def __call__(self, value, vocab=None):
         return int(np.int64(value)) if self in (Attr.ENT_IOB, Attr.HEAD) else vocab[value].text if vocab else int(value)
