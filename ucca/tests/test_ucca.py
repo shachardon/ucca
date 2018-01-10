@@ -720,6 +720,13 @@ class UtilTests(unittest.TestCase):
             for attr in textutil.Attr:
                 self.assertTrue(attr.key in terminal.extra, "Terminal %s has no %s" % (terminal, attr))
 
+    def test_annotate_passage_as_array(self):
+        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
+        textutil.annotate(passage, as_array=True)
+        for terminal in passage.layer(layer0.LAYER_ID).all:
+            self.assertTrue(terminal.tok, "Terminal %s has no annotation" % terminal)
+            self.assertEqual(len(terminal.tok), len(textutil.Attr))
+
 
 class TestUtil:
     """Utilities for tests."""
