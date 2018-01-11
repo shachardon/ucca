@@ -34,12 +34,15 @@ class Attr(Enum):
             return None
         if self in (Attr.ENT_IOB, Attr.HEAD):
             return int(np.int64(value))
-        if as_array:
-            if self in (Attr.ORTH, Attr.LEMMA):
-                if get_vocab(vocab, lang)[value].is_oov:
-                    return None
-            return int(value)
-        return get_vocab(vocab, lang)[value].text
+        try:
+            if as_array:
+                if self in (Attr.ORTH, Attr.LEMMA):
+                    if get_vocab(vocab, lang)[value].is_oov:
+                        return None
+                return int(value)
+            return get_vocab(vocab, lang)[value].text
+        except KeyError:
+            return None
     
     @property
     def key(self):
