@@ -1761,7 +1761,7 @@ def split_passage(passage, ends, remarks=False, ids=None):
         nodes = set()
         id_to_other = {}
         for terminal in l0.all[start:end]:
-            other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, terminal.paragraph)
+            other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, 1)
             _copy_attrib_and_extra(terminal, other_terminal, remarks)
             id_to_other[terminal.ID] = other_terminal
             level.update(terminal.parents)
