@@ -1763,6 +1763,7 @@ def split_passage(passage, ends, remarks=False, ids=None):
         for terminal in l0.all[start:end]:
             other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, 1)
             _copy_attrib_and_extra(terminal, other_terminal, remarks)
+            other_terminal.extra["orig_paragraph"] = terminal.paragraph
             id_to_other[terminal.ID] = other_terminal
             level.update(terminal.parents)
             nodes.add(terminal)
@@ -1793,10 +1794,16 @@ def join_passages(passages, passage_id=None, remarks=False):
     other_l0 = layer0.Layer0(root=other, attrib=l0.attrib.copy())
     layer1.Layer1(root=other, attrib=l1.attrib.copy())
     id_to_other = {}
+    paragraph = 0
     for passage in passages:
         l0 = passage.layer(layer0.LAYER_ID)
         for terminal in l0.all:
-            other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, terminal.paragraph)
+            if terminal.para_pos == 1:
+                paragraph += 1
+            orig_paragraph = terminal.extra.get("orig_paragraph")
+            if orig_paragraph is not None:
+                paragraph = orig_paragraph
+            other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, paragraph)
             _copy_attrib_and_extra(terminal, other_terminal, remarks)
             id_to_other[terminal.ID] = other_terminal
         _copy_l1_nodes(passage, other, id_to_other, remarks=remarks)

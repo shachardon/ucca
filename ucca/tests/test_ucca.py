@@ -637,10 +637,8 @@ class UtilTests(unittest.TestCase):
         self.assertSequenceEqual(terms[0], ["1", "2", "3", "."])
         self.assertSequenceEqual(terms[1], ["5", "6", "."])
         self.assertSequenceEqual(terms[2], ["8", ".", "10", "."])
-        self.assertTrue(all(t.paragraph == 1 for s in split[0:2]
+        self.assertTrue(all(t.paragraph == 1 for s in split
                             for t in s.layer(layer0.LAYER_ID).all))
-        self.assertTrue(all(t.paragraph == 2
-                            for t in split[2].layer(layer0.LAYER_ID).all))
         top_scenes = [s.layer(layer1.LAYER_ID).top_scenes for s in split]
         for t in top_scenes:
             self.assertEqual(len(t), 1)
@@ -655,10 +653,8 @@ class UtilTests(unittest.TestCase):
         terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
         self.assertSequenceEqual(terms[0], ["1", "2", "3", ".", "5", "6", "."])
         self.assertSequenceEqual(terms[1], ["8", ".", "10", "."])
-        self.assertTrue(all(t.paragraph == 1
-                            for t in split[0].layer(layer0.LAYER_ID).all))
-        self.assertTrue(all(t.paragraph == 2
-                            for t in split[1].layer(layer0.LAYER_ID).all))
+        self.assertTrue(all(t.paragraph == 1 for s in split
+                            for t in s.layer(layer0.LAYER_ID).all))
         top_scenes = [s.layer(layer1.LAYER_ID).top_scenes for s in split]
         self.assertEqual(len(top_scenes[0]), 2)
         self.assertEqual(len(top_scenes[1]), 1)
