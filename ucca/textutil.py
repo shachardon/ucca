@@ -29,17 +29,17 @@ class Attr(Enum):
     PREFIX = 9
     SUFFIX = 10
 
-    def __call__(self, value, vocab, as_array=False):
+    def __call__(self, value, vocab=None, as_array=False, lang=None):
         if value is None:
             return None
         if self in (Attr.ENT_IOB, Attr.HEAD):
             return int(np.int64(value))
         if as_array:
             if self in (Attr.ORTH, Attr.LEMMA):
-                if vocab[value].is_oov:
+                if get_vocab(vocab, lang)[value].is_oov:
                     return None
             return int(value)
-        return vocab[value].text
+        return get_vocab(vocab, lang)[value].text
     
     @property
     def key(self):
@@ -76,6 +76,12 @@ tokenizer = {}
 def get_tokenizer(tokenized=False, lang="en"):
     instance = get_nlp(lang)
     return instance.tokenizer if tokenized else tokenizer[lang]
+
+
+def get_vocab(vocab=None, lang=None):
+    if vocab is not None:
+        return vocab
+    return (get_nlp(lang) if lang else get_nlp()).vocab
 
 
 def get_word_vectors(dim=None, size=None, filename=None, lang="en"):
