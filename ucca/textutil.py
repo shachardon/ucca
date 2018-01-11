@@ -29,8 +29,17 @@ class Attr(Enum):
     PREFIX = 9
     SUFFIX = 10
 
-    def __call__(self, value, vocab=None):
-        return int(np.int64(value)) if self in (Attr.ENT_IOB, Attr.HEAD) else vocab[value].text if vocab else int(value)
+    def __call__(self, value, vocab, as_array=False):
+        if value is None:
+            return None
+        if self in (Attr.ENT_IOB, Attr.HEAD):
+            return int(np.int64(value))
+        if as_array:
+            if self in (Attr.ORTH, Attr.LEMMA):
+                if vocab[value].is_oov:
+                    return None
+            return int(value)
+        return vocab[value].text
     
     @property
     def key(self):
@@ -175,13 +184,13 @@ def set_docs(annotated, as_array, lang, verbose):
         if doc:  # Not empty, so copy values
             from spacy import attrs
             arr = doc.to_array([getattr(attrs, a.name) for a in Attr])
+            vocab = get_nlp(lang).vocab
             if as_array:
                 docs = passage.layer(layer0.LAYER_ID).extra.setdefault("doc", [[]])
                 while len(docs) < i + 1:
                     docs.append([])
-                docs[i] = [[a(v) for a, v in zip(Attr, values)] for values in arr]
+                docs[i] = [[a(v, vocab, as_array=True) for a, v in zip(Attr, values)] for values in arr]
             else:
-                vocab = get_nlp(lang).vocab
                 for terminal, values in zip(terminals, arr):
                     for attr, value in zip(Attr, values):
                         terminal.extra[attr.key] = attr(value, vocab)
