@@ -1,10 +1,11 @@
 """Utility functions for UCCA package."""
 import os
+import sys
 import time
 from collections import OrderedDict
 from collections import deque
 from enum import Enum
-from itertools import groupby
+from itertools import groupby, islice
 from operator import attrgetter
 
 import numpy as np
@@ -87,34 +88,42 @@ def get_vocab(vocab=None, lang=None):
     return (get_nlp(lang) if lang else get_nlp()).vocab
 
 
-def get_word_vectors(dim=None, size=None, filename=None, lang="en"):
+def get_word_vectors(dim=None, size=None, filename=None, as_array=False, lang="en"):
+    """
+    Get word vectors from spaCy model or from text file
+    :param dim: dimension to trim vectors to (default: keep original)
+    :param size: maximum number of vectors to load (default: all)
+    :param filename: text file to load vectors from (default: from spaCy)
+    :param as_array: instead of strings, keys of returned dict will be spaCy integer IDs (default: strings)
+    :param lang: language to use spaCy model for (default: English)
+    :return: tuple of (dict of word [string or integer] -> vector [NumPy array], dimension)
+    """
     vocab = get_nlp(lang).vocab
-    if filename is not None:
-        print("Loading word vectors from '%s'..." % filename)
+    if filename:
         it = read_word_vectors(dim, size, filename)
         nr_row, nr_dim = next(it)
-        i = 0
-        if nr_row is None:
-            vocab.reset_vectors(width=nr_dim)
-        else:
-            vocab.reset_vectors(shape=(nr_row, nr_dim))
-        for word, vector in tqdm(it, total=nr_row, unit=" vectors", leave=False, mininterval=3):
-            vocab_word = vocab[word]
-            if not vocab_word.has_vector:
-                vocab.set_vector(vocab_word.orth, np.asarray(vector[:nr_dim], dtype="f"))
-                if vocab_word.has_vector:
-                    i += 1
-                    if nr_row and i >= nr_row:
-                        break
-    # elif dim is not None:  # Disabled due to explosion/spaCy#1518
-    #     nr_row, nr_dim = vocab.vectors.shape
-    #     if dim < nr_dim:
-    #         vocab.vectors.resize(shape=(int(size or nr_row), int(dim)))
-    lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
-    return OrderedDict((l.orth_, l.vector) for l in lexemes), vocab.vectors_length
+        vectors = OrderedDict(islice(tqdm(((vocab[w].orth if as_array else w, v) for w, v in it
+                                           if not (as_array and vocab[w].is_oov)),
+                                          desc="Loading '%s'" % filename, postfix=dict(dim=nr_dim),
+                                          file=sys.stdout, total=nr_row, unit=" vectors"), nr_row))
+    else:  # return spaCy vectors
+        nr_row, nr_dim = vocab.vectors.shape
+        # if dim is not None:  # Disabled due to explosion/spaCy#1518
+        #     if dim < nr_dim:
+        #         vocab.vectors.resize(shape=(int(size or nr_row), int(dim)))
+        lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
+        vectors = OrderedDict((l.orth if as_array else l.orth_, l.vector) for l in lexemes)
+    return vectors, nr_dim
 
 
 def read_word_vectors(dim, size, filename):
+    """
+    Read word vectors from text file, with an optional first row indicating size and dimension
+    :param dim: dimension to trim vectors to
+    :param size: maximum number of vectors to load
+    :param filename: text file to load vectors from
+    :return: generator: first element is (#vectors, #dims); and all the rest are (word [string], vector [NumPy array])
+    """
     try:
         first_line = True
         nr_row = nr_dim = None
