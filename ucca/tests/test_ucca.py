@@ -728,8 +728,8 @@ class UtilTests(unittest.TestCase):
                     TestUtil.create_passage(), TestUtil.create_crossing_passage(),
                     TestUtil.create_discontiguous(), TestUtil.create_multi_passage()]
         list(textutil.annotate_all(passages))
-        list(textutil.annotate_all(passages, as_array=True))
-        for passage in passages:
+        for passage, compare in textutil.annotate_all(((p, p) for p in passages), as_array=True, as_tuples=True):
+            assert passage is compare
             for p in passage, convert.from_standard(convert.to_standard(passage)):
                 self.assertTrue(is_annotated(p, as_array=True), "Passage %s is not annotated" % passage.ID)
                 self.assertTrue(is_annotated(p, as_array=False), "Passage %s is not annotated" % passage.ID)

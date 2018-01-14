@@ -6,7 +6,7 @@ from collections import OrderedDict
 from collections import deque
 from enum import Enum
 from itertools import groupby, islice
-from operator import attrgetter
+from operator import attrgetter, itemgetter
 
 import numpy as np
 from tqdm import tqdm
@@ -162,30 +162,34 @@ def annotate(passage, replace=False, as_array=False, lang="en", verbose=False):
     list(annotate_all([passage], verbose=verbose, replace=replace, as_array=as_array, lang=lang))
 
 
-def annotate_all(passages, replace=False, as_array=False, lang="en", verbose=False):
+def annotate_all(passages, replace=False, as_array=False, as_tuples=False, lang="en", verbose=False):
     """
     Run spaCy pipeline on the given passages, unless already annotated
     :param passages: iterable of Passage objects, whose layer 0 nodes will be added entries in the `extra' dict
     :param replace: even if a given passage is already annotated, replace with new annotation
     :param as_array: instead of adding `extra' entries to each terminal, set layer 0 extra["doc"] to array of ids
+    :param as_tuples: treat input as tuples of (passage text, context), and return context for each passage as-is
     :param lang: optional two-letter language code, will be overridden if passage has "lang" attrib
     :param verbose: whether to print annotated text
     :return generator of annotated passages, which are actually modified in-place (same objects as input)
     """
+    if not as_tuples:
+        passages = ((p,) for p in passages)
     for passage_lang, passages_by_lang in groupby(passages, get_lang):
         for need_annotation, stream in groupby(to_annotate(passages_by_lang, replace, as_array), lambda x: bool(x[0])):
             annotated = get_nlp(passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
             annotated = set_docs(annotated, as_array, passage_lang or lang, verbose)
-            yield from (deque(passages, maxlen=1).pop() for passage, passages in groupby(annotated))  # get last one
+            for passage, passages in groupby(annotated, itemgetter(0)):
+                yield deque(passages, maxlen=1).pop() if as_tuples else passage
 
 
-def get_lang(passage):
-    return passage.attrib.get("lang")
+def get_lang(passage_context):
+    return passage_context[0].attrib.get("lang")
 
 
-def to_annotate(passages, replace, as_array):
+def to_annotate(passage_contexts, replace, as_array):
     return (([t.text for t in terminals] if replace or not is_annotated(passage, as_array) else (),
-             (i, terminals, passage)) for passage in passages
+             (i, terminals, passage) + tuple(context)) for passage, *context in passage_contexts
             for i, terminals in enumerate(break2paragraphs(passage, return_terminals=True)))
 
 
@@ -198,7 +202,7 @@ def is_annotated(passage, as_array):
 
 
 def set_docs(annotated, as_array, lang, verbose):
-    for doc, (i, terminals, passage) in annotated:
+    for doc, (i, terminals, passage, *context) in annotated:
         if doc:  # Not empty, so copy values
             from spacy import attrs
             arr = doc.to_array([getattr(attrs, a.name) for a in Attr])
@@ -223,7 +227,7 @@ def set_docs(annotated, as_array, lang, verbose):
                 except UnicodeEncodeError:
                     pass
             print()
-        yield passage
+        yield (passage,) + tuple(context)
 
 
 SENTENCE_END_MARKS = ('.', '?', '!')
