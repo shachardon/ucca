@@ -218,7 +218,10 @@ def set_docs(annotated, as_array, lang, verbose):
                      for a in Attr] for j, t in enumerate(terminals)]
             width = [max(len(f) for f in t) for t in data]
             for j in range(len(Attr)):
-                print(" ".join("%-*s" % (w, f[j]) for f, w in zip(data, width)))
+                try:
+                    print(" ".join("%-*s" % (w, f[j]) for f, w in zip(data, width)))
+                except UnicodeEncodeError:
+                    pass
             print()
         yield passage
 
