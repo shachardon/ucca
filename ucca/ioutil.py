@@ -5,6 +5,8 @@ import time
 from collections import defaultdict
 from xml.etree.ElementTree import ParseError
 
+from tqdm import tqdm
+
 from ucca.convert import file2passage, passage2file, from_text, to_text, split2segments
 from ucca.core import Passage
 
@@ -48,10 +50,11 @@ class LazyLoadedPassages(object):
             else:  # A file
                 attempts = 3
                 while not os.path.exists(file):
-                    if attempts == 0:
-                        print("File not found: %s" % file, file=sys.stderr)
-                        return next(self)
-                    print("Failed reading %s, trying %d more times..." % (file, attempts), file=sys.stderr)
+                    with tqdm.external_write_mode(file=sys.stderr):
+                        if attempts == 0:
+                            print("File not found: %s" % file, file=sys.stderr)
+                            return next(self)
+                        print("Failed reading %s, trying %d more times..." % (file, attempts), file=sys.stderr)
                     time.sleep(5)
                     attempts -= 1
                 try:
@@ -114,7 +117,8 @@ def write_passage(passage, output_format=None, binary=False, outdir=".", prefix=
     suffix = output_format if output_format and output_format != "ucca" else ("pickle" if binary else "xml")
     outfile = outdir + os.path.sep + prefix + passage.ID + "." + suffix
     if verbose:
-        print("Writing passage '%s'..." % outfile)
+        with tqdm.external_write_mode():
+            print("Writing passage '%s'..." % outfile)
     if output_format is None or output_format in ("ucca", "pickle", "xml"):
         passage2file(passage, outfile, binary=binary)
     else:
