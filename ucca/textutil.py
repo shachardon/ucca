@@ -57,19 +57,20 @@ def get_nlp(lang="en"):
         model_name = os.environ.get("_".join((MODEL_ENV_VAR, lang.upper()))) or os.environ.get(MODEL_ENV_VAR) or \
             DEFAULT_MODEL.get(lang, "xx")
         started = time.time()
-        print("Loading spaCy model '%s'... " % model_name, end="", flush=True)
-        try:
-            nlp[lang] = instance = spacy.load(model_name)
-        except OSError:
-            spacy.cli.download(None, model_name)
+        with tqdm.external_write_mode():
+            print("Loading spaCy model '%s'... " % model_name, end="", flush=True)
             try:
                 nlp[lang] = instance = spacy.load(model_name)
-            except OSError as e:
-                raise OSError("Failed to get spaCy model. Download it manually using "
-                              "`python -m spacy download %s`." % model_name) from e
-        tokenizer[lang] = instance.tokenizer
-        instance.tokenizer = lambda words: spacy.tokens.Doc(instance.vocab, words=words)
-        print("Done (%.3fs)." % (time.time() - started))
+            except OSError:
+                spacy.cli.download(None, model_name)
+                try:
+                    nlp[lang] = instance = spacy.load(model_name)
+                except OSError as e:
+                    raise OSError("Failed to get spaCy model. Download it manually using "
+                                  "`python -m spacy download %s`." % model_name) from e
+            tokenizer[lang] = instance.tokenizer
+            instance.tokenizer = lambda words: spacy.tokens.Doc(instance.vocab, words=words)
+            print("Done (%.3fs)." % (time.time() - started))
     return instance
 
 
