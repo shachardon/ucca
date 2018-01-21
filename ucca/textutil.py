@@ -38,8 +38,9 @@ class Attr(Enum):
         try:
             if as_array:
                 if self in (Attr.ORTH, Attr.LEMMA):
-                    vocab = get_vocab(vocab, lang)
-                    if value not in vocab or vocab[value].is_oov:
+                    try:
+                        get_vocab(vocab, lang).strings[value]
+                    except KeyError:
                         return None
                 return int(value)
             return get_vocab(vocab, lang)[value].text
