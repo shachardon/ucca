@@ -38,7 +38,8 @@ class Attr(Enum):
         try:
             if as_array:
                 if self in (Attr.ORTH, Attr.LEMMA):
-                    if get_vocab(vocab, lang)[value].is_oov:
+                    vocab = get_vocab(vocab, lang)
+                    if value not in vocab or vocab[value].is_oov:
                         return None
                 return int(value)
             return get_vocab(vocab, lang)[value].text
@@ -104,7 +105,7 @@ def get_word_vectors(dim=None, size=None, filename=None, as_array=False, lang="e
         it = read_word_vectors(dim, size, filename)
         nr_row, nr_dim = next(it)
         vectors = OrderedDict(islice(tqdm(((vocab[w].orth if as_array else w, v) for w, v in it
-                                           if not (as_array and vocab[w].is_oov)),
+                                           if not as_array or w in vocab),
                                           desc="Loading '%s'" % filename, postfix=dict(dim=nr_dim),
                                           file=sys.stdout, total=nr_row, unit=" vectors"), nr_row))
     else:  # return spaCy vectors
