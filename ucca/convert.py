@@ -990,6 +990,10 @@ class DependencyConverter(FormatConverter):
             self.remote = remote
             self.head = None
             self.dependent = None
+
+        @classmethod
+        def create(cls, head_position, rel):
+            return cls(int(head_position), rel.rstrip("*"), rel.endswith("*"))
     
         def link_head(self, heads):
             self.head = heads[self.head_index]
@@ -1342,13 +1346,19 @@ class ConllConverter(DependencyConverter):
 
     def read_line(self, line, previous_node):
         fields = self.split_line(line)
-        # id, form, lemma, coarse pos, fine pos, features, head, relation
-        position, text, _, tag, _, _, head_position, rel = fields[:8]
+        # id, form, lemma, coarse pos, fine pos, features, head, relation, [enhanced]
+        position, text, _, tag, _, _, head_position, rel, *enhanced = fields[:9]
         if "." in position:
             return None
         edges = []
         if head_position and head_position != "_":
-            edges.append(DependencyConverter.Edge(int(head_position), rel.rstrip("*"), rel.endswith("*")))
+            edges.append(DependencyConverter.Edge.create(head_position, rel))
+        for enhanced_str in enhanced:
+            if enhanced_str and enhanced_str != "_":
+                for enhanced_spec in enhanced_str.split("|"):
+                    enhanced_head_position, _, enhanced_rel = enhanced_spec.partition(":")
+                    if enhanced_head_position != head_position:
+                        edges.append(DependencyConverter.Edge(int(enhanced_head_position), enhanced_rel, remote=True))
         positions = list(map(int, position.split("-")))
         if not edges or previous_node is None or previous_node.position != positions[0]:
             is_multi_word = len(positions) > 1
@@ -1391,7 +1401,7 @@ class SdpConverter(DependencyConverter):
         position, text, _, tag, top, pred, _ = fields[:7]
         # incoming: (head positions, dependency relations, is remote for each one)
         return DependencyConverter.Node(
-            int(position), [DependencyConverter.Edge(i + 1, rel.rstrip("*"), rel.endswith("*"))
+            int(position), [DependencyConverter.Edge.create(i + 1, rel)
                             for i, rel in enumerate(fields[7:]) if rel != "_"] or self.edges_for_orphan(top == "+"),
             token=DependencyConverter.Token(text, tag), is_head=(pred == "+"), is_top=(top == "+"))
 
