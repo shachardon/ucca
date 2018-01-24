@@ -1357,7 +1357,8 @@ class ConllConverter(DependencyConverter):
             if enhanced_str and enhanced_str != "_":
                 for enhanced_spec in enhanced_str.split("|"):
                     enhanced_head_position, _, enhanced_rel = enhanced_spec.partition(":")
-                    if enhanced_head_position != head_position:
+                    enhanced_head_position = re.sub(r"\..*", "", enhanced_head_position)
+                    if enhanced_head_position not in (position, head_position):
                         edges.append(DependencyConverter.Edge(int(enhanced_head_position), enhanced_rel, remote=True))
         positions = list(map(int, position.split("-")))
         if not edges or previous_node is None or previous_node.position != positions[0]:
