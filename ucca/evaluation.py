@@ -180,15 +180,15 @@ class Evaluator(object):
 
 
 class Scores(object):
-    def __init__(self, evaluator_results):
+    def __init__(self, evaluator_results, name=None, evaluation_format=None):
         """
         :param evaluator_results: dict: eval_type -> EvaluatorResults
+        :param name: if not UCCA, name of evaluated format
+        :param evaluation_format: if not ucca, lowercase string representation of evaluated format
         """
         self.evaluators = dict(evaluator_results)
-
-    @staticmethod
-    def name():
-        return "UCCA"
+        self.name = name or "UCCA"
+        self.format = evaluation_format or "ucca"
 
     def average_f1(self, mode=LABELED):
         """
@@ -205,8 +205,14 @@ class Scores(object):
         :param scores: iterable of Scores
         :return: new Scores with aggregated scores
         """
+        scores = list(scores)
         evaluators = [s.evaluators for s in scores]
-        return Scores((t, EvaluatorResults.aggregate(filter(None, (e.get(t) for e in evaluators)))) for t in EVAL_TYPES)
+        names = list(set(s.name for s in scores))
+        formats = list(set(s.format for s in scores))
+        return Scores(((t, EvaluatorResults.aggregate(filter(None, (e.get(t) for e in evaluators))))
+                       for t in EVAL_TYPES),
+                      name=names[0] if len(names) == 1 else None,
+                      evaluation_format=formats[0] if len(formats) == 1 else None)
 
     def print(self, **kwargs):
         for eval_type in EVAL_TYPES:
