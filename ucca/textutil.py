@@ -64,7 +64,7 @@ def get_nlp(lang="en"):
             try:
                 nlp[lang] = instance = spacy.load(model_name)
             except OSError:
-                spacy.cli.download(None, model_name)
+                spacy.cli.download(model_name)
                 try:
                     nlp[lang] = instance = spacy.load(model_name)
                 except OSError as e:
