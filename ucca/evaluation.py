@@ -230,7 +230,7 @@ class Scores(object):
 
     @staticmethod
     def field_titles(constructions=DEFAULT):
-        return ["_".join((str(x),) if len(constructions) > 1 else () + ("labeled", y))
+        return ["_".join(((str(x),) if len(constructions) > 1 else ()) + ("labeled", y))
                 for x in constructions for y in ("precision", "recall", "f1")]
 
 
