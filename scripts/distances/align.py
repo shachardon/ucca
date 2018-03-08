@@ -7,8 +7,8 @@ import numpy as np
 import zss
 from munkres import Munkres
 
-import evaluation
-from textutil import break2sentences, extract_terminals
+from ucca.textutil import break2sentences, extract_terminals
+from ucca import evaluation
 from ucca import layer0, layer1
 
 
