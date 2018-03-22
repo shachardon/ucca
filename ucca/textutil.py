@@ -103,22 +103,23 @@ def get_word_vectors(dim=None, size=None, filename=None, vocab=None):
     :param vocab: instead of strings, look up keys of returned dict in vocab (use lang str, e.g. "en", for spaCy vocab)
     :return: tuple of (dict of word [string or integer] -> vector [NumPy array], dimension)
     """
-    if isinstance(vocab, str):
+    orig_keys = vocab is None
+    if isinstance(vocab, str) or not filename:
         vocab = get_nlp(vocab).vocab
 
     def _lookup(word):
         try:
-            return word.orth if vocab else word.orth_
+            return word.orth_ if orig_keys else word.orth
         except AttributeError:
-            if vocab:
-                lex = vocab[word]
-                return getattr(lex, "orth", lex)
-        return word
+            if orig_keys:
+                return word
+        lex = vocab[word]
+        return getattr(lex, "orth", lex)
 
     if filename:
         it = read_word_vectors(dim, size, filename)
         nr_row, nr_dim = next(it)
-        vectors = OrderedDict(islice(tqdm(((_lookup(w), v) for w, v in it if not vocab or w in vocab),
+        vectors = OrderedDict(islice(tqdm(((_lookup(w), v) for w, v in it if orig_keys or w in vocab),
                                           desc="Loading '%s'" % filename, postfix=dict(dim=nr_dim),
                                           file=sys.stdout, total=nr_row, unit=" vectors"), nr_row))
     else:  # return spaCy vectors
