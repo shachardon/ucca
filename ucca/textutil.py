@@ -94,22 +94,31 @@ def get_vocab(vocab=None, lang=None):
     return (get_nlp(lang) if lang else get_nlp()).vocab
 
 
-def get_word_vectors(dim=None, size=None, filename=None, as_array=False, lang="en"):
+def get_word_vectors(dim=None, size=None, filename=None, vocab=None):
     """
     Get word vectors from spaCy model or from text file
     :param dim: dimension to trim vectors to (default: keep original)
     :param size: maximum number of vectors to load (default: all)
-    :param filename: text file to load vectors from (default: from spaCy)
-    :param as_array: instead of strings, keys of returned dict will be spaCy integer IDs (default: strings)
-    :param lang: language to use spaCy model for (default: English)
+    :param filename: text file to load vectors from (default: from spaCy model)
+    :param vocab: instead of strings, look up keys of returned dict in vocab (use lang str, e.g. "en", for spaCy vocab)
     :return: tuple of (dict of word [string or integer] -> vector [NumPy array], dimension)
     """
-    vocab = get_nlp(lang).vocab
+    if isinstance(vocab, str):
+        vocab = get_nlp(vocab).vocab
+
+    def _lookup(word):
+        try:
+            return word.orth if vocab else word.orth_
+        except AttributeError:
+            if vocab:
+                lex = vocab[word]
+                return getattr(lex, "orth", lex)
+        return word
+
     if filename:
         it = read_word_vectors(dim, size, filename)
         nr_row, nr_dim = next(it)
-        vectors = OrderedDict(islice(tqdm(((vocab[w].orth if as_array else w, v) for w, v in it
-                                           if not as_array or w in vocab),
+        vectors = OrderedDict(islice(tqdm(((_lookup(w), v) for w, v in it if not vocab or w in vocab),
                                           desc="Loading '%s'" % filename, postfix=dict(dim=nr_dim),
                                           file=sys.stdout, total=nr_row, unit=" vectors"), nr_row))
     else:  # return spaCy vectors
@@ -118,7 +127,7 @@ def get_word_vectors(dim=None, size=None, filename=None, as_array=False, lang="e
         #     if dim < nr_dim:
         #         vocab.vectors.resize(shape=(int(size or nr_row), int(dim)))
         lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
-        vectors = OrderedDict((l.orth if as_array else l.orth_, l.vector) for l in lexemes)
+        vectors = OrderedDict((_lookup(l), l.vector) for l in lexemes)
     return vectors, nr_dim
 
 
