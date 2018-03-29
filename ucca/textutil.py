@@ -125,7 +125,8 @@ def get_word_vectors(dim=None, size=None, filename=None, vocab=None):
     else:  # return spaCy vectors
         nr_row, nr_dim = vocab.vectors.shape
         if dim is not None and dim < nr_dim:
-            vocab.vectors.resize(shape=(int(size or nr_row), int(dim)))
+            nr_dim = int(dim)
+            vocab.vectors.resize(shape=(int(size or nr_row), nr_dim))
         lexemes = sorted([l for l in vocab if l.has_vector], key=attrgetter("prob"), reverse=True)[:size]
         vectors = OrderedDict((_lookup(l), l.vector) for l in lexemes)
     return vectors, nr_dim
