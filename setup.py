@@ -24,7 +24,7 @@ except (IOError, ImportError, RuntimeError):
 
 setup(name="UCCA",
       version="1.0.53",
-      install_requires=["numpy", "spacy==2.0.10", "requests", "tqdm"],
+      install_requires=["numpy", "spacy==2.0.11", "requests", "tqdm"],
       extras_require={"visualize": ["matplotlib", "networkx"],
                       "distances": ["distances", "zss", "munkres"]},
       description="Universal Conceptual Cognitive Annotation",
