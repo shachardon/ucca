@@ -66,7 +66,10 @@ if __name__ == "__main__":
         else:
             print(end="\r")
             if not args.quiet:
-                summary.print()
+                if args.fscore:
+                    summary.print()
+                elif args.errors:
+                    summary.print_confusion_matrix()
         if not args.quiet:
             print("Average labeled F1 score: %.3f" % summary.average_f1())
     args_constructions = summary.evaluators

@@ -81,25 +81,6 @@ def get_yield(unit):
         return frozenset()
 
 
-def find_mutuals(m1, m2, eval_type):
-    mutual_tags = dict()
-    error_counter = Counter()
-    for y in m1.keys() & m2.keys():
-        if eval_type == UNLABELED:
-            mutual_tags[y] = ()
-        else:
-            tags1 = set(m1[y])
-            tags2 = set(m2[y])
-            if eval_type == WEAK_LABELED:
-                tags1 = expand_equivalents(tags1)
-            intersection = tags1 & tags2
-            if intersection:  # non-empty intersection
-                mutual_tags[y] = intersection
-            else:
-                error_counter[(str(sorted(tags1)), str(sorted(tags2)))] += 1
-    return mutual_tags, error_counter
-
-
 def print_tags_and_text(p, yield_tags):
     for y, tags in sorted(yield_tags.items(), key=lambda x: min(x[0])):
         text = " ".join(get_text(p, y))
@@ -130,6 +111,25 @@ class Evaluator(object):
         self.fscore = fscore
         self.errors = errors
 
+        self.mutual = defaultdict(dict)
+        self.error_counters = defaultdict(lambda: defaultdict(Counter))
+
+    def find_mutuals(self, m1, m2, eval_type, construction):
+        mutual_tags = self.mutual[construction]
+        for y in m1.keys() & m2.keys():
+            if eval_type == UNLABELED:
+                mutual_tags[y] = ()
+            else:
+                tags1 = set(m1[y])
+                tags2 = set(m2[y])
+                if eval_type == WEAK_LABELED:
+                    tags1 = expand_equivalents(tags1)
+                intersection = tags1 & tags2
+                if intersection:  # non-empty intersection
+                    mutual_tags[y] = intersection
+                elif self.errors:
+                    self.error_counters[eval_type][construction][(str(sorted(tags1)), str(sorted(tags2)))] += 1
+
     def get_scores(self, p1, p2, eval_type):
         """
         prints the relevant statistics and f-scores. eval_type can be 'unlabeled', 'labeled' or 'weak_labeled'.
@@ -144,37 +144,31 @@ class Evaluator(object):
         :returns EvaluatorResults object if self.fscore is True, otherwise None
         """
         maps = [defaultdict(dict), create_passage_yields(p2, self.constructions)]
-        mutual = defaultdict(dict)
-        error_counters = defaultdict(Counter)
         if p1 is not None:
             maps[0] = create_passage_yields(p1, self.constructions, reference=p2)
             for construction, yield_tags1 in maps[0].items():
                 yield_tags2 = maps[1][construction]
-                mutual[construction], error_counters[construction] = find_mutuals(yield_tags1, yield_tags2, eval_type)
+                self.find_mutuals(yield_tags1, yield_tags2, eval_type, construction)
 
         if self.verbose:
             print("Evaluation type: (" + eval_type + ")")
 
-        only = [{c: {y: tags for y, tags in yt.items() if y not in mutual[c]} for c, yt in m.items()} for m in maps]
+        only = [{c: {y: tags for y, tags in d.items() if y not in self.mutual[c]} for c, d in m.items()} for m in maps]
         if self.verbose and self.units and p1 is not None:
             print("==> Mutual Units:")
-            print_tags_and_text(p1, mutual[PRIMARY])
+            print_tags_and_text(p1, self.mutual[PRIMARY])
             print("==> Only in guessed:")
             print_tags_and_text(p1, only[0][PRIMARY])
             print("==> Only in reference:")
             print_tags_and_text(p2, only[1][PRIMARY])
 
-        res = None
-        if self.fscore:
-            res = EvaluatorResults((c, SummaryStatistics(len(mutual[c]), len(only[0][c]), len(only[1][c])))
-                                   for c in self.constructions)
-            if self.verbose:
+        res = EvaluatorResults((c, SummaryStatistics(len(self.mutual[c]), len(only[0][c]), len(only[1][c]),
+                                                     self.error_counters[eval_type][c])) for c in self.constructions)
+        if self.verbose:
+            if self.fscore:
                 res.print()
-
-        if self.verbose and self.errors and error_counters:
-            print("\nConfusion Matrix:\n")
-            for error, freq in error_counters[PRIMARY].most_common():
-                print(error[0], "\t", error[1], "\t", freq)
+            if self.errors and self.error_counters[eval_type]:
+                res.print_confusion_matrix()
 
         return res
 
@@ -221,6 +215,12 @@ class Scores(object):
                 print("Evaluation type: (" + eval_type + ")", **kwargs)
                 evaluator.print(**kwargs)
 
+    def print_confusion_matrix(self, **kwargs):
+        for eval_type in EVAL_TYPES:
+            evaluator = self.evaluators.get(eval_type)
+            if evaluator:
+                evaluator.print_confusion_matrix("Evaluation type: (" + eval_type + ")", **kwargs)
+
     def fields(self):
         e = self.evaluators[LABELED]
         return ["%.3f" % float(getattr(x, y)) for x in e.results.values() for y in ("p", "r", "f1")]
@@ -249,6 +249,15 @@ class EvaluatorResults(object):
                 print("\n%s:" % construction.description, **kwargs)
             stats.print(**kwargs)
         print(**kwargs)
+
+    def print_confusion_matrix(self, prefix=None):
+        primary = self.results.get(PRIMARY)
+        if primary and primary.errors:
+            print("\n%sConfusion Matrix:\n" % ("" if prefix is None else (prefix + ", ")))
+            l1 = max(len(e1) for e1, _ in primary.errors)
+            l2 = max(len(e2) for _, e2 in primary.errors)
+            for error, freq in primary.errors.most_common():
+                print("%-*s %-*s %d" % (l1, error[0], l2, error[1], freq))
 
     @classmethod
     def aggregate(cls, results):
@@ -280,7 +289,7 @@ class EvaluatorResults(object):
 
 
 class SummaryStatistics(object):
-    def __init__(self, num_matches, num_only_guessed, num_only_ref):
+    def __init__(self, num_matches, num_only_guessed, num_only_ref, errors=None):
         self.num_matches = num_matches
         self.num_only_guessed = num_only_guessed
         self.num_only_ref = num_only_ref
@@ -289,6 +298,7 @@ class SummaryStatistics(object):
         self.p = 1.0 if self.num_guessed == 0 else 1.0 * num_matches / self.num_guessed
         self.r = 1.0 if self.num_ref == 0 else 1.0 * num_matches / self.num_ref
         self.f1 = 0.0 if 0.0 in (self.p, self.r) else 2.0 * self.p * self.r / float(self.p + self.r)
+        self.errors = errors
 
     def print(self, **kwargs):
         print("Precision: {:.3} ({}/{})".format(self.p, self.num_matches, self.num_guessed), **kwargs)
@@ -302,7 +312,9 @@ class SummaryStatistics(object):
         :return: new SummaryStatistics with aggregated scores
         """
         return SummaryStatistics(*map(sum, [map(attrgetter(attr), stats)
-                                            for attr in ("num_matches", "num_only_guessed", "num_only_ref")]))
+                                            for attr in ("num_matches", "num_only_guessed", "num_only_ref")]),
+                                 Counter({k: sum(s.errors.get(k, 0) for s in stats)
+                                          for k in set.union(*[set(s.errors or ()) for s in stats])}))
 
 
 def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
