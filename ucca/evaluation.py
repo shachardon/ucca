@@ -120,15 +120,14 @@ class Evaluator(object):
             if eval_type == UNLABELED:
                 mutual_tags[y] = ()
             else:
-                tags1 = set(m1[y])
-                tags2 = set(m2[y])
+                tags = [set(m1[y]), set(m2[y])]
                 if eval_type == WEAK_LABELED:
-                    tags1 = expand_equivalents(tags1)
-                intersection = tags1 & tags2
+                    tags[0] = expand_equivalents(tags[0])
+                intersection = set.intersection(*tags)
                 if intersection:  # non-empty intersection
                     mutual_tags[y] = intersection
                 elif self.errors:
-                    self.error_counters[eval_type][construction][(str(sorted(tags1)), str(sorted(tags2)))] += 1
+                    self.error_counters[eval_type][construction][tuple("|".join(sorted(t)) for t in tags)] += 1
 
     def get_scores(self, p1, p2, eval_type):
         """
@@ -253,7 +252,7 @@ class EvaluatorResults(object):
     def print_confusion_matrix(self, prefix=None):
         primary = self.results.get(PRIMARY)
         if primary and primary.errors:
-            print("\n%sConfusion Matrix:\n" % ("" if prefix is None else (prefix + ", ")))
+            print("\n%sConfusion Matrix:" % ("" if prefix is None else (prefix + ", ")))
             l1 = max(len(e1) for e1, _ in primary.errors)
             l2 = max(len(e2) for _, e2 in primary.errors)
             for error, freq in primary.errors.most_common():
