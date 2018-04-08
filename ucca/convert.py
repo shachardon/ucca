@@ -1187,10 +1187,13 @@ class DependencyConverter(FormatConverter):
             if dep_node.token and not dep_node.terminal:  # not the root
                 dep_node.terminal = l0.add_terminal(
                     text=dep_node.token.text,
-                    punct=(dep_node.token.tag == layer0.NodeTags.Punct),
+                    punct=self.is_punct(dep_node),
                     paragraph=dep_node.token.paragraph)
                 if dep_node.parent_multi_word:  # part of a multi-word token (e.g. zum = zu + dem)
                     dep_node.terminal.attrib[self.MULTI_WORD_TEXT_ATTRIB] = dep_node.parent_multi_word.token.text
+
+    def is_punct(self, dep_node):
+        return dep_node.token.tag == layer0.NodeTags.Punct
 
     def link_pre_terminals(self, dep_nodes):
         for dep_node in dep_nodes:
