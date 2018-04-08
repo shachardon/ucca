@@ -82,7 +82,7 @@ def get_yield(unit):
 
 
 def print_tags_and_text(p, yield_tags):
-    for y, tags in sorted(yield_tags.items(), key=lambda x: min(x[0])):
+    for y, tags in sorted(yield_tags.items(), key=lambda x: min(x[0] or [0])):
         text = " ".join(get_text(p, y))
         print((",".join(sorted(filter(None, tags))) + ": " + text) if tags else text)
 
