@@ -1303,6 +1303,9 @@ class DependencyConverter(FormatConverter):
                        key=lambda e: (not e.remote, e.rel != EdgeTags.Linker))
             edge.remove()
 
+    def preprocess(self, dep_nodes):
+        self.break_cycles(dep_nodes)
+
     def is_top(self, unit):
         return False
 
@@ -1337,7 +1340,7 @@ class DependencyConverter(FormatConverter):
             dep_nodes.append(self.Node(terminal.position, incoming, terminal=terminal, is_top=self.is_top(terminal),
                                        token=self.Token(terminal.text, terminal.tag), parent_multi_word=multi_word))
         self._link_heads(dep_nodes)
-        self.break_cycles(dep_nodes)
+        self.preprocess(dep_nodes)
         lines += ["\t".join(map(str, entry)) for entry in self.generate_lines(passage.ID, dep_nodes, test, tree)] + \
                  [""]  # different for each subclass
         return lines
