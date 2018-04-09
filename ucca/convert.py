@@ -1860,6 +1860,7 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
                 if child.tag == layer1.NodeTags.Punctuation:
                     grandchild = child.children[0]
                     other_child = other_l1.add_punct(other_node, id_to_other[grandchild.ID])
+                    other_child.incoming[0].tag = edge.tag
                     other_grandchild = other_child.children[0]
                     _copy_attrib_and_extra(grandchild, other_grandchild, remarks)
                 else:
