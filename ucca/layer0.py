@@ -85,8 +85,8 @@ class Terminal(core.Node):
 
         :return a list of :class:layer0.Terminal objects
         """
-        del punct, args, kwargs
-        return [] if self.punct else [self]
+        del args, kwargs
+        return [] if self.punct and not punct else [self]
 
     def equals(self, other, *, ordered=False, **kwargs):
         """Equals if the Terminals are of the same Layer, tag, position & text.

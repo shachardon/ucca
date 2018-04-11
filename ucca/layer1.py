@@ -259,33 +259,18 @@ class FoundationalNode(core.Node):
         edge = self._fedge()
         return edge.tag if edge else None
 
-    def get_terminals(self, punct=True, remotes=False):
-        """Returns a list of all terminals under the span of this FNode.
-
+    def get_terminals(self, punct=True, remotes=False, visited=None):
+        """Returns a list of all terminals under the span of this FoundationalNode.
         :param punct: whether to include punctuation Terminals, defaults to True
-        :param remotes: whether to include Terminals from remote FNodes, defaults
-                to false
-
+        :param remotes: whether to include Terminals from remote FoundationalNodes, defaults to false
+        :param visited: used to detect cycles
         :return a list of :class:layer0.Terminal objects
-
         """
-        terms = []
-        for edge in list(self):
-            if edge.attrib.get('remote') and not remotes or \
-                                    edge.tag == EdgeTags.Punctuation and not punct:
-                continue
-            elif edge.tag == EdgeTags.Terminal:
-                if edge.child.layer.ID != layer0.LAYER_ID:
-                    raise ValueError("Non-terminal with incoming %s edge" % edge.tag)
-                terms.append(edge.child)
-            elif edge.tag == EdgeTags.Punctuation:
-                terms += edge.child.terminals
-            elif edge.child.layer.ID == layer0.LAYER_ID:
-                raise ValueError("Terminal with incoming %s edge" % edge.tag)
-            else:
-                terms += edge.child.get_terminals(punct, remotes)
-        terms.sort(key=operator.attrgetter('position'))
-        return terms
+        if visited is None:
+            visited = set()
+        return sorted([t for e in set(self) - visited if remotes or not e.attrib.get("remote")
+                       for t in e.child.get_terminals(punct, remotes, visited | set(self))],
+                      key=operator.attrgetter("position"))
 
     @property
     def start_position(self):
