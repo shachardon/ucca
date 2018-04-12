@@ -2,6 +2,9 @@ from ucca import layer0, layer1
 
 
 def validate(passage):
+    for node in passage.layer(layer0.LAYER_ID).all:
+        if not node.incoming:
+            yield "Orphan terminal (%s) '%s'" % (node.ID, node)
     stack = [list(passage.layer(layer1.LAYER_ID).heads)]
     for node in stack[-1]:
         if node.ID != "1.1" and node.tag != layer1.NodeTags.Linkage:
