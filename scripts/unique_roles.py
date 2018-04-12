@@ -14,7 +14,7 @@ def main(args):
     out = args.direction == "out"
     roles = set(tag for name, tag in layer1.EdgeTags.__dict__.items()
                 if isinstance(tag, str) and not name.startswith('__'))
-    for passage in get_passages_with_progress_bar(args.directory):
+    for passage in get_passages_with_progress_bar([args.directory]):
         for node in passage.layer(layer1.LAYER_ID).all:
             counts = Counter(edge.tag for edge in (node if out else node.incoming))
             roles.difference_update(tag for tag, count in counts.items() if count > 1)

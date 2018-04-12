@@ -106,7 +106,7 @@ def get_passages_with_progress_bar(filename_patterns, desc=None):
 
 
 def get_passages(filename_patterns):
-    for pattern in filename_patterns:
+    for pattern in [filename_patterns] if isinstance(filename_patterns, str) else filename_patterns:
         for filenames in glob(pattern) or [pattern]:
             for passage in read_files_and_dirs(filenames):
                 yield passage
