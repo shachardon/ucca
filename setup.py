@@ -23,7 +23,7 @@ except (IOError, ImportError, RuntimeError):
 
 
 setup(name="UCCA",
-      version="1.0.58",
+      version="1.0.59",
       install_requires=["numpy", "spacy==2.0.11", "requests", "tqdm"],
       extras_require={"visualize": ["matplotlib", "networkx"],
                       "distances": ["distances", "zss", "munkres"]},
