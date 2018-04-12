@@ -4,6 +4,7 @@ v1.2
 2016-12-25: move common Fs to root before evaluation
 2017-01-04: flatten centers, do not add 1 (for root) to mutual
 2017-01-16: fix bug in moving common Fs
+2018-04-12: exclude punctuation nodes regardless of edge tag
 """
 from collections import Counter, defaultdict, OrderedDict
 from operator import attrgetter
