@@ -53,6 +53,10 @@ class Candidate(object):
         return self.edge.child.attrib.get("implicit", False)
 
     @property
+    def excluded(self):
+        return self.edge.tag in EXCLUDED_EDGE_TAGS or self.edge.child.tag in EXCLUDED_NODE_TAGS
+
+    @property
     def pos(self):
         if self._pos is None:
             self._init_terminals()
@@ -82,10 +86,10 @@ class Candidate(object):
         return self._tokens
 
     def is_primary(self):
-        return not self.remote and not self.implicit and self.edge.tag not in EXCLUDED
+        return not self.remote and not self.implicit and not self.excluded
 
     def is_remote(self):
-        return self.remote and not self.implicit and self.edge.tag not in EXCLUDED
+        return self.remote and not self.implicit and not self.excluded
 
     def is_predicate(self):
         return self.edge.tag in {EdgeTags.Process, EdgeTags.State} and \
@@ -93,10 +97,15 @@ class Candidate(object):
             "to" not in self.tokens
 
 
-EXCLUDED = (EdgeTags.Punctuation,
-            EdgeTags.LinkArgument,
-            EdgeTags.LinkRelation,
-            EdgeTags.Terminal)
+EXCLUDED_EDGE_TAGS = (EdgeTags.Punctuation,
+                      EdgeTags.LinkArgument,
+                      EdgeTags.LinkRelation,
+                      EdgeTags.Terminal)
+
+EXCLUDED_NODE_TAGS = (NodeTags.Linkage,
+                      NodeTags.Punctuation,
+                      layer0.NodeTags.Word,
+                      layer0.NodeTags.Punct)
 
 
 CONSTRUCTIONS = (
