@@ -6,8 +6,9 @@ from ucca.validation import validate
 
 
 def main(args):
-    errors = {p.ID: list(validate(p)) for p in get_passages_with_progress_bar(args.filenames, desc="Validating")}
-    if any(errors.values()):
+    errors = ((p.ID, list(validate(p))) for p in get_passages_with_progress_bar(args.filenames, desc="Validating"))
+    errors = {k: v for k, v in errors if v}
+    if errors:
         id_len = max(map(len, errors))
         for passage_id, es in sorted(errors.items()):
             for i, e in enumerate(es):
