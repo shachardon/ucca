@@ -1,13 +1,12 @@
 #! /usr/bin/python3
 
-import psycopg2
 import argparse
 import pickle
-import sys
-from xml.etree.ElementTree import ElementTree, tostring, fromstring
+from xml.etree.ElementTree import ElementTree, fromstring
+
+import psycopg2
 
 import ucca.convert
-from ucca.textutil import indent_xml
 
 desc = """Parses an XML in UCCA site format.
 
@@ -40,17 +39,7 @@ def db2passage(handle, pid, user):
     return ucca.convert.from_site(fromstring(raw_xml))
 
 
-def main():
-    argparser = argparse.ArgumentParser(description=desc)
-    argparser.add_argument("filename", nargs="?", help="XML file name to convert")
-    argparser.add_argument("-o", "--outfile", help="output file for standard XML")
-    argparser.add_argument("-b", "--binary", help="output file for binary pickel")
-    argparser.add_argument("-d", "--db", help="DB file to get input from")
-    argparser.add_argument("--host", help="DB host server to get input from")
-    argparser.add_argument("-p", "--pid", type=int, help="PassageID to query DB")
-    argparser.add_argument("-u", "--user", help="Username to DB query")
-    args = argparser.parse_args()
-
+def main(args):
     # Checking for illegal combinations
     if args.db and args.filename:
         argparser.error("Only one source, XML or DB file, can be used")
@@ -80,8 +69,14 @@ def main():
         else:
             print(output)
 
-    sys.exit(0)
-
 
 if __name__ == "__main__":
-    main()
+    argparser = argparse.ArgumentParser(description=desc)
+    argparser.add_argument("filename", nargs="?", help="XML file name to convert")
+    argparser.add_argument("-o", "--outfile", help="output file for standard XML")
+    argparser.add_argument("-b", "--binary", help="output file for binary pickel")
+    argparser.add_argument("-d", "--db", help="DB file to get input from")
+    argparser.add_argument("--host", help="DB host server to get input from")
+    argparser.add_argument("-p", "--pid", type=int, help="PassageID to query DB")
+    argparser.add_argument("-u", "--user", help="Username to DB query")
+    main(argparser.parse_args())

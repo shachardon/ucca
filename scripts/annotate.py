@@ -1,27 +1,18 @@
 #!/usr/bin/env python3
 
 import argparse
-from glob import glob
 
-from tqdm import tqdm
-
-from ucca.ioutil import read_files_and_dirs, write_passage
+from ucca.ioutil import write_passage, get_passages_with_progress_bar
 from ucca.textutil import annotate_all, is_annotated
 
 desc = """Read UCCA standard format in XML or binary pickle, and write back with POS tags and dependency parse."""
 
 
 def main(args):
-    for pattern in args.filenames:
-        filenames = glob(pattern)
-        if not filenames:
-            raise IOError("Not found: " + pattern)
-        passages = read_files_and_dirs(filenames)
-        for passage in annotate_all(passages if args.verbose else
-                                    tqdm(passages, unit=" passages", desc="Annotating " + pattern),
-                                    replace=True, as_array=args.as_array, verbose=args.verbose):
-            assert is_annotated(passage, args.as_array), "Passage %s is not annotated" % passage.ID
-            write_passage(passage, outdir=args.out_dir, verbose=args.verbose)
+    for passage in annotate_all(get_passages_with_progress_bar(args.filenames, desc="Annotating"),
+                                replace=True, as_array=args.as_array, verbose=args.verbose):
+        assert is_annotated(passage, args.as_array), "Passage %s is not annotated" % passage.ID
+        write_passage(passage, outdir=args.out_dir, verbose=args.verbose)
 
 
 if __name__ == '__main__':

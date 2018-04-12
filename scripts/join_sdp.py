@@ -9,18 +9,7 @@ desc = """Combines several SDP parsed files to one.
 """
 
 
-def main():
-    argparser = argparse.ArgumentParser(description=desc)
-    argparser.add_argument("filenames", nargs="+",
-                           help="SDP file names to join")
-    argparser.add_argument("-o", "--outfile",
-                           help="output filename (standard output if unspecified)")
-    argparser.add_argument("-H", "--header", default="SDP 2015",
-                           help="first line in the file, not including prefix")
-    argparser.add_argument("-p", "--prefix", default="#",
-                           help="prefix for comment lines")
-    args = argparser.parse_args()
-
+def main(args):
     lines = [args.prefix + args.header + "\n"]
     for pattern in args.filenames:
         filenames = sorted(glob.glob(pattern))
@@ -36,8 +25,15 @@ def main():
         if args.outfile is not None:
             f.close()
 
-    sys.exit(0)
-
 
 if __name__ == '__main__':
-    main()
+    argparser = argparse.ArgumentParser(description=desc)
+    argparser.add_argument("filenames", nargs="+",
+                           help="SDP file names to join")
+    argparser.add_argument("-o", "--outfile",
+                           help="output filename (standard output if unspecified)")
+    argparser.add_argument("-H", "--header", default="SDP 2015",
+                           help="first line in the file, not including prefix")
+    argparser.add_argument("-p", "--prefix", default="#",
+                           help="prefix for comment lines")
+    main(argparser.parse_args())

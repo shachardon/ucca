@@ -1,11 +1,10 @@
 #! /usr/bin/python3
 
 import argparse
+import os
 import pickle
 import sqlite3
-import sys
 from xml.etree.ElementTree import ElementTree, tostring, fromstring
-import os
 
 import ucca.convert
 from ucca.textutil import indent_xml
@@ -43,27 +42,7 @@ def outfile(source, target, suffix):
     return os.path.join(target, os.path.splitext(source)[0] + suffix) if os.path.isdir(target) else target
 
 
-def main():
-    argparser = argparse.ArgumentParser(description=desc)
-    argparser.add_argument("filenames", nargs="*", help="XML file name to convert")
-    argparser.add_argument("-o", "--outfile", help="output file for standard XML")
-    argparser.add_argument("-b", "--binary", help="output file for binary pickle")
-    argparser.add_argument("-d", "--db", help="DB file to get input from")
-    argparser.add_argument("-p", "--pids", nargs="*", type=int, help="PassageIDs to query DB")
-    argparser.add_argument("-u", "--user", help="Username to DB query")
-    args = argparser.parse_args()
-
-    # Checking for illegal combinations
-    if args.db and args.filenames:
-        argparser.error("Only one source, XML or DB file, can be used")
-    if (not args.db) and (not args.filenames):
-        argparser.error("Must specify one source, XML or DB file")
-    if args.db and not (args.pids and args.user):
-        argparser.error("Must specify a username and a passage ID when " +
-                     "using DB file option")
-    if (args.pids or args.user) and not args.db:
-        argparser.error("Cannot use user and passage ID options without DB file")
-
+def main(args):
     if args.filenames:
         passages = ((filename, site2passage(filename)) for filename in args.filenames)
     else:
@@ -84,8 +63,26 @@ def main():
             else:
                 print(output)
 
-    sys.exit(0)
+
+def check_illegal_combinations(args):
+    if args.db and args.filenames:
+        argparser.error("Only one source, XML or DB file, can be used")
+    if (not args.db) and (not args.filenames):
+        argparser.error("Must specify one source, XML or DB file")
+    if args.db and not (args.pids and args.user):
+        argparser.error("Must specify a username and a passage ID when " +
+                        "using DB file option")
+    if (args.pids or args.user) and not args.db:
+        argparser.error("Cannot use user and passage ID options without DB file")
+    return args
 
 
 if __name__ == "__main__":
-    main()
+    argparser = argparse.ArgumentParser(description=desc)
+    argparser.add_argument("filenames", nargs="*", help="XML file name to convert")
+    argparser.add_argument("-o", "--outfile", help="output file for standard XML")
+    argparser.add_argument("-b", "--binary", help="output file for binary pickle")
+    argparser.add_argument("-d", "--db", help="DB file to get input from")
+    argparser.add_argument("-p", "--pids", nargs="*", type=int, help="PassageIDs to query DB")
+    argparser.add_argument("-u", "--user", help="Username to DB query")
+    main(check_illegal_combinations(argparser.parse_args()))

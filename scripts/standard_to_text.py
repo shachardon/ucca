@@ -4,7 +4,7 @@ import argparse
 import re
 
 from ucca.convert import to_text
-from ucca.ioutil import read_files_and_dirs
+from ucca.ioutil import get_passages_with_progress_bar
 
 desc = """Parses files in UCCA standard format, and writes a text file with a line per passage."""
 
@@ -18,7 +18,7 @@ def numeric(x):
 
 def main(args):
     with open(args.outfile, "w", encoding="utf-8") as f:
-        for passage in read_files_and_dirs(sorted(args.filenames, key=numeric)):
+        for passage in get_passages_with_progress_bar(sorted(args.filenames, key=numeric), desc="Converting to text"):
             for line in to_text(passage):
                 print(line, file=f)
     print("Wrote '%s'." % args.outfile)

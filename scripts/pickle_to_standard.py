@@ -9,12 +9,7 @@ desc = """Parses pickle files in UCCA standard format, and writes them in XML fo
 """
 
 
-def main():
-    argparser = argparse.ArgumentParser(description=desc)
-    argparser.add_argument('filenames', nargs='+', help="pickle file names to convert")
-    argparser.add_argument('-o', '--outdir', default='.', help="output directory")
-    args = argparser.parse_args()
-
+def main(args):
     for filename in args.filenames:
         sys.stderr.write("Reading passage '%s'...\n" % filename)
         passage = file2passage(filename)
@@ -23,8 +18,9 @@ def main():
         sys.stderr.write("Writing file '%s'...\n" % outfile)
         passage2file(passage, outfile)
 
-    sys.exit(0)
-
 
 if __name__ == '__main__':
-    main()
+    argparser = argparse.ArgumentParser(description=desc)
+    argparser.add_argument('filenames', nargs='+', help="pickle file names to convert")
+    argparser.add_argument('-o', '--outdir', default='.', help="output directory")
+    main(argparser.parse_args())

@@ -1,6 +1,4 @@
 import argparse
-from posix import mkdir
-
 import os
 import re
 from shutil import copyfile
@@ -10,6 +8,8 @@ All files not in either "train" or "dev" will go into "test".
 """
 TRAIN_DEFAULT = 300
 DEV_DEFAULT = 34
+
+
 # TEST on all the rest
 
 
@@ -38,36 +38,37 @@ def split_passages(directory, train, dev, link, quiet=False):
     filenames = sorted(filter(not_split_dir, os.listdir(directory)), key=numeric)
     assert filenames, "No files to split"
     assert train + dev <= len(filenames), "Not enough files to split: %d+%d>%d" % (train, dev, len(filenames))
-    directory = os.path.abspath(directory)
-    if not directory.endswith(os.sep):
-        directory += os.sep
     for subdirectory in "train", "dev", "test":
-        if not os.path.exists(directory + subdirectory):
-            mkdir(directory + subdirectory)
+        os.makedirs(os.path.join(directory, subdirectory), exist_ok=True)
     print("%d files to split: %d/%d/%d" % (len(filenames), train, dev, len(filenames) - train - dev))
     print_format = "Creating link in %s to: " if link else "Copying to %s: "
     if not quiet:
         print(print_format % "train", end="", flush=True)
     for f in filenames[:train]:
-        copy(directory + f, directory + "train" + os.sep + f, link)
+        copy(os.path.join(directory, f), os.path.join(directory, "train", f), link)
         if not quiet:
             print(f, end=" ", flush=True)
     if not quiet:
         print()
         print(print_format % "dev", end="", flush=True)
     for f in filenames[train:train + dev]:
-        copy(directory + f, directory + "dev" + os.sep + f, link)
+        copy(os.path.join(directory, f), os.path.join(directory, "dev", f), link)
         if not quiet:
             print(f, end=" ", flush=True)
     if not quiet:
         print()
         print(print_format % "test", end="", flush=True)
     for f in filenames[train + dev:]:
-        copy(directory + f, directory + "test" + os.sep + f, link)
+        copy(os.path.join(directory, f), os.path.join(directory, "test", f), link)
         if not quiet:
             print(f, end=" ", flush=True)
     if not quiet:
         print()
+
+
+def main(args):
+    split_passages(os.path.abspath(args.directory), args.train, args.dev, link=args.link, quiet=args.quiet)
+
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description=desc)
@@ -78,6 +79,4 @@ if __name__ == "__main__":
                            help="size of dev split (default: %d)" % DEV_DEFAULT)
     argparser.add_argument("-l", "--link", action="store_true", help="create symbolic link instead of copying")
     argparser.add_argument("-q", "--quiet", action="store_true", help="less output")
-    args = argparser.parse_args()
-
-    split_passages(args.directory, args.train, args.dev, link=args.link, quiet=args.quiet)
+    main(argparser.parse_args())
