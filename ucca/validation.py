@@ -7,9 +7,9 @@ LINKAGE = (layer1.EdgeTags.LinkArgument, layer1.EdgeTags.LinkRelation)
 def validate(passage):
     for node in passage.layer(layer0.LAYER_ID).all:
         if not node.incoming:
-            yield "Orphan terminal (%s) '%s'" % (node.ID, node)
+            yield "Orphan %s terminal (%s) '%s'" % (node.tag, node.ID, node)
         elif len(node.incoming) > 1:
-            yield "Reentrant terminal (%s) '%s'" % (join(node.incoming), node)
+            yield "Reentrant %s terminal (%s) '%s'" % (node.tag, join(node.incoming), node)
     stack = [list(passage.layer(layer1.LAYER_ID).heads)]
     for node in stack[-1]:
         if node.ID != "1.1" and node.tag != layer1.NodeTags.Linkage:
