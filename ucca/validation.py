@@ -26,6 +26,14 @@ def validate(passage):
                 path.append(node)
                 path_set.add(node)
                 stack.append(node.children)
+                if node.tag == layer1.NodeTags.Linkage:
+                    if node.incoming:
+                        yield "Non-root %s node (%s)" % (node.tag, join(node.incoming))
+                    non_linkage = [e for e in node if e.tag not in LINKAGE]
+                    if non_linkage:
+                        yield "%s node with non-linkage children (%s)" % (node.tag, join(non_linkage))
+                    if not any(e.tag == layer1.EdgeTags.LinkRelation for e in node):
+                        yield "%s node without %s child" % (node.tag, layer1.EdgeTags.LinkRelation)
                 incoming = [e for e in node.incoming if not e.attrib.get("remote") and e.tag not in LINKAGE]
                 if len(incoming) > 1:
                     yield "Multiple incoming non-remote (%s)" % join(incoming)
