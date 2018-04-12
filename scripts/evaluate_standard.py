@@ -7,22 +7,8 @@ from ucca import evaluation, constructions, ioutil
 
 
 def main(args):
-    if not (args.units or args.fscore or args.errors):
-        argparser.error("At least one of -u, -f or -e is required.")
     guessed, ref = [ioutil.read_files_and_dirs((x,)) for x in (args.guessed, args.ref)]
-    if len(guessed) != len(ref):
-        raise ValueError("Number of passages to compare does not match: %d != %d" % (len(guessed), len(ref)))
-    if len(guessed) > 1:
-        guessed_by_id = {}
-        for g in guessed:
-            sys.stdout.write("\rReading %s..." % g.ID)
-            sys.stdout.flush()
-            guessed_by_id[g.ID] = g
-        ids = [p.ID for p in ref]
-        try:
-            guessed = [guessed_by_id[i] for i in ids]
-        except KeyError as e:
-            raise ValueError("Passage IDs do not match") from e
+    guessed = match_by_id(guessed, ref)
     results = []
     for g, r in zip(guessed, ref):
         if len(guessed) > 1:
@@ -36,6 +22,27 @@ def main(args):
         if args.verbose:
             print("Average labeled F1 score: %.3f\n" % result.average_f1())
         results.append(result)
+    summarize(args, results)
+
+
+def match_by_id(guessed, ref):
+    if len(guessed) != len(ref):
+        raise ValueError("Number of passages to compare does not match: %d != %d" % (len(guessed), len(ref)))
+    if len(guessed) > 1:
+        guessed_by_id = {}
+        for g in guessed:
+            sys.stdout.write("\rReading %s..." % g.ID)
+            sys.stdout.flush()
+            guessed_by_id[g.ID] = g
+        ids = [p.ID for p in ref]
+        try:
+            return [guessed_by_id[i] for i in ids]
+        except KeyError as e:
+            raise ValueError("Passage IDs do not match") from e
+    return guessed
+
+
+def summarize(args, results):
     summary = evaluation.Scores.aggregate(results)
     if len(results) > 1:
         if args.verbose:
@@ -54,10 +61,26 @@ def main(args):
             print(",".join(summary.titles()), file=f)
             for result in results:
                 print(",".join(result.fields()), file=f)
+        print("Wrote '%s'" % args.out_file)
     if args.summary_file:
         with open(args.summary_file, "w", encoding="utf-8") as f:
             print(",".join(summary.titles()), file=f)
             print(",".join(summary.fields()), file=f)
+        print("Wrote '%s'" % args.summary_file)
+    if args.errors_file:
+        with open(args.errors_file, "w", encoding="utf-8") as f:
+            summary.print_confusion_matrix(sep=",", file=f)
+        print("Wrote '%s'" % args.errors_file)
+
+
+def check_args(args):
+    if args.out_file or args.summary_file:
+        args.fscore = True
+    if args.errors_file:
+        args.errors = True
+    if not (args.units or args.fscore or args.errors):
+        argparser.error("At least one of -u, -f or -e is required.")
+    return args
 
 
 if __name__ == "__main__":
@@ -74,9 +97,10 @@ if __name__ == "__main__":
                            help="do not normalize passages before evaluation")
     argparser.add_argument("--out-file", help="file to write results for each evaluated passage to, in CSV format")
     argparser.add_argument("--summary-file", help="file to write aggregated results to, in CSV format")
+    argparser.add_argument("--errors-file", help="file to write aggregated confusion matrix to, in CSV format")
     group = argparser.add_mutually_exclusive_group()
     group.add_argument("-v", "--verbose", action="store_true",
                        help="prints the results for every single pair (always true if there is only one pair)")
     group.add_argument("-q", "--quiet", action="store_true", help="do not print anything")
     constructions.add_argument(argparser)
-    main(argparser.parse_args())
+    main(check_args(argparser.parse_args()))

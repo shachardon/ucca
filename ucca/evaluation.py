@@ -214,11 +214,11 @@ class Scores(object):
                 print("Evaluation type: (" + eval_type + ")", **kwargs)
                 evaluator.print(**kwargs)
 
-    def print_confusion_matrix(self, **kwargs):
+    def print_confusion_matrix(self, *args, **kwargs):
         for eval_type in EVAL_TYPES:
             evaluator = self.evaluators.get(eval_type)
             if evaluator:
-                evaluator.print_confusion_matrix("Evaluation type: (" + eval_type + ")", **kwargs)
+                evaluator.print_confusion_matrix("Evaluation type: (" + eval_type + ")", *args, **kwargs)
 
     def fields(self):
         e = self.evaluators[LABELED]
@@ -249,14 +249,20 @@ class EvaluatorResults(object):
             stats.print(**kwargs)
         print(**kwargs)
 
-    def print_confusion_matrix(self, prefix=None):
+    def print_confusion_matrix(self, prefix=None, sep=None, **kwargs):
         primary = self.results.get(PRIMARY)
         if primary and primary.errors:
-            print("\n%sConfusion Matrix:" % ("" if prefix is None else (prefix + ", ")))
-            l1 = max(len(e1) for e1, _ in primary.errors)
-            l2 = max(len(e2) for _, e2 in primary.errors)
-            for error, freq in primary.errors.most_common():
-                print("%-*s %-*s %d" % (l1, error[0], l2, error[1], freq))
+            errors = primary.errors.most_common()
+            if sep:
+                print(sep.join(("guessed", "ref", "count")), **kwargs)
+                for error, freq in errors:
+                    print(sep.join(error + (str(freq),)), **kwargs)
+            else:
+                print("\n%sConfusion Matrix:" % ("" if prefix is None else (prefix + ", ")), **kwargs)
+                for error, freq in errors:
+                    l1 = max(len(e1) for e1, _ in primary.errors)
+                    l2 = max(len(e2) for _, e2 in primary.errors)
+                    print("%-*s %-*s %d" % (l1, error[0], l2, error[1], freq), **kwargs)
 
     @classmethod
     def aggregate(cls, results):
