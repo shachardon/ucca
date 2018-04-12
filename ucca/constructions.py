@@ -60,14 +60,14 @@ class Candidate(object):
     def pos(self):
         if self._pos is None:
             self._init_terminals()
-            self._pos = {t.extra[textutil.POS_KEY] for t in self._terminals}
+            self._pos = {textutil.Attr.POS(t.tok[textutil.Attr.POS.value]) for t in self._terminals}
         return self._pos
 
     @property
     def dep(self):
         if self._dep is None:
             self._init_terminals()
-            self._dep = {t.extra[textutil.DEP_KEY] for t in self._terminals}
+            self._dep = {textutil.Attr.DEP(t.tok[textutil.Attr.DEP.value]) for t in self._terminals}
         return self._dep
 
     @property
@@ -75,7 +75,7 @@ class Candidate(object):
         if self._heads is None:
             self._init_terminals()
             positions = {t.para_pos for t in self._terminals}
-            self._heads = {t for t in self._terminals if int(t.extra[textutil.HEAD_KEY]) not in positions}
+            self._heads = {t for t in self._terminals if int(t.tok[textutil.Attr.HEAD]) not in positions}
         return self._heads
 
     @property
