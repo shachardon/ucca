@@ -1704,7 +1704,7 @@ def file2passage(filename):
         except Exception as e:
             exception = e
     if exception:
-        raise exception
+        raise IOError("Failed reading '%s'" % filename) from exception
 
 
 def xml2passage(filename):
