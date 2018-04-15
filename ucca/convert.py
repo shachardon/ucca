@@ -664,7 +664,7 @@ def from_standard(root, extra_funcs=None):
     return passage
 
 
-def from_text(text, passage_id="1", tokenized=False, one_per_line=False, extra_format=None, *args, **kwargs):
+def from_text(text, passage_id="1", tokenized=False, one_per_line=False, extra_format=None, lang="en", *args, **kwargs):
     """Converts from tokenized strings to a Passage object.
 
     :param text: a multi-line string or a sequence of strings:
@@ -673,6 +673,7 @@ def from_text(text, passage_id="1", tokenized=False, one_per_line=False, extra_f
     :param tokenized: whether the text is already given as a list of tokens
     :param one_per_line: each line will be a new passage rather than just a new paragraph
     :param extra_format: value to set in passage.extra["format"]
+    :param lang: language to use for tokenization model
 
     :return generator of Passage object with only Terminal units
     """
@@ -694,7 +695,7 @@ def from_text(text, passage_id="1", tokenized=False, one_per_line=False, extra_f
                 l0 = layer0.Layer0(p)
                 layer1.Layer1(p)
                 paragraph = 1
-            for lex in textutil.get_tokenizer(tokenized)(line):
+            for lex in textutil.get_tokenizer(tokenized, lang=lang)(line):
                 l0.add_terminal(text=lex.orth_, punct=lex.is_punct, paragraph=paragraph)
             paragraph += 1
         if p and (not line or one_per_line):
@@ -705,12 +706,13 @@ def from_text(text, passage_id="1", tokenized=False, one_per_line=False, extra_f
         yield p
 
 
-def to_text(passage, sentences=True, *args, **kwargs):
+def to_text(passage, sentences=True, lang="en", *args, **kwargs):
     """Converts from a Passage object to tokenized strings.
 
     :param passage: the Passage object to convert
     :param sentences: whether to break the Passage to sentences (one for string)
                       or leave as one string. Defaults to True
+    :param lang: language to use for sentence splitting model
 
     :return a list of strings - 1 if sentences=False, # of sentences otherwise
     """
@@ -722,7 +724,7 @@ def to_text(passage, sentences=True, *args, **kwargs):
     # with 0, positions with 1). So in essence, it returns the index to start
     # the next sentence from, and we should add index 0 for the first sentence
     if sentences:
-        starts = [0] + textutil.break2sentences(passage)
+        starts = [0] + textutil.break2sentences(passage, lang=lang)
     else:
         starts = [0, len(tokens)]
     return [' '.join(tokens[starts[i]:starts[i + 1]])
@@ -1735,23 +1737,24 @@ def passage2file(passage, filename, indent=True, binary=False):
             h.write(output)
 
 
-def split2sentences(passage, remarks=False):
-    return split2segments(passage, is_sentences=True, remarks=remarks)
+def split2sentences(passage, remarks=False, lang="en"):
+    return split2segments(passage, is_sentences=True, remarks=remarks, lang=lang)
 
 
-def split2paragraphs(passage, remarks=False):
-    return split2segments(passage, is_sentences=False, remarks=remarks)
+def split2paragraphs(passage, remarks=False, lang="en"):
+    return split2segments(passage, is_sentences=False, remarks=remarks, lang=lang)
 
 
-def split2segments(passage, is_sentences, remarks=False):
+def split2segments(passage, is_sentences, remarks=False, lang="en"):
     """
     Split passage to sub-passages
     :param passage: Passage object
     :param is_sentences: if True, split to sentences; otherwise, paragraphs
     :param remarks: Whether to add remarks with original node IDs
+    :param lang: language to use for sentence splitting model
     :return: sequence of passages
     """
-    ends = (textutil.break2sentences if is_sentences else textutil.break2paragraphs)(passage)
+    ends = (textutil.break2sentences if is_sentences else textutil.break2paragraphs)(passage, lang=lang)
     return split_passage(passage, ends, remarks=remarks)
 
 

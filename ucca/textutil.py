@@ -249,7 +249,7 @@ def set_docs(annotated, as_array, lang, verbose):
 SENTENCE_END_MARKS = ('.', '?', '!')
 
 
-def break2sentences(passage, lang="en"):
+def break2sentences(passage, lang="en", *args, **kwargs):
     """
     Breaks paragraphs into sentences according to the annotation.
 
@@ -259,6 +259,7 @@ def break2sentences(passage, lang="en"):
     :param lang: optional two-letter language code
     :return a list of positions in the Passage, each denotes a closing Terminal of a sentence.
     """
+    del args, kwargs
     l1 = passage.layer(layer1.LAYER_ID)
     terminals = extract_terminals(passage)
     if any(n.outgoing for n in l1.all):  # Passage is labeled
@@ -286,7 +287,7 @@ def extract_terminals(p):
     return p.layer(layer0.LAYER_ID).all
 
 
-def break2paragraphs(passage, return_terminals=False):
+def break2paragraphs(passage, return_terminals=False, *args, **kwargs):
     """
     Breaks into paragraphs according to the annotation.
 
@@ -295,6 +296,7 @@ def break2paragraphs(passage, return_terminals=False):
     :param return_terminals: whether to return actual Terminal objects of all terminals rather than just end positions
     :return a list of positions in the Passage, each denotes a closing Terminal of a paragraph.
     """
+    del args, kwargs
     terminals = list(extract_terminals(passage))
     return [list(p) for _, p in groupby(terminals, key=attrgetter("paragraph"))] if return_terminals else \
         [t.position - 1 for t in terminals if t.position > 1 and t.para_pos == 1] + [terminals[-1].position]

@@ -16,12 +16,13 @@ class LazyLoadedPassages(object):
     """
     Iterable interface to Passage objects that loads files on-the-go and can be iterated more than once
     """
-    def __init__(self, files, sentences=False, paragraphs=False, converters=None):
+    def __init__(self, files, sentences=False, paragraphs=False, converters=None, lang="en"):
         self.files = files
         self.sentences = sentences
         self.paragraphs = paragraphs
         self.split = self.sentences or self.paragraphs
         self.converters = defaultdict(lambda: from_text) if converters is None else converters
+        self.lang = lang
         self._files_iter = None
         self._split_iter = None
         self._file_handle = None
@@ -64,12 +65,12 @@ class LazyLoadedPassages(object):
                     base, ext = os.path.splitext(os.path.basename(file))
                     converter = self.converters[ext.lstrip(".")]
                     self._file_handle = open(file, encoding="utf-8")
-                    self._split_iter = iter(converter(self._file_handle, passage_id=base))
+                    self._split_iter = iter(converter(self._file_handle, passage_id=base, lang=self.lang))
             if self.split:
                 if self._split_iter is None:
                     self._split_iter = (passage,)
                 self._split_iter = iter(s for p in self._split_iter for s in
-                                        split2segments(p, is_sentences=self.sentences))
+                                        split2segments(p, is_sentences=self.sentences, lang=self.lang))
         if self._split_iter is not None:  # Either set before or initialized now
             try:
                 # noinspection PyTypeChecker
@@ -112,12 +113,13 @@ def get_passages(filename_patterns):
                 yield passage
 
 
-def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, converters=None):
+def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, converters=None, lang="en"):
     """
     :param files_and_dirs: iterable of files and/or directories to look in
     :param sentences: whether to split to sentences
     :param paragraphs: whether to split to paragraphs
     :param converters: dict of input format converters to use based on the file extension
+    :param lang: language to use for tokenization model
     :return: list of (lazy-loaded) passages from all files given,
              plus any files directly under any directory given
     """
@@ -125,7 +127,7 @@ def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, conve
     files = [files_and_dirs] if isinstance(files_and_dirs, str) else list(files_and_dirs)
     files += [os.path.join(d, f) for d in files if os.path.isdir(d) for f in os.listdir(d)]
     files = [f for f in files if not os.path.isdir(f)]
-    return LazyLoadedPassages(files, sentences, paragraphs, converters)
+    return LazyLoadedPassages(files, sentences=sentences, paragraphs=paragraphs, converters=converters, lang=lang)
 
 
 def write_passage(passage, output_format=None, binary=False, outdir=".", prefix="", converter=None, verbose=True):

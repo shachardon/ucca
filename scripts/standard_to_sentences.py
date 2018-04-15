@@ -35,7 +35,8 @@ def main(args):
         with open(args.sentences, encoding="utf-8") as f:
             order = dict(map(reversed, enumerate(map(str.strip, f))))
     for passage in get_passages_with_progress_bar(args.filenames, "Splitting"):
-        for sentence in split(passage, order) if order else split2sentences(passage, remarks=args.remarks):
+        for sentence in split(passage, order) if order else split2sentences(
+                passage, remarks=args.remarks, lang=args.lang):
             outfile = os.path.join(args.outdir, args.prefix + sentence.ID + (".pickle" if args.binary else ".xml"))
             with tqdm.external_write_mode():
                 print("Writing passage file for sentence '%s'..." % outfile, file=sys.stderr)
@@ -48,6 +49,7 @@ if __name__ == "__main__":
     argparser.add_argument("-o", "--outdir", default=".", help="output directory")
     argparser.add_argument("-p", "--prefix", default="", help="output filename prefix")
     argparser.add_argument("-r", "--remarks", action="store_true", help="annotate original IDs")
+    argparser.add_argument("-l", "--lang", default="en", help="language two-letter code for sentence model")
     argparser.add_argument("-b", "--binary", action="store_true", help="write in pickle binary format (.pickle)")
     argparser.add_argument("-s", "--sentences", help="optional input file with sentence at each line to split by")
     main(argparser.parse_args())

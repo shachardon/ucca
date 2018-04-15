@@ -47,7 +47,7 @@ def main(args):
         argparser.error("Must specify one source, XML or DB file")
     if args.db and not (args.pid and args.user):
         argparser.error("Must specify a username and a passage ID when " +
-                     "using DB file option")
+                        "using DB file option")
     if (args.pid or args.user) and not args.db:
         argparser.error("Cannot use user and passage ID options without DB file")
 
@@ -62,7 +62,7 @@ def main(args):
         with open(args.binary, "wb") as binf:
             pickle.dump(passage, binf)
     else:
-        output = ucca.convert.to_text(passage)
+        output = ucca.convert.to_text(passage, lang=args.lang)
         if args.outfile:
             with open(args.outfile, "w", encoding="utf-8") as outf:
                 outf.write(output)
@@ -79,4 +79,5 @@ if __name__ == "__main__":
     argparser.add_argument("--host", help="DB host server to get input from")
     argparser.add_argument("-p", "--pid", type=int, help="PassageID to query DB")
     argparser.add_argument("-u", "--user", help="Username to DB query")
+    argparser.add_argument("-l", "--lang", default="en", help="language two-letter code for sentence model")
     main(argparser.parse_args())
