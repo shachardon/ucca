@@ -1027,7 +1027,7 @@ class DependencyConverter(FormatConverter):
     def __init__(self, mark_aux=False):
         self.mark_aux = mark_aux
 
-    def read_line(self, line, previous_node):
+    def read_line(self, line, previous_node, copy_of):
         return DependencyConverter.Node()
 
     def generate_lines(self, passage_id, dep_nodes, test, tree):
@@ -1092,6 +1092,7 @@ class DependencyConverter(FormatConverter):
     def build_nodes(self, lines, split=False):
         # read dependencies and terminals from lines and create nodes
         sentence_id = dep_nodes = multi_word_nodes = previous_node = None
+        copy_of = {}
         paragraph = 1
         for line in lines:
             line = line.strip()
@@ -1103,7 +1104,7 @@ class DependencyConverter(FormatConverter):
                 if m:  # comment may optionally contain the sentence ID
                     sentence_id = m.group(1)
             elif line:
-                dep_node = self.read_line(line, previous_node)  # different implementation for each subclass
+                dep_node = self.read_line(line, previous_node, copy_of)  # different implementation for each subclass
                 if dep_node is not None:
                     previous_node = dep_node
                     dep_node.token.paragraph = paragraph  # mark down which paragraph this is in
@@ -1352,22 +1353,28 @@ class ConllConverter(DependencyConverter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def read_line(self, line, previous_node):
+    def read_line(self, line, previous_node, copy_of):
         fields = self.split_line(line)
         # id, form, lemma, coarse pos, fine pos, features, head, relation, [enhanced]
         position, text, _, tag, _, _, head_position, rel, *enhanced = fields[:9]
-        if "." in position:
-            return None
         edges = []
         if head_position and head_position != "_":
             edges.append(DependencyConverter.Edge.create(head_position, rel))
         for enhanced_str in enhanced:
             if enhanced_str and enhanced_str != "_":
                 for enhanced_spec in enhanced_str.split("|"):
-                    enhanced_head_position, _, enhanced_rel = enhanced_spec.partition(":")
-                    enhanced_head_position = re.sub(r"\..*", "", enhanced_head_position)
-                    if enhanced_head_position not in (position, head_position):
-                        edges.append(DependencyConverter.Edge(int(enhanced_head_position), enhanced_rel, remote=True))
+                    m = re.match("CopyOf=(\d+)", enhanced_spec)
+                    if m:
+                        copy_of[position] = m.group(1)
+                    else:
+                        enhanced_head_position, _, enhanced_rel = enhanced_spec.partition(":")
+                        enhanced_head_position = copy_of.get(enhanced_head_position,
+                                                             re.sub(r"\..*", "", enhanced_head_position))
+                        if enhanced_head_position not in (position, head_position):
+                            edges.append(DependencyConverter.Edge(int(enhanced_head_position), enhanced_rel,
+                                                                  remote=True))
+        if "." in position:
+            return None
         positions = list(map(int, position.split("-")))
         if not edges or previous_node is None or previous_node.position != positions[0]:
             is_multi_word = len(positions) > 1
@@ -1404,7 +1411,7 @@ class SdpConverter(DependencyConverter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def read_line(self, line, previous_node):
+    def read_line(self, line, previous_node, copy_of):
         fields = self.split_line(line)
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
         position, text, _, tag, top, pred, _ = fields[:7]
