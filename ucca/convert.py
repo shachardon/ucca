@@ -997,7 +997,9 @@ class DependencyConverter(FormatConverter):
         def create(cls, head_position, rel):
             return cls(int(head_position), rel.rstrip("*"), rel.endswith("*"))
     
-        def link_head(self, heads):
+        def link_head(self, heads, copy_of=None):
+            if isinstance(self.head_index, str):
+                self.head_index = (copy_of or {}).get(self.head_index, re.sub(r"\..*", "", self.head_index))
             self.head = heads[self.head_index]
             self.head.outgoing.append(self)
 
@@ -1034,11 +1036,11 @@ class DependencyConverter(FormatConverter):
         yield ""
 
     @staticmethod
-    def _link_heads(dep_nodes, multi_word_nodes=()):
+    def _link_heads(dep_nodes, multi_word_nodes=(), copy_of=None):
         heads = [n for n in dep_nodes if n.is_head]
         for dep_node in dep_nodes:
             for edge in dep_node.incoming:
-                edge.link_head(heads)
+                edge.link_head(heads, copy_of)
         for dep_node in multi_word_nodes:
             start, end = dep_node.position
             for position in range(start, end + 1):
@@ -1111,7 +1113,7 @@ class DependencyConverter(FormatConverter):
                     (multi_word_nodes if dep_node.is_multi_word else dep_nodes).append(dep_node)
             elif split:
                 try:
-                    self._link_heads(dep_nodes, multi_word_nodes)
+                    self._link_heads(dep_nodes, multi_word_nodes, copy_of)
                     yield dep_nodes, sentence_id
                 except Exception as e:
                     print("Skipped passage '%s': %s" % (sentence_id, e), file=sys.stderr)
@@ -1120,7 +1122,7 @@ class DependencyConverter(FormatConverter):
             else:
                 paragraph += 1
         if not split:
-            self._link_heads(dep_nodes, multi_word_nodes)
+            self._link_heads(dep_nodes, multi_word_nodes, copy_of)
             yield dep_nodes, sentence_id
 
     def build_passage(self, dep_nodes, passage_id):
@@ -1365,14 +1367,11 @@ class ConllConverter(DependencyConverter):
                 for enhanced_spec in enhanced_str.split("|"):
                     m = re.match("CopyOf=(\d+)", enhanced_spec)
                     if m:
-                        copy_of[position] = m.group(1)
+                        copy_of[position] = int(m.group(1))
                     else:
                         enhanced_head_position, _, enhanced_rel = enhanced_spec.partition(":")
-                        enhanced_head_position = copy_of.get(enhanced_head_position,
-                                                             re.sub(r"\..*", "", enhanced_head_position))
                         if enhanced_head_position not in (position, head_position):
-                            edges.append(DependencyConverter.Edge(int(enhanced_head_position), enhanced_rel,
-                                                                  remote=True))
+                            edges.append(DependencyConverter.Edge(enhanced_head_position, enhanced_rel, remote=True))
         if "." in position:
             return None
         positions = list(map(int, position.split("-")))
