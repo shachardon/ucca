@@ -999,7 +999,7 @@ class DependencyConverter(FormatConverter):
     
         def link_head(self, heads, copy_of=None):
             if isinstance(self.head_index, str):
-                self.head_index = (copy_of or {}).get(self.head_index, re.sub(r"\..*", "", self.head_index))
+                self.head_index = int((copy_of or {}).get(self.head_index, re.sub(r"\..*", "", self.head_index)))
             self.head = heads[self.head_index]
             self.head.outgoing.append(self)
 
