@@ -1357,21 +1357,22 @@ class ConllConverter(DependencyConverter):
 
     def read_line(self, line, previous_node, copy_of):
         fields = self.split_line(line)
-        # id, form, lemma, coarse pos, fine pos, features, head, relation, [enhanced]
+        # id, form, lemma, coarse pos, fine pos, features, head, relation, [enhanced], [enhanced]
         position, text, _, tag, _, _, head_position, rel, *enhanced = fields[:10]
         edges = []
         if head_position and head_position != "_":
             edges.append(DependencyConverter.Edge.create(head_position, rel))
-        for enhanced_str in enhanced:
+        for i, enhanced_str in enumerate(enhanced):
             if enhanced_str and enhanced_str != "_":
                 for enhanced_spec in enhanced_str.split("|"):
-                    m = re.match("CopyOf=(\d+)", enhanced_spec)
-                    if m:
-                        copy_of[position] = m.group(1)
-                    else:
+                    if i == 0:
                         enhanced_head_position, _, enhanced_rel = enhanced_spec.partition(":")
                         if enhanced_head_position not in (position, head_position):
                             edges.append(DependencyConverter.Edge(enhanced_head_position, enhanced_rel, remote=True))
+                    elif i == 1:
+                        m = re.match("CopyOf=(\d+)", enhanced_spec)
+                        if m:
+                            copy_of[position] = m.group(1)
         if "." in position:
             return None
         positions = list(map(int, position.split("-")))
