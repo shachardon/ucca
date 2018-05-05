@@ -132,7 +132,7 @@ def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, conve
 
 def write_passage(passage, output_format=None, binary=False, outdir=".", prefix="", converter=None, verbose=True):
     suffix = output_format if output_format and output_format != "ucca" else ("pickle" if binary else "xml")
-    outfile = outdir + os.path.sep + prefix + passage.ID + "." + suffix
+    outfile = os.path.join(outdir, prefix + passage.ID + "." + suffix)
     if verbose:
         with tqdm.external_write_mode():
             print("Writing passage '%s'..." % outfile)
