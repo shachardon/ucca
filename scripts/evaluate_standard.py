@@ -18,7 +18,8 @@ def main(args):
             print()
         result = evaluation.evaluate(g, r, constructions=args.constructions, units=args.units, fscore=args.fscore,
                                      errors=args.errors, verbose=args.verbose or len(guessed) == 1,
-                                     normalize=args.normalize)
+                                     normalize=args.normalize,
+                                     eval_type=evaluation.UNLABELED if args.unlabeled else None)
         if args.verbose:
             print("Average labeled F1 score: %.3f\n" % result.average_f1())
         results.append(result)
@@ -95,6 +96,7 @@ if __name__ == "__main__":
                            help="prints the error distribution according to its frequency")
     argparser.add_argument("--no-normalize", dest="normalize", action="store_false",
                            help="do not normalize passages before evaluation")
+    argparser.add_argument("--unlabeled", action="store_true", help="only unlabeled evaluation")
     argparser.add_argument("--out-file", help="file to write results for each evaluated passage to, in CSV format")
     argparser.add_argument("--summary-file", help="file to write aggregated results to, in CSV format")
     argparser.add_argument("--errors-file", help="file to write aggregated confusion matrix to, in CSV format")

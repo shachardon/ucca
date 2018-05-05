@@ -324,7 +324,7 @@ class SummaryStatistics(object):
 
 
 def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
-             units=False, fscore=True, errors=False, normalize=True, **kwargs):
+             units=False, fscore=True, errors=False, normalize=True, eval_type=None, **kwargs):
     """
     Compare two passages and return requested diagnostics and scores, possibly printing them too.
     NOTE: since normalize=True by default, this method is destructive: it modifies the given passages before evaluation.
@@ -337,6 +337,7 @@ def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
     :param fscore: whether to compute precision, recall and f1 score
     :param errors: whether to print the mistakes
     :param normalize: flatten centers and move common functions to root before evaluation - modifies passages
+    :param eval_type: specific evaluation type to limit to
     :return: Scores object
     """
     del kwargs
@@ -350,4 +351,4 @@ def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
 
     evaluator = Evaluator(verbose, constructions, units, fscore, errors)
     return Scores((evaluation_type, evaluator.get_scores(guessed, ref, evaluation_type))
-                  for evaluation_type in EVAL_TYPES)
+                  for evaluation_type in ([eval_type] if eval_type else EVAL_TYPES))
