@@ -8,7 +8,8 @@ from ucca import evaluation, constructions, ioutil
 
 def main(args):
     guessed, ref = [ioutil.read_files_and_dirs((x,)) for x in (args.guessed, args.ref)]
-    guessed = match_by_id(guessed, ref)
+    if args.match_by_id:
+        guessed = match_by_id(guessed, ref)
     results = []
     for g, r in zip(guessed, ref):
         if len(guessed) > 1:
@@ -94,8 +95,10 @@ if __name__ == "__main__":
                            help="outputs the traditional P,R,F instead of the scene structure evaluation")
     argparser.add_argument("-e", "--errors", action="store_true",
                            help="prints the error distribution according to its frequency")
-    argparser.add_argument("--no-normalize", dest="normalize", action="store_false",
+    argparser.add_argument("-N", "--no-normalize", dest="normalize", action="store_false",
                            help="do not normalize passages before evaluation")
+    argparser.add_argument("-I", "--no-match-by-id", dest="match_by_id", action="store_false",
+                           help="do not match passages by ID, instead matching by order")
     argparser.add_argument("--unlabeled", action="store_true", help="only unlabeled evaluation")
     argparser.add_argument("--out-file", help="file to write results for each evaluated passage to, in CSV format")
     argparser.add_argument("--summary-file", help="file to write aggregated results to, in CSV format")
