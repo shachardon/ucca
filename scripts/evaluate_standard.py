@@ -22,7 +22,7 @@ def main(args):
                                      normalize=args.normalize,
                                      eval_type=evaluation.UNLABELED if args.unlabeled else None)
         if args.verbose:
-            print("Average labeled F1 score: %.3f\n" % result.average_f1())
+            print_f1(result, args.unlabeled)
         results.append(result)
     summarize(args, results)
 
@@ -44,6 +44,11 @@ def match_by_id(guessed, ref):
     return guessed
 
 
+def print_f1(result, unlabeled=False):
+    print("Average %slabeled F1 score: %.3f" % ("un" if unlabeled else "", result.average_f1(
+        evaluation.UNLABELED if unlabeled else evaluation.LABELED)))
+
+
 def summarize(args, results):
     summary = evaluation.Scores.aggregate(results)
     if len(results) > 1:
@@ -57,7 +62,7 @@ def summarize(args, results):
                 elif args.errors:
                     summary.print_confusion_matrix()
         if not args.quiet:
-            print("Average labeled F1 score: %.3f" % summary.average_f1())
+            print_f1(summary, args.unlabeled)
     if args.out_file:
         with open(args.out_file, "w", encoding="utf-8") as f:
             print(",".join(summary.titles()), file=f)
