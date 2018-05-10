@@ -1325,30 +1325,36 @@ class DependencyConverter(FormatConverter):
         """
         lines = []  # list of output lines to return
         terminals = passage.layer(layer0.LAYER_ID).all  # terminal units from the passage
-        dep_nodes = []
-        multi_word = None
-        for terminal in sorted(terminals, key=operator.attrgetter("position")):
-            edges = list(self.find_top_headed_edges(terminal))
-            head_indices = [self.find_head_terminal(e.parent).position - 1 for e in edges]
-            # (head positions, dependency relations, is remote for each one)
-            incoming = {self.Edge(head_index, e.tag, e.attrib.get("remote", False))
-                        for e, head_index in zip(edges, head_indices)
-                        if head_index != terminal.position - 1 and  # avoid self loops
-                        not self.omit_edge(e, tree)}  # different implementation for each subclass
-            multi_word_text = terminal.attrib.get(self.MULTI_WORD_TEXT_ATTRIB)
-            if multi_word_text is None:
-                multi_word = None
-            elif multi_word is None or multi_word_text != multi_word.token.text:
-                multi_word = self.Node(2 * [terminal.position], token=self.Token(multi_word_text, tag="_"))
-            else:
-                multi_word.position[-1] = terminal.position
-            dep_nodes.append(self.Node(terminal.position, incoming, terminal=terminal, is_top=self.is_top(terminal),
-                                       token=self.Token(terminal.text, terminal.tag), parent_multi_word=multi_word))
+        multi_words = [None]
+        dep_nodes = [self.Node(terminal.position, self.incoming_edges(terminal, test, tree), terminal=terminal,
+                               is_top=self.is_top(terminal), token=self.Token(terminal.text, terminal.tag),
+                               parent_multi_word=self.parent_multi_word(terminal, multi_words))
+                     for terminal in sorted(terminals, key=operator.attrgetter("position"))]
         self._link_heads(dep_nodes)
         self.preprocess(dep_nodes)
-        lines += ["\t".join(map(str, entry)) for entry in self.generate_lines(passage.ID, dep_nodes, test, tree)] + \
-                 [""]  # different for each subclass
+        lines += ["\t".join(map(str, entry)) for entry in self.generate_lines(passage.ID, dep_nodes, test, tree)] + [""]
         return lines
+
+    def incoming_edges(self, terminal, test, tree):
+        if test:
+            return []
+        edges = list(self.find_top_headed_edges(terminal))
+        head_indices = [self.find_head_terminal(e.parent).position - 1 for e in edges]
+        # (head positions, dependency relations, is remote for each one)
+        return {self.Edge(head_index, e.tag, e.attrib.get("remote", False))
+                for e, head_index in zip(edges, head_indices)
+                if head_index != terminal.position - 1 and  # avoid self loops
+                not self.omit_edge(e, tree)}  # different implementation for each subclass
+
+    def parent_multi_word(self, terminal, multi_words):
+        multi_word_text = terminal.attrib.get(self.MULTI_WORD_TEXT_ATTRIB)
+        if multi_word_text is None:
+            multi_words[0] = None
+        elif multi_words[0] is None or multi_word_text != multi_words[0].token.text:
+            multi_words[0] = self.Node(2 * [terminal.position], token=self.Token(multi_word_text, tag="_"))
+        else:
+            multi_words[0].position[-1] = terminal.position
+        return multi_words[0]
 
 
 class ConllConverter(DependencyConverter):
