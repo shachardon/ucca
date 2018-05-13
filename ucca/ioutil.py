@@ -61,9 +61,11 @@ class LazyLoadedPassages(object):
                     attempts -= 1
                 try:
                     passage = file2passage(file)  # XML or binary format
-                except (IOError, ParseError):  # Failed to read as passage file
+                except (IOError, ParseError) as e:  # Failed to read as passage file
                     base, ext = os.path.splitext(os.path.basename(file))
-                    converter = self.converters[ext.lstrip(".")]
+                    converter = self.converters.get(ext.lstrip("."))
+                    if converter is None:
+                        raise e
                     self._file_handle = open(file, encoding="utf-8")
                     self._split_iter = iter(converter(self._file_handle, passage_id=base, lang=self.lang))
             if self.split:
@@ -99,17 +101,17 @@ class LazyLoadedPassages(object):
         return bool(self.files)
 
 
-def get_passages_with_progress_bar(filename_patterns, desc=None):
-    t = tqdm(get_passages(filename_patterns), desc=desc, unit=" passages")
+def get_passages_with_progress_bar(filename_patterns, desc=None, converters=None):
+    t = tqdm(get_passages(filename_patterns, converters=converters), desc=desc, unit=" passages")
     for passage in t:
         t.set_postfix(ID=passage.ID)
         yield passage
 
 
-def get_passages(filename_patterns):
+def get_passages(filename_patterns, converters=None):
     for pattern in [filename_patterns] if isinstance(filename_patterns, str) else filename_patterns:
         for filenames in glob(pattern) or [pattern]:
-            for passage in read_files_and_dirs(filenames):
+            for passage in read_files_and_dirs(filenames, converters=converters):
                 yield passage
 
 
