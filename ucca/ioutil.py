@@ -1,12 +1,13 @@
 """Input/output utility functions for UCCA scripts."""
-import os
 import sys
 import time
 from collections import defaultdict
-from glob import glob
-from xml.etree.ElementTree import ParseError
+from itertools import filterfalse
 
+import os
+from glob import glob
 from tqdm import tqdm
+from xml.etree.ElementTree import ParseError
 
 from ucca.convert import file2passage, passage2file, from_text, to_text, split2segments
 from ucca.core import Passage
@@ -75,7 +76,6 @@ class LazyLoadedPassages(object):
                                         split2segments(p, is_sentences=self.sentences, lang=self.lang))
         if self._split_iter is not None:  # Either set before or initialized now
             try:
-                # noinspection PyTypeChecker
                 passage = next(self._split_iter)
             except StopIteration:  # Finished this converter
                 self._split_iter = None
@@ -111,8 +111,19 @@ def get_passages_with_progress_bar(filename_patterns, desc=None, converters=None
 def get_passages(filename_patterns, converters=None):
     for pattern in [filename_patterns] if isinstance(filename_patterns, str) else filename_patterns:
         for filenames in glob(pattern) or [pattern]:
-            for passage in read_files_and_dirs(filenames, converters=converters):
-                yield passage
+            yield from read_files_and_dirs(filenames, converters=converters)
+
+
+def list_files(files_and_dirs):
+    """
+    :param files_and_dirs: iterable of files and/or directories to look in
+    :return: all files given, plus any files directly under any directory given
+    """
+    for file_or_dir in [files_and_dirs] if isinstance(files_and_dirs, str) else files_and_dirs:
+        if os.path.isdir(file_or_dir):
+            yield from filterfalse(os.path.isdir, (os.path.join(file_or_dir, f) for f in os.listdir(file_or_dir)))
+        else:
+            yield file_or_dir
 
 
 def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, converters=None, lang="en"):
@@ -122,14 +133,10 @@ def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, conve
     :param paragraphs: whether to split to paragraphs
     :param converters: dict of input format converters to use based on the file extension
     :param lang: language to use for tokenization model
-    :return: list of (lazy-loaded) passages from all files given,
-             plus any files directly under any directory given
+    :return: lazy-loaded passages from all files given, plus any files directly under any directory given
     """
-    # TODO fix to a single list comprehension to preserve order; currently directories are moved to the end
-    files = [files_and_dirs] if isinstance(files_and_dirs, str) else list(files_and_dirs)
-    files += [os.path.join(d, f) for d in files if os.path.isdir(d) for f in os.listdir(d)]
-    files = [f for f in files if not os.path.isdir(f)]
-    return LazyLoadedPassages(files, sentences=sentences, paragraphs=paragraphs, converters=converters, lang=lang)
+    return LazyLoadedPassages(list_files(files_and_dirs), sentences=sentences, paragraphs=paragraphs,
+                              converters=converters, lang=lang)
 
 
 def write_passage(passage, output_format=None, binary=False, outdir=".", prefix="", converter=None, verbose=True):
