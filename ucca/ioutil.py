@@ -2,7 +2,7 @@
 import sys
 import time
 from collections import defaultdict
-from itertools import filterfalse
+from itertools import filterfalse, chain
 
 import os
 from glob import glob
@@ -68,7 +68,7 @@ class LazyLoadedPassages(object):
                     if converter is None:
                         raise
                     self._file_handle = open(file, encoding="utf-8")
-                    self._split_iter = iter(converter(self._file_handle, passage_id=base, lang=self.lang))
+                    self._split_iter = iter(converter(chain(self._file_handle, [""]), passage_id=base, lang=self.lang))
             if self.split:
                 if self._split_iter is None:
                     self._split_iter = (passage,)
