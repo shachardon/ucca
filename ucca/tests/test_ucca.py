@@ -697,6 +697,13 @@ class UtilTests(unittest.TestCase):
     #     diffutil.diff_passages(p, copy)
     #     self.assertTrue(p.equals(copy))
 
+    def test_load_passages(self):
+        """Test lazy-loading passages"""
+        files = ["test_files/standard3.%s" % s for s in ("xml", "conll", "export", "sdp")]
+        passages = ioutil.read_files_and_dirs(files, converters=FROM_FORMAT)
+        self.assertEqual(len(files), len(list(passages)), "Should load one passage per file")
+        self.assertEqual(len(files), len(passages))
+
     def test_shuffle_passages(self):
         """Test lazy-loading passages and shuffling them"""
         files = ["test_files/standard3.%s" % s for s in ("xml", "conll", "export", "sdp")]
