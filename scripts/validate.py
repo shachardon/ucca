@@ -1,12 +1,14 @@
-import argparse
 import sys
+
+import argparse
 
 from ucca.ioutil import get_passages_with_progress_bar
 from ucca.validation import validate
 
 
 def main(args):
-    errors = ((p.ID, list(validate(p))) for p in get_passages_with_progress_bar(args.filenames, desc="Validating", converters={}))
+    errors = ((p.ID, list(validate(p))) for p in get_passages_with_progress_bar(args.filenames, desc="Validating",
+                                                                                converters={}))
     errors = {k: v for k, v in errors if v}
     if errors:
         id_len = max(map(len, errors))
