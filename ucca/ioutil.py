@@ -61,11 +61,11 @@ class LazyLoadedPassages(object):
                     attempts -= 1
                 try:
                     passage = file2passage(file)  # XML or binary format
-                except (IOError, ParseError) as e:  # Failed to read as passage file
+                except (IOError, ParseError):  # Failed to read as passage file
                     base, ext = os.path.splitext(os.path.basename(file))
                     converter = self.converters.get(ext.lstrip("."))
                     if converter is None:
-                        raise e
+                        raise
                     self._file_handle = open(file, encoding="utf-8")
                     self._split_iter = iter(converter(self._file_handle, passage_id=base, lang=self.lang))
             if self.split:
