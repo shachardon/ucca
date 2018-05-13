@@ -38,6 +38,7 @@ class EdgeTags:
     Connector = 'N'
     Relator = 'R'
     Time = 'T'
+    Quantifier = 'Q'
     Linker = 'L'
     Punctuation = 'U'
     LinkRelation = 'LR'
@@ -191,6 +192,10 @@ class FoundationalNode(core.Node):
     @property
     def times(self):
         return _multiple_children_by_tag(self, EdgeTags.Time)
+
+    @property
+    def quantifiers(self):
+        return _multiple_children_by_tag(self, EdgeTags.Quantifier)
 
     @property
     def grounds(self):

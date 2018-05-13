@@ -115,7 +115,9 @@ class SiteCfg:
                      'Connector': EdgeTags.Connector,
                      'Role Marker': EdgeTags.Relator,
                      'Relator': EdgeTags.Relator,
-                     'Time': EdgeTags.Time}
+                     'Time': EdgeTags.Time,
+                     'Quantifier': EdgeTags.Quantifier,
+                     }
 
     """ mapping of layer1.EdgeTags to site XML tag attributes. """
     EdgeConversion = {EdgeTags.ParallelScene: 'Parallel Scene',
@@ -130,7 +132,9 @@ class SiteCfg:
                       EdgeTags.Ground: 'Ground',
                       EdgeTags.Connector: 'Connector',
                       EdgeTags.Relator: 'Relator',
-                      EdgeTags.Time: 'Time'}
+                      EdgeTags.Time: 'Time',
+                      EdgeTags.Quantifier: 'Quantifier',
+                      }
 
 
 class SiteUtil:
@@ -1228,6 +1232,7 @@ class DependencyConverter(FormatConverter):
         EdgeTags.Participant,
         EdgeTags.Adverbial,
         EdgeTags.Time,
+        EdgeTags.Quantifier,
         EdgeTags.Elaborator,
         EdgeTags.Relator,
         EdgeTags.Function,
