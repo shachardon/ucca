@@ -7,9 +7,10 @@ v1.2
 2018-04-12: exclude punctuation nodes regardless of edge tag
 """
 from collections import Counter, defaultdict, OrderedDict
+
 from operator import attrgetter
 
-from ucca import layer0, layer1
+from ucca import layer0, layer1, normalization
 from ucca.constructions import extract_edges, get_by_names, PRIMARY, DEFAULT
 from ucca.layer1 import EdgeTags, NodeTags
 
@@ -24,21 +25,6 @@ EQUIV = ((EdgeTags.Process, EdgeTags.State),
          (EdgeTags.ParallelScene, EdgeTags.Center),
          (EdgeTags.Connector, EdgeTags.Linker),
          (EdgeTags.Function, EdgeTags.Relator))
-
-
-def flatten_centers(p):
-    """
-    Whenever there are Cs inside Cs, remove the external C.
-    """
-    for unit in p.layer(layer1.LAYER_ID).all:
-        if unit.tag == NodeTags.Foundational and unit.ftag == EdgeTags.Center and \
-                                len(unit.centers) == len(unit.fparent.centers) == 1:
-            for e in unit.incoming:
-                if e.attrib.get("remote"):
-                    e.parent.add(e.tag, unit.centers[0], edge_attrib=e.attrib)
-            for e in unit.outgoing:
-                unit.fparent.add(e.tag, e.child, edge_attrib=e.attrib)
-            unit.destroy()
 
 
 def move_functions(p1, p2):
@@ -346,7 +332,7 @@ def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
         ref = converter(ref)
     if normalize:
         for passage in (guessed, ref):
-            flatten_centers(passage)  # flatten Cs inside Cs
+            normalization.normalize(passage)  # flatten Cs inside Cs
         move_functions(guessed, ref)  # move common Fs to be under the root
 
     evaluator = Evaluator(verbose, constructions, units, fscore, errors)
