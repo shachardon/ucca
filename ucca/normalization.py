@@ -17,11 +17,37 @@ def replace_edge_tags(node):
             edge.tag = replace_center(edge)
 
 
-def lower_common_ancestor(*nodes):
+def move_relators(node, l0):
+    if node.is_scene():
+        for edge in node:
+            if edge.tag == layer1.EdgeTags.Relator:
+                terminals = sorted(edge.child.get_terminals(), key=attrgetter("position"))
+                parent = highest_ancestor(by_position(l0, terminals[-1].position + 1),
+                                          *filter(None, (node.process, node.state)))
+                if parent:
+                    parent.add(edge.tag, edge.child, edge_attrib=edge.attrib)
+                    node.remove(edge)
+
+
+def highest_ancestor(included, *excluded):
+    parents = [included] if included else []
+    while parents:
+        node = parents.pop(0)
+        for edge in node.incoming:
+            if not edge.attrib.get("remote") and edge.parent.tag == layer1.NodeTags.Foundational:
+                if node.tag == layer1.NodeTags.Foundational and not node.terminals and \
+                        any(n in edge.parent.iter() for n in excluded):
+                    return node
+                parents.append(edge.parent)
+    return None
+
+
+def lowest_common_ancestor(*nodes):
     parents = [nodes[0]]
     while parents:
         for parent in parents:
-            if parent.tag == layer1.NodeTags.Foundational and all(n in parent.iter() for n in nodes[1:]):
+            if parent.tag == layer1.NodeTags.Foundational and not parent.terminals \
+                    and all(n in parent.iter() for n in nodes[1:]):
                 return parent
         parents = [p for n in parents for p in n.parents]
     return None
@@ -38,8 +64,8 @@ def move_punctuation(node, l0):
     for edge in node:
         if edge.child.tag == layer1.NodeTags.Punctuation:
             terminals = sorted(edge.child.children, key=attrgetter("position"))
-            parent = lower_common_ancestor(*filter(None, (by_position(l0, terminals[0].position - 1),
-                                                          by_position(l0, terminals[-1].position + 1))))
+            parent = lowest_common_ancestor(*filter(None, (by_position(l0, terminals[0].position - 1),
+                                                           by_position(l0, terminals[-1].position + 1))))
             parent.add(edge.tag, edge.child, edge_attrib=edge.attrib)
             node.remove(edge)
 
@@ -64,5 +90,6 @@ def normalize(passage, extra=False):
     for node in l1.all:
         if extra:
             replace_edge_tags(node)
+            move_relators(node, l0)
         move_punctuation(node, l0)
         flatten_centers(node)
