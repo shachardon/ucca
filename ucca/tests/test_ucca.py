@@ -6,6 +6,7 @@ import unittest
 import xml.etree.ElementTree as ETree
 
 from ucca import core, layer0, layer1, convert, textutil, ioutil, diffutil
+from ucca.convert import FROM_FORMAT
 from ucca.textutil import is_annotated
 
 
@@ -699,7 +700,7 @@ class UtilTests(unittest.TestCase):
     def test_shuffle_passages(self):
         """Test lazy-loading passages and shuffling them"""
         files = ["test_files/standard3.%s" % s for s in ("xml", "conll", "export", "sdp")]
-        passages = ioutil.read_files_and_dirs(files)
+        passages = ioutil.read_files_and_dirs(files, converters=FROM_FORMAT)
         print("Passages:\n" + "\n".join(str(p.layer(layer1.LAYER_ID).heads[0]) for p in passages))
         random.shuffle(passages)
         print("Shuffled passages:\n" + "\n".join(str(p.layer(layer1.LAYER_ID).heads[0]) for p in passages))

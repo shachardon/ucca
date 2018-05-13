@@ -114,7 +114,7 @@ def get_passages(filename_patterns, converters=None):
             yield from read_files_and_dirs(filenames, converters=converters)
 
 
-def list_files(files_and_dirs):
+def gen_files(files_and_dirs):
     """
     :param files_and_dirs: iterable of files and/or directories to look in
     :return: all files given, plus any files directly under any directory given
@@ -135,7 +135,7 @@ def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, conve
     :param lang: language to use for tokenization model
     :return: lazy-loaded passages from all files given, plus any files directly under any directory given
     """
-    return LazyLoadedPassages(list_files(files_and_dirs), sentences=sentences, paragraphs=paragraphs,
+    return LazyLoadedPassages(list(gen_files(files_and_dirs)), sentences=sentences, paragraphs=paragraphs,
                               converters=converters, lang=lang)
 
 
