@@ -11,16 +11,17 @@ The possible other formats are:
     sdp (SemEval 2015 semantic dependency parsing shared task)
 """
 
+import sys
+from collections import defaultdict
+from itertools import islice, repeat
+
 import json
 import operator
 import os
 import pickle
 import re
-import sys
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
-from collections import defaultdict
-from itertools import islice, repeat
 
 from ucca import textutil, core, layer0, layer1
 from ucca.layer1 import EdgeTags
@@ -1566,7 +1567,7 @@ class ExportConverter(FormatConverter):
     def from_format(self, lines, passage_id, split=False):
         self.passage_id = passage_id
         self.node_by_id = None
-        for line in lines:
+        for line in filter(str.strip, lines):
             if self.node_by_id is None:
                 self._init_nodes(line)
             elif line.startswith("#EOS"):  # finished reading input for a passage
