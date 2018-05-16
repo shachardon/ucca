@@ -1,9 +1,10 @@
-import operator
-import warnings
 from collections import defaultdict
 
 import matplotlib.cbook
 import networkx as nx
+import operator
+import re
+import warnings
 
 from ucca import layer0, layer1
 from ucca.layer1 import Linkage
@@ -56,6 +57,31 @@ def topological_layout(passage):
     return pos
 
 
+TEX_ESCAPE_TABLE = {
+    "&": r"\&",
+    "%": r"\%",
+    "$": r"\$",
+    "#": r"\#",
+    "_": r"\_",
+    "{": r"\{",
+    "}": r"\}",
+    "~": r"\textasciitilde{}",
+    "^": r"\^{}",
+    "\\": r"\textbackslash{}",
+    "<": r"\textless ",
+    ">": r"\textgreater ",
+}
+TEX_ESCAPE_PATTERN = re.compile("|".join(map(re.escape, sorted(TEX_ESCAPE_TABLE, key=len, reverse=True))))
+
+
+def tex_escape(text):
+    """
+        :param text: a plain text message
+        :return: the message escaped to appear correctly in LaTeX
+    """
+    return TEX_ESCAPE_PATTERN.sub(lambda match: TEX_ESCAPE_TABLE[match.group()], text)
+
+
 def tikz(p, indent=None):
     # child {node (After) [word] {After} edge from parent node[above] {\scriptsize $L$}}
     # child {node (graduation) [circle] {}
@@ -77,21 +103,17 @@ def tikz(p, indent=None):
     # \draw[dashed,->] (graduation) to node [auto] {\scriptsize $A$} (John);
     if indent is None:
         return r"""
-\begin{tikzpicture}[->,level distance=26mm,
-  level 1/.style={sibling distance=10cm},
-  level 2/.style={sibling distance=7cm},
-  level 3/.style={sibling distance=2cm},
+\begin{tikzpicture}[->,level distance=1cm,
+  level 1/.style={sibling distance=4cm},
+  level 2/.style={sibling distance=15mm},
+  level 3/.style={sibling distance=15mm},
   every circle node/.append style={fill=black}]
   \tikzstyle{word} = [font=\rmfamily,color=black]
   """ + "\\" + tikz(p.layer(layer1.LAYER_ID).heads[0], indent=1) + r"""
 ;
 \end{tikzpicture}"""
-    s = "node (" + p.ID.replace(".", "_") + ") "
-    if p.terminals:
-        s += "[word] {" + " ".join(t.text for t in p.terminals) + "} "
-    else:
-        s += ("\n" + indent * "  ").join(["[circle] {}", "{"] +
-                                         ["child {" + tikz(e.child, indent + 1) +
-                                          "edge from parent node[auto] {\scriptsize $" + e.tag + "$}}"
-                                          for e in p.outgoing if not e.attrib.get("remote")]) + " }"
-    return s
+    return "node (" + p.ID.replace(".", "_") + ") " + \
+           (("[word] {" + " ".join(tex_escape(t.text) for t in sorted(p.terminals, key=operator.attrgetter("position")))
+             + "} ") if p.terminals else ("\n" + indent * "  ").join(["[circle] {}", "{"] + [
+               "child {" + tikz(e.child, indent + 1) + " edge from parent node[auto]  {\scriptsize $" + e.tag + "$}}"
+               for e in sorted(p, key=lambda f: f.child.start_position) if not e.attrib.get("remote")] + ["}"]))
