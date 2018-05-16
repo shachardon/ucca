@@ -102,6 +102,7 @@ def tikz(p, indent=None):
     # ;
     # \draw[dashed,->] (graduation) to node [auto] {\scriptsize $A$} (John);
     if indent is None:
+        l1 = p.layer(layer1.LAYER_ID)
         return r"""
 \begin{tikzpicture}[->,level distance=1cm,
   level 1/.style={sibling distance=4cm},
@@ -109,9 +110,10 @@ def tikz(p, indent=None):
   level 3/.style={sibling distance=15mm},
   every circle node/.append style={fill=black}]
   \tikzstyle{word} = [font=\rmfamily,color=black]
-  """ + "\\" + tikz(p.layer(layer1.LAYER_ID).heads[0], indent=1) + r"""
-;
-\end{tikzpicture}"""
+  """ + "\\" + tikz(l1.heads[0], indent=1) + \
+               "\n".join([";"] + ["  \draw[dashed,->] (%s) to node [auto] {\scriptsize $%s$} (%s);" %
+                                  (e.parent.ID.replace(".", "_"), e.tag, e.child.ID.replace(".", "_"))
+                                  for n in l1.all for e in n if e.attrib.get("remote")] + [r"\end{tikzpicture}"])
     return "node (" + p.ID.replace(".", "_") + ") " + \
            (("[word] {" + " ".join(tex_escape(t.text) for t in sorted(p.terminals, key=operator.attrgetter("position")))
              + "} ") if p.terminals else ("\n" + indent * "  ").join(["[circle] {}", "{"] + [
