@@ -1538,7 +1538,10 @@ class ExportConverter(FormatConverter):
                 if parent != -1:
                     del self.pending_nodes[i]
                     implicit = node_id not in self.node_ids_with_children
-                    self.node_by_id[node_id] = l1.add_fnode(parent, edge_tag, implicit=implicit)
+                    node = l1.add_fnode(parent, edge_tag, implicit=implicit)
+                    if edge_tag == EdgeTags.Punctuation:
+                        node.tag = layer1.NodeTags.Punctuation
+                    self.node_by_id[node_id] = node
 
         # add remotes
         for parent_id, edge_tag, node_id in self.remotes:
