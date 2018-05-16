@@ -158,7 +158,7 @@
         <attributes />
       </edge>
     </node>
-    <node ID="1.12" type="FN">
+    <node ID="1.12" type="PNCT">
       <attributes />
       <edge toID="0.11" type="Terminal">
         <attributes />
@@ -191,7 +191,7 @@
         <attributes />
       </edge>
     </node>
-    <node ID="1.17" type="FN">
+    <node ID="1.17" type="PNCT">
       <attributes />
       <edge toID="0.5" type="Terminal">
         <attributes />
