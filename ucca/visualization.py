@@ -2,9 +2,9 @@ from collections import defaultdict
 
 import matplotlib.cbook
 import networkx as nx
-import operator
 import re
 import warnings
+from operator import attrgetter
 
 from ucca import layer0, layer1
 from ucca.layer1 import Linkage
@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 def draw(passage):
     G = nx.DiGraph()
-    terminals = sorted(passage.layer(layer0.LAYER_ID).all, key=operator.attrgetter("position"))
+    terminals = sorted(passage.layer(layer0.LAYER_ID).all, key=attrgetter("position"))
     G.add_nodes_from([(n.ID, {"label": n.text, "node_color": "white"}) for n in terminals])
     G.add_nodes_from([(n.ID, {"label": "IMPLICIT" if n.attrib.get("implicit") else "",
                               "node_color": "gray" if isinstance(n, Linkage) else (
@@ -114,8 +114,14 @@ def tikz(p, indent=None):
                "\n".join([";"] + ["  \draw[dashed,->] (%s) to node [auto] {\scriptsize $%s$} (%s);" %
                                   (e.parent.ID.replace(".", "_"), e.tag, e.child.ID.replace(".", "_"))
                                   for n in l1.all for e in n if e.attrib.get("remote")] + [r"\end{tikzpicture}"])
-    return "node (" + p.ID.replace(".", "_") + ") " + \
-           (("[word] {" + " ".join(tex_escape(t.text) for t in sorted(p.terminals, key=operator.attrgetter("position")))
-             + "} ") if p.terminals else ("\n" + indent * "  ").join(["[circle] {}", "{"] + [
-               "child {" + tikz(e.child, indent + 1) + " edge from parent node[auto]  {\scriptsize $" + e.tag + "$}}"
-               for e in sorted(p, key=lambda f: f.child.start_position) if not e.attrib.get("remote")] + ["}"]))
+    return "node (" + p.ID.replace(".", "_") + ") " + (
+        ("[word] {" +
+         (" ".join(tex_escape(t.text)
+                   for t in sorted(p.terminals, key=attrgetter("position"))) or r"\textbf{IMPLICIT}")
+         + "} ") if p.terminals or p.attrib.get("implicit") else ("\n" + indent * "  ").join(
+            ["[circle] {}", "{"] +
+            ["child {" + tikz(e.child, indent + 1) +
+             " edge from parent node[auto]  {\scriptsize $" + e.tag + "$}}"
+             for e in sorted(p, key=lambda f: f.child.start_position)
+             if not e.attrib.get("remote")] +
+            ["}"]))
