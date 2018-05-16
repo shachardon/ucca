@@ -3,6 +3,8 @@
 import sys
 
 import os
+import re
+from glob import glob
 from setuptools import setup, find_packages
 
 try:
@@ -10,6 +12,13 @@ try:
 except NameError:
     this_file = sys.argv[0]
 os.chdir(os.path.dirname(os.path.abspath(this_file)))
+
+extras_require = {}
+install_requires = []
+for requirements_file in glob("requirements.*txt"):
+    suffix = re.match("[^.]*\.(.*)\.?txt", requirements_file).group(1).rstrip(".")
+    with open(requirements_file) as f:
+        (extras_require.setdefault(suffix, []) if suffix else install_requires).extend(f.read().splitlines())
 
 try:
     import pypandoc
@@ -24,9 +33,8 @@ except (IOError, ImportError, RuntimeError):
 
 setup(name="UCCA",
       version="1.0.69",
-      install_requires=["numpy", "spacy==2.0.11", "requests", "tqdm"],
-      extras_require={"visualize": ["matplotlib", "networkx"],
-                      "distances": ["distances", "zss", "munkres"]},
+      install_requires=install_requires,
+      extras_require=extras_require,
       description="Universal Conceptual Cognitive Annotation",
       long_description=long_description,
       author="Daniel Hershcovich",

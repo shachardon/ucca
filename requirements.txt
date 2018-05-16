@@ -1,0 +1,4 @@
+numpy>=1.13.3
+spacy==2.0.11
+requests>=2.18.4
+tqdm>=4.23.3
