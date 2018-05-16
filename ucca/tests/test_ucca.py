@@ -594,7 +594,7 @@ class ConversionTests(unittest.TestCase):
         # Put the same sentence twice and try converting again
         for converted_passage in convert.from_conll(converted * 2, passage.ID):
             ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.conll.xml"))
-        self.assertTrue(converted_passage.equals(ref))
+        self.assertTrue(converted_passage.equals(ref), "Passage does not match expected")
 
     def test_to_sdp(self):
         passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
@@ -605,7 +605,7 @@ class ConversionTests(unittest.TestCase):
         converted_passage = next(convert.from_sdp(converted, passage.ID))
         # ioutil.passage2file(converted_passage, "test_files/standard3.sdp.xml")
         ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.sdp.xml"))
-        self.assertTrue(converted_passage.equals(ref))
+        self.assertTrue(converted_passage.equals(ref), "Passage does not match expected")
 
     def test_to_export(self):
         passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
@@ -616,7 +616,7 @@ class ConversionTests(unittest.TestCase):
         converted_passage = next(convert.from_export(converted, passage.ID))
         # ioutil.passage2file(converted_passage, "test_files/standard3.export.xml")
         ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.export.xml"))
-        self.assertTrue(converted_passage.equals(ref))
+        self.assertTrue(converted_passage.equals(ref), "Passage does not match expected")
 
 
 class UtilTests(unittest.TestCase):
