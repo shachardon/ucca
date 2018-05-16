@@ -43,7 +43,7 @@ def highest_ancestor(included, *excluded):
 
 
 def lowest_common_ancestor(*nodes):
-    parents = [nodes[0]]
+    parents = [nodes[0]] if nodes else []
     while parents:
         for parent in parents:
             if parent.tag == layer1.NodeTags.Foundational and not parent.terminals \
@@ -61,19 +61,15 @@ def by_position(l0, position):
 
 
 def punct_parent(l0, *terminals):
-    return lowest_common_ancestor(*filter(None, (by_position(l0, terminals[0].position - 1),
-                                                 by_position(l0, terminals[-1].position + 1))))
+    return lowest_common_ancestor(*filter(lambda n: n is not None and n.tag == layer0.NodeTags.Word,
+                                          (by_position(l0, terminals[0].position - 1),
+                                           by_position(l0, terminals[-1].position + 1))))
 
 
-def move_punctuation(node, l0):
-    for edge in node:
-        if edge.child.tag == layer1.NodeTags.Punctuation:
-            terminals = sorted(edge.child.children, key=attrgetter("position"))
-            punct_parent(l0, *terminals).add(edge.tag, edge.child, edge_attrib=edge.attrib)
-            node.remove(edge)
-
-
-def attach_orphan_punctutation(l0, l1):
+def attach_punct(l0, l1):
+    for node in l1.all:
+        if node.tag == layer1.NodeTags.Punctuation:
+            node.destroy()
     for terminal in l0.all:
         if layer0.is_punct(terminal) and not terminal.incoming:
             l1.add_punct(punct_parent(l0, terminal), terminal)
@@ -96,10 +92,9 @@ def flatten_centers(node):
 def normalize(passage, extra=False):
     l0 = passage.layer(layer0.LAYER_ID)
     l1 = passage.layer(layer1.LAYER_ID)
+    attach_punct(l0, l1)
     for node in l1.all:
         if extra:
             replace_edge_tags(node)
             move_relators(node, l0)
-        move_punctuation(node, l0)
-        attach_orphan_punctutation(l0, l1)
         flatten_centers(node)
