@@ -29,6 +29,16 @@ def move_relators(node, l0):
                     node.remove(edge)
 
 
+def separate_scenes(node, l1):
+    if (node.is_scene() or node.participants) and node.parallel_scenes:
+        scene = l1.add_fnode(node, layer1.EdgeTags.ParallelScene)
+        for edge in node:
+            if edge.tag not in (layer1.EdgeTags.ParallelScene, layer1.EdgeTags.Punctuation, layer1.EdgeTags.Linker,
+                                layer1.EdgeTags.Ground):
+                scene.add(edge.tag, edge.child, edge_attrib=edge.attrib)
+                node.remove(edge)
+
+
 def highest_ancestor(included, *excluded):
     parents = [included] if included else []
     while parents:
@@ -96,5 +106,6 @@ def normalize(passage, extra=False):
         if extra:
             replace_edge_tags(node)
             move_relators(node, l0)
+            separate_scenes(node, l1)
         flatten_centers(node)
     attach_punct(l0, l1)
