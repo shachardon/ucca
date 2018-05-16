@@ -92,9 +92,9 @@ def flatten_centers(node):
 def normalize(passage, extra=False):
     l0 = passage.layer(layer0.LAYER_ID)
     l1 = passage.layer(layer1.LAYER_ID)
-    attach_punct(l0, l1)
     for node in l1.all:
         if extra:
             replace_edge_tags(node)
             move_relators(node, l0)
         flatten_centers(node)
+    attach_punct(l0, l1)
