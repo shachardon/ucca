@@ -961,7 +961,7 @@ class DependencyConverter(FormatConverter):
 
     class Node:
         def __init__(self, position=0, incoming=None, token=None, terminal=None, is_head=True, is_top=False,
-                     is_multi_word=False, parent_multi_word=None):
+                     is_multi_word=False, parent_multi_word=None, frame=None, enhanced=None, misc=None):
             self.position = position
             self.incoming = []
             if incoming is not None:
@@ -975,6 +975,9 @@ class DependencyConverter(FormatConverter):
             self.parent_multi_word = parent_multi_word
             self.node = self.level = self.preterminal = None
             self.heads_visited = set()  # for topological sort
+            self.frame = "_" if frame is None else frame
+            self.enhanced = "_" if enhanced is None else enhanced
+            self.misc = "_" if misc is None else misc
 
         def add_edges(self, edges):
             for edge in edges:
@@ -1026,10 +1029,13 @@ class DependencyConverter(FormatConverter):
             return hash((self.head_index, self.dependent, self.rel, self.remote))
 
     class Token:
-        def __init__(self, text, tag):
+        def __init__(self, text, tag, lemma=None, pos=None, features=None):
             self.text = text
             self.tag = tag
             self.paragraph = None
+            self.lemma = "_" if lemma is None else lemma
+            self.pos = tag if pos is None else pos
+            self.features = "_" if features is None else features
 
     def __init__(self, mark_aux=False):
         self.mark_aux = mark_aux
@@ -1199,6 +1205,9 @@ class DependencyConverter(FormatConverter):
                     text=dep_node.token.text,
                     punct=self.is_punct(dep_node),
                     paragraph=dep_node.token.paragraph)
+                dep_node.terminal.extra.update(tag=dep_node.token.tag, pos=dep_node.token.pos,
+                                               lemma=dep_node.token.lemma, features=dep_node.token.features,
+                                               enhanced=dep_node.enhanced, frame=dep_node.frame)
                 if dep_node.parent_multi_word:  # part of a multi-word token (e.g. zum = zu + dem)
                     dep_node.terminal.attrib[self.MULTI_WORD_TEXT_ATTRIB] = dep_node.parent_multi_word.token.text
 
@@ -1333,8 +1342,13 @@ class DependencyConverter(FormatConverter):
         terminals = passage.layer(layer0.LAYER_ID).all  # terminal units from the passage
         multi_words = [None]
         dep_nodes = [self.Node(terminal.position, self.incoming_edges(terminal, test, tree), terminal=terminal,
-                               is_top=self.is_top(terminal), token=self.Token(terminal.text, terminal.tag),
-                               parent_multi_word=self.parent_multi_word(terminal, multi_words))
+                               is_top=self.is_top(terminal),
+                               token=self.Token(terminal.text, terminal.tag,
+                                                lemma=terminal.extra.get("lemma"),
+                                                pos=terminal.extra.get("pos"),
+                                                features=terminal.extra.get("features")),
+                               parent_multi_word=self.parent_multi_word(terminal, multi_words),
+                               enhanced=terminal.extra.get("enhanced"), misc=terminal.extra.get("misc"))
                      for terminal in sorted(terminals, key=operator.attrgetter("position"))]
         self._link_heads(dep_nodes)
         self.preprocess(dep_nodes)
@@ -1369,29 +1383,34 @@ class ConllConverter(DependencyConverter):
 
     def read_line(self, line, previous_node, copy_of):
         fields = self.split_line(line)
-        # id, form, lemma, coarse pos, fine pos, features, head, relation, [enhanced], [enhanced]
-        position, text, _, tag, _, _, head_position, rel, *enhanced = fields[:10]
+        # id, form, lemma, coarse pos, fine pos, features, head, relation, [enhanced], [misc]
+        position, text, lemma, tag, pos, features, head_position, rel, *enhanced_misc = fields[:10]
         edges = []
         if head_position and head_position != "_":
             edges.append(DependencyConverter.Edge.create(head_position, rel))
-        for i, enhanced_str in enumerate(enhanced):
-            if enhanced_str and enhanced_str != "_":
-                for enhanced_spec in enhanced_str.split("|"):
-                    if i == 0:
-                        enhanced_head_position, _, enhanced_rel = enhanced_spec.partition(":")
-                        if enhanced_head_position not in (position, head_position):
-                            edges.append(DependencyConverter.Edge(enhanced_head_position, enhanced_rel, remote=True))
-                    elif i == 1:
-                        m = re.match("CopyOf=(\d+)", enhanced_spec)
-                        if m:
-                            copy_of[position] = m.group(1)
+        if len(enhanced_misc) < 1 or enhanced_misc[0] == "_":
+            enhanced = "_"
+        else:
+            enhanced = enhanced_misc[0]
+            for enhanced_spec in enhanced.split("|"):
+                enhanced_head_position, _, enhanced_rel = enhanced_spec.partition(":")
+                if enhanced_head_position not in (position, head_position):
+                    edges.append(DependencyConverter.Edge(enhanced_head_position, enhanced_rel, remote=True))
+        if len(enhanced_misc) < 2 or enhanced_misc[1] == "_":
+            misc = "_"
+        else:
+            misc = enhanced_misc[1]
+            m = re.match("CopyOf=(\d+)", misc)
+            if m:
+                copy_of[position] = m.group(1)
         if "." in position:
             return None
         positions = list(map(int, position.split("-")))
         if not edges or previous_node is None or previous_node.position != positions[0]:
             is_multi_word = len(positions) > 1
             return DependencyConverter.Node(positions if is_multi_word else positions[0], edges,
-                                            token=DependencyConverter.Token(text, tag), is_multi_word=is_multi_word)
+                                            token=DependencyConverter.Token(text, tag, lemma, pos, features),
+                                            is_multi_word=is_multi_word, enhanced=enhanced, misc=misc)
         previous_node.add_edges(edges)
 
     def generate_lines(self, passage_id, dep_nodes, test, tree):
@@ -1402,18 +1421,18 @@ class ConllConverter(DependencyConverter):
             assert position == dep_node.position
             if dep_node.parent_multi_word and position == dep_node.parent_multi_word.position[0]:
                 yield ["-".join(map(str, dep_node.parent_multi_word.position)), dep_node.parent_multi_word.text] + \
-                      (6 if test else 8) * ["_"]
-            tag = dep_node.token.tag
-            fields = [position, dep_node.token.text, "_", tag, tag, "_"]
+                      8 * ["_"]
+            fields = [position, dep_node.token.text, dep_node.token.lemma, dep_node.token.tag, dep_node.token.pos,
+                      dep_node.token.features]
             if test:
-                yield fields + 2 * ["_"]   # projective head, projective dependency relation (optional)
+                yield fields + 4 * ["_"]   # head, relation, enhanced, misc
             else:
                 heads = [(e.head_index + 1, e.rel + ("*" if e.remote else "")) for e in dep_node.incoming] or \
                         [(0, DependencyConverter.ROOT)]
                 if tree:
                     heads = [heads[0]]
                 for head in heads:
-                    yield fields + list(head) + 2 * ["_"]
+                    yield fields + list(head) + [dep_node.enhanced, dep_node.misc]
 
     def omit_edge(self, edge, tree, linkage=False):
         return (tree or not linkage) and edge.tag == EdgeTags.LinkArgument or tree and edge.attrib.get("remote")
@@ -1426,12 +1445,12 @@ class SdpConverter(DependencyConverter):
     def read_line(self, line, previous_node, copy_of):
         fields = self.split_line(line)
         # id, form, lemma, pos, top, pred, frame, arg1, arg2, ...
-        position, text, _, tag, top, pred, _ = fields[:7]
+        position, text, lemma, tag, top, pred, frame = fields[:7]
         # incoming: (head positions, dependency relations, is remote for each one)
         return DependencyConverter.Node(
             int(position), [DependencyConverter.Edge.create(i + 1, rel)
                             for i, rel in enumerate(fields[7:]) if rel != "_"] or self.edges_for_orphan(top == "+"),
-            token=DependencyConverter.Token(text, tag), is_head=(pred == "+"), is_top=(top == "+"))
+            token=DependencyConverter.Token(text, tag, lemma), is_head=(pred == "+"), is_top=(top == "+"), frame=frame)
 
     @staticmethod
     def edges_for_orphan(top):
@@ -1446,7 +1465,7 @@ class SdpConverter(DependencyConverter):
             assert position == dep_node.position
             tag = dep_node.token.tag
             pred = "+" if i in preds else "-"
-            fields = [position, dep_node.token.text, "_", tag]
+            fields = [position, dep_node.token.text, dep_node.token.lemma, tag]
             if not test:
                 head_preds = [heads.get(pred, "_") for pred in preds]
                 if tree and head_preds:
