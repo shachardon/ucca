@@ -7,6 +7,8 @@ import re
 from glob import glob
 from setuptools import setup, find_packages
 
+from ucca.__version__ import VERSION
+
 try:
     this_file = __file__
 except NameError:
@@ -32,7 +34,7 @@ except (IOError, ImportError, RuntimeError):
 
 
 setup(name="UCCA",
-      version="1.0.70",
+      version=VERSION,
       install_requires=install_requires,
       extras_require=extras_require,
       description="Universal Conceptual Cognitive Annotation",
