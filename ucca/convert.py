@@ -1829,6 +1829,8 @@ def join_passages(passages, passage_id=None, remarks=False):
     :param remarks: add original node ID as remarks to the new nodes
     :return: joined passage
     """
+    if not passages:
+        raise ValueError("Cannot join empty list of passages")
     other = core.Passage(ID=passage_id or passages[0].ID, attrib=passages[0].attrib.copy())
     other.extra = passages[0].extra.copy()
     l0 = passages[0].layer(layer0.LAYER_ID)
