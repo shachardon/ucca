@@ -1,11 +1,11 @@
 from ucca import layer1
-from .conftest import create_passage, create_discontiguous
+from .conftest import l1_passage, discontiguous
 
 """Tests layer1 module functionality and correctness."""
 
 
 def test_creation():
-    p = create_passage()
+    p = l1_passage()
     head = p.layer("1").heads[0]
     assert [x.tag for x in head] == ["L", "H", "H", "U"]
     assert [x.child.position for x in head.children[0]] == [1]
@@ -17,7 +17,7 @@ def test_creation():
 
 
 def test_fnodes():
-    p = create_passage()
+    p = l1_passage()
     l0 = p.layer("0")
     l1 = p.layer("1")
 
@@ -51,7 +51,7 @@ def test_fnodes():
 
 
 def test_layer1():
-    p = create_passage()
+    p = l1_passage()
     l1 = p.layer("1")
 
     head, lkg1, lkg2 = l1.heads
@@ -85,7 +85,7 @@ def test_layer1():
 
 
 def test_str():
-    p = create_passage()
+    p = l1_passage()
     assert [str(x) for x in p.layer("1").heads] == \
            ["[L 1] [H [P 2 3 4 5] [A 6 7 8 9] [U 10] "
             "... [A* 15] ] [H [H [P* 2 3 4 5] [A 11 12 "
@@ -95,7 +95,7 @@ def test_str():
 
 
 def test_destroy():
-    p = create_passage()
+    p = l1_passage()
     l1 = p.layer("1")
 
     head, lkg1, lkg2 = l1.heads
@@ -112,7 +112,7 @@ def test_destroy():
 
 def test_discontiguous():
     """Tests FNode.discontiguous and FNode.get_sequences"""
-    p = create_discontiguous()
+    p = discontiguous()
     l1 = p.layer("1")
     head = l1.heads[0]
     ps1, ps2, ps3 = head.children

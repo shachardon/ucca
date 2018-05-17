@@ -3,11 +3,11 @@
 import pytest
 
 from ucca import core, layer0, layer1
-from .conftest import create_basic_passage, create_passage
+from .conftest import basic, PASSAGES
 
 
 def test_creation():
-    p = create_basic_passage()
+    p = basic()
 
     assert p.ID == "1"
     assert p.root == p
@@ -49,7 +49,7 @@ def test_creation():
 
 
 def test_modifying():
-    p = create_basic_passage()
+    p = basic()
     l1, l2 = p.layer("1"), p.layer("2")
     node11, node12, node13 = l1.all
     node22, node21 = l2.all
@@ -147,9 +147,10 @@ def test_equals():
     assert not (p1.equals(p2) or p2.equals(p1))
 
 
-def test_copying():
+@pytest.mark.parametrize("create", PASSAGES)
+def test_copying(create):
     # we don't need such a complex passage, but it will work anyway
-    p1 = create_passage()
+    p1 = create()
 
     p2 = p1.copy(())
     assert p1.ID == p2.ID
@@ -163,7 +164,7 @@ def test_copying():
 
 
 def test_iteration():
-    p = create_basic_passage()
+    p = basic()
     l1, l2 = p.layer("1"), p.layer("2")
     node11, node12, node13 = l1.all
     node22, node21 = l2.all

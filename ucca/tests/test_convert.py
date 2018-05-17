@@ -2,7 +2,7 @@ import pytest
 import xml.etree.ElementTree as ETree
 
 from ucca import layer0, layer1, convert
-from .conftest import load_xml
+from .conftest import loaded, load_xml
 
 """Tests convert module correctness and API."""
 
@@ -140,7 +140,7 @@ def test_to_standard():
 
 
 def test_from_standard():
-    passage = convert.from_standard(load_xml("test_files/standard3.xml"))
+    passage = loaded()
     ref = convert.from_site(load_xml("test_files/site3.xml"))
     assert passage.equals(ref, ordered=True)
 
@@ -171,13 +171,13 @@ def test_from_text_long():
 
 
 def test_to_text():
-    passage = convert.from_standard(load_xml("test_files/standard3.xml"))
+    passage = loaded()
     assert convert.to_text(passage, False)[0] == "1 2 3 4 . 6 7 8 9 10 . 12 13 14 15"
     assert convert.to_text(passage, True) == ["1 2 3 4 .", "6 7 8 9 10 .", "12 13 14 15"]
 
 
 def test_to_site():
-    passage = convert.from_standard(load_xml("test_files/standard3.xml"))
+    passage = loaded()
     root = convert.to_site(passage)
     copy = convert.from_site(root)
     assert passage.equals(copy)
@@ -208,7 +208,7 @@ def test_from_dep(converter, lines, num_passages, trailing_newlines):
 
 
 def test_to_conll():
-    passage = convert.from_standard(load_xml("test_files/standard3.xml"))
+    passage = loaded()
     converted = convert.to_conll(passage)
     with open("test_files/standard3.conll", encoding="utf-8") as f:
         # f.write("\n".join(converted))
@@ -224,7 +224,7 @@ def test_to_conll():
 
 
 def test_to_sdp():
-    passage = convert.from_standard(load_xml("test_files/standard3.xml"))
+    passage = loaded()
     converted = convert.to_sdp(passage)
     with open("test_files/standard3.sdp", encoding="utf-8") as f:
         # f.write("\n".join(converted))
@@ -236,7 +236,7 @@ def test_to_sdp():
 
 
 def test_to_export():
-    passage = convert.from_standard(load_xml("test_files/standard3.xml"))
+    passage = loaded()
     converted = convert.to_export(passage)
     with open("test_files/standard3.export", encoding="utf-8") as f:
         # f.write("\n".join(converted))

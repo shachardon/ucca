@@ -1,12 +1,19 @@
 import operator
 import xml.etree.ElementTree as ETree
 
-from ucca import core, layer0, layer1
+from ucca import core, layer0, layer1, convert
 
 """Utilities for tests."""
 
 
-def create_basic_passage():
+def empty():
+    p = core.Passage(ID="1")
+    layer0.Layer0(p)
+    layer1.Layer1(p)
+    return p
+
+
+def basic():
     """Creates a basic :class:Passage to tinker with.
 
     Passage structure is as follows:
@@ -46,7 +53,7 @@ def create_basic_passage():
     return p
 
 
-def create_passage():
+def l1_passage():
     """Creates a Passage to work with using layer1 objects.
 
     Annotation layout (what annotation each terminal has):
@@ -128,7 +135,7 @@ def create_passage():
     return p
 
 
-def create_multi_passage():
+def multi_sent():
     """Creates a :class:Passage with multiple sentences and paragraphs.
 
     Passage: [1 2 [3 P] H] . [[5 6 . P] H]
@@ -167,7 +174,7 @@ def create_multi_passage():
     return p
 
 
-def create_crossing_passage():
+def crossing():
     """Creates a :class:Passage with multiple sentences and paragraphs, with crossing edges.
 
     Passage: [1 2 [3 P(remote)] H] .
@@ -200,7 +207,7 @@ def create_crossing_passage():
     return p
 
 
-def create_discontiguous():
+def discontiguous():
     """Creates a highly-discontiguous Passage object."""
     p = core.Passage("1")
     l0 = layer0.Layer0(p)
@@ -262,9 +269,16 @@ def create_discontiguous():
     return p
 
 
+def loaded():
+    return convert.from_standard(load_xml("test_files/standard3.xml"))
+
+
 def load_xml(path):
     """XML file path ==> root element
     :param path: path to XML file
     """
     with open(path, encoding="utf-8") as f:
         return ETree.ElementTree().parse(f)
+
+
+PASSAGES = (loaded, multi_sent, crossing, discontiguous, l1_passage, empty)
