@@ -213,7 +213,7 @@ def is_annotated(passage, as_array):
     l0 = passage.layer(layer0.LAYER_ID)
     if as_array:
         docs = l0.extra.get("doc")
-        return docs is not None and len(docs) == max(t.paragraph for t in l0.all)
+        return not l0.all or docs is not None and len(docs) == max(t.paragraph for t in l0.all)
     return all(a.key in t.extra for t in l0.all for a in Attr)
 
 
