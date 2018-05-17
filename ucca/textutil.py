@@ -1,14 +1,14 @@
 """Utility functions for UCCA package."""
-import os
 import sys
 import time
 from collections import OrderedDict
 from collections import deque
-from enum import Enum
 from itertools import groupby, islice
-from operator import attrgetter, itemgetter
 
 import numpy as np
+import os
+from enum import Enum
+from operator import attrgetter, itemgetter
 from tqdm import tqdm
 
 from ucca import layer0, layer1
@@ -262,6 +262,8 @@ def break2sentences(passage, lang="en", *args, **kwargs):
     del args, kwargs
     l1 = passage.layer(layer1.LAYER_ID)
     terminals = extract_terminals(passage)
+    if not terminals:
+        return []
     if any(n.outgoing for n in l1.all):  # Passage is labeled
         ps_ends = [ps.end_position for ps in l1.top_scenes]
         ps_starts = [ps.start_position for ps in l1.top_scenes]
@@ -298,6 +300,8 @@ def break2paragraphs(passage, return_terminals=False, *args, **kwargs):
     """
     del args, kwargs
     terminals = list(extract_terminals(passage))
+    if not terminals:
+        return []
     return [list(p) for _, p in groupby(terminals, key=attrgetter("paragraph"))] if return_terminals else \
         [t.position - 1 for t in terminals if t.position > 1 and t.para_pos == 1] + [terminals[-1].position]
 
