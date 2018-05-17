@@ -178,6 +178,10 @@ class _AttributeDict:
         self._dict[key] = value
 
     @ModifyPassage
+    def update(self, values):
+        self._dict.update(values)
+
+    @ModifyPassage
     def __delitem__(self, key):
         del self._dict[key]
 
