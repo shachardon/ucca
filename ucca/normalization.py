@@ -17,15 +17,16 @@ def replace_edge_tags(node):
             edge.tag = replace_center(edge)
 
 
-def move_elements(node, tag, parent_tag):
+def move_elements(node, tags, parent_tags, forward=True):
     for edge in node:
-        if edge.child.tag == L1Tags.Foundational and edge.tag == tag:
+        if edge.child.tag == L1Tags.Foundational and edge.tag in (tags,) if isinstance(tags, str) else tags:
             try:
                 parent_edge = min((e for e in node if e != edge and e.child.tag == L1Tags.Foundational),
-                                  key=lambda e: abs(e.child.start_position - edge.child.end_position))
+                                  key=lambda e: abs(((edge.child.start_position - e.child.end_position),
+                                                     (e.child.start_position - edge.child.end_position))[forward]))
             except ValueError:
                 continue
-            if parent_edge.tag == parent_tag:
+            if parent_edge.tag in (parent_tags,) if isinstance(parent_tags, str) else parent_tags:
                 parent = parent_edge.child
                 parent.add(edge.tag, edge.child, edge_attrib=edge.attrib)
                 node.remove(edge)
@@ -33,12 +34,12 @@ def move_elements(node, tag, parent_tag):
 
 def move_scene_elements(node):
     if node.parallel_scenes:
-        move_elements(node, tag=ETags.Relator, parent_tag=ETags.ParallelScene)
+        move_elements(node, tags=ETags.Relator, parent_tags=ETags.ParallelScene)
 
 
-def move_non_scene_elements(node):
+def move_sub_scene_elements(node):
     if node.is_scene():
-        move_elements(node, tag=ETags.Elaborator, parent_tag=ETags.Participant)
+        move_elements(node, tags=ETags.Elaborator, parent_tags=ETags.Participant, forward=False)
 
 
 def separate_scenes(node, l1):
@@ -103,7 +104,7 @@ def normalize(passage, extra=False):
     for node in l1.all:
         if extra:
             replace_edge_tags(node)
-            move_non_scene_elements(node)
+            move_sub_scene_elements(node)
             move_scene_elements(node)
             separate_scenes(node, l1)
         flatten_centers(node)
