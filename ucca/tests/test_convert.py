@@ -183,15 +183,24 @@ def test_to_site():
     assert passage.equals(copy)
 
 
+@pytest.mark.parametrize("converter, lines", (
+        (convert.from_conll,
+         ["# sent_id = 120",
+          "1	1	_	Word	Word	_	0	root	_	_",
+          "2	2	_	Word	Word	_	1	nsubj	_	_",
+          ""]
+         ),
+        (convert.from_sdp,
+         ["#120",
+          "1	1	_	Word	-	+	_	_",
+          "2	2	_	Word	-	-	_	arg0",
+          ""])))
 @pytest.mark.parametrize("num_passages", range(3))
 @pytest.mark.parametrize("trailing_newlines", range(3))
-def test_from_conll(num_passages, trailing_newlines):
-    lines = num_passages * ["# sent_id = 120",
-                            "1	1	_	Word	Word	_	0	root	_	_",
-                            "2	2	_	Word	Word	_	1	nsubj	_	_",
-                            ""]
+def test_from_dep(converter, lines, num_passages, trailing_newlines):
+    lines = num_passages * lines
     lines[-1:] = trailing_newlines * [""]
-    passages = list(convert.from_conll(lines, "test"))
+    passages = list(converter(lines, "test"))
     assert len(passages) == num_passages
     for passage in passages:
         assert len(passage.layer(layer0.LAYER_ID).all) == 2
