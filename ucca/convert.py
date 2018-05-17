@@ -1126,7 +1126,7 @@ class DependencyConverter(FormatConverter):
                 paragraph = 1
             else:
                 paragraph += 1
-        if not split:
+        if not split or dep_nodes:
             self._link_heads(dep_nodes, multi_word_nodes, copy_of)
             yield dep_nodes, sentence_id
 
