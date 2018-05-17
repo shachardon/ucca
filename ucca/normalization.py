@@ -1,62 +1,60 @@
-from operator import attrgetter
-
 from ucca import layer0, layer1
+from ucca.layer0 import NodeTags as L0Tags
+from ucca.layer1 import EdgeTags as ETags, NodeTags as L1Tags
 
 
 def replace_center(edge):
     if len(edge.parent) == 1 and not edge.parent.parents:
-        return layer1.EdgeTags.ParallelScene
+        return ETags.ParallelScene
     if edge.parent.participants and not edge.parent.is_scene():
-        return layer1.EdgeTags.Process
+        return ETags.Process
     return edge.tag
 
 
 def replace_edge_tags(node):
     for edge in node:
-        if not edge.attrib.get("remote") and edge.tag == layer1.EdgeTags.Center:
+        if not edge.attrib.get("remote") and edge.tag == ETags.Center:
             edge.tag = replace_center(edge)
 
 
-def move_relators(node, l0):
+def move_elements(node, tag, parent_tag):
+    for edge in node:
+        if edge.child.tag == L1Tags.Foundational and edge.tag == tag:
+            try:
+                parent_edge = min((e for e in node if e != edge and e.child.tag == L1Tags.Foundational),
+                                  key=lambda e: abs(e.child.start_position - edge.child.end_position))
+            except ValueError:
+                continue
+            if parent_edge.tag == parent_tag:
+                parent = parent_edge.child
+                parent.add(edge.tag, edge.child, edge_attrib=edge.attrib)
+                node.remove(edge)
+
+
+def move_scene_elements(node):
+    if node.parallel_scenes:
+        move_elements(node, tag=ETags.Relator, parent_tag=ETags.ParallelScene)
+
+
+def move_non_scene_elements(node):
     if node.is_scene():
-        for edge in node:
-            if edge.tag == layer1.EdgeTags.Relator:
-                terminals = sorted(edge.child.get_terminals(), key=attrgetter("position"))
-                parent = highest_ancestor(by_position(l0, terminals[-1].position + 1),
-                                          *filter(None, (node.process, node.state)))
-                if parent:
-                    parent.add(edge.tag, edge.child, edge_attrib=edge.attrib)
-                    node.remove(edge)
+        move_elements(node, tag=ETags.Elaborator, parent_tag=ETags.Participant)
 
 
 def separate_scenes(node, l1):
     if (node.is_scene() or node.participants) and node.parallel_scenes:
-        scene = l1.add_fnode(node, layer1.EdgeTags.ParallelScene)
+        scene = l1.add_fnode(node, ETags.ParallelScene)
         for edge in node:
-            if edge.tag not in (layer1.EdgeTags.ParallelScene, layer1.EdgeTags.Punctuation, layer1.EdgeTags.Linker,
-                                layer1.EdgeTags.Ground):
+            if edge.tag not in (ETags.ParallelScene, ETags.Punctuation, ETags.Linker, ETags.Ground):
                 scene.add(edge.tag, edge.child, edge_attrib=edge.attrib)
                 node.remove(edge)
-
-
-def highest_ancestor(included, *excluded):
-    parents = [included] if included else []
-    while parents:
-        node = parents.pop(0)
-        for edge in node.incoming:
-            if not edge.attrib.get("remote") and edge.parent.tag == layer1.NodeTags.Foundational:
-                if node.tag == layer1.NodeTags.Foundational and not node.terminals and \
-                        any(n in edge.parent.iter() for n in excluded):
-                    return node
-                parents.append(edge.parent)
-    return None
 
 
 def lowest_common_ancestor(*nodes):
     parents = [nodes[0]] if nodes else []
     while parents:
         for parent in parents:
-            if parent.tag == layer1.NodeTags.Foundational and not parent.terminals \
+            if parent.tag == L1Tags.Foundational and not parent.terminals \
                     and all(n in parent.iter() for n in nodes[1:]):
                 return parent
         parents = [p for n in parents for p in n.parents]
@@ -71,14 +69,14 @@ def by_position(l0, position):
 
 
 def punct_parent(l0, *terminals):
-    return lowest_common_ancestor(*filter(lambda n: n is not None and n.tag == layer0.NodeTags.Word,
+    return lowest_common_ancestor(*filter(lambda n: n is not None and n.tag == L0Tags.Word,
                                           (by_position(l0, terminals[0].position - 1),
                                            by_position(l0, terminals[-1].position + 1))))
 
 
 def attach_punct(l0, l1):
     for node in l1.all:
-        if node.tag == layer1.NodeTags.Punctuation:
+        if node.tag == L1Tags.Punctuation:
             node.destroy()
     for terminal in l0.all:
         if layer0.is_punct(terminal) and not terminal.incoming:
@@ -89,7 +87,7 @@ def flatten_centers(node):
     """
     Whenever there are Cs inside Cs, remove the external C.
     """
-    if node.tag == layer1.NodeTags.Foundational and node.ftag == layer1.EdgeTags.Center and \
+    if node.tag == L1Tags.Foundational and node.ftag == ETags.Center and \
             len(node.centers) == len(node.fparent.centers) == 1:
         for edge in node.incoming:
             if edge.attrib.get("remote"):
@@ -105,7 +103,8 @@ def normalize(passage, extra=False):
     for node in l1.all:
         if extra:
             replace_edge_tags(node)
-            move_relators(node, l0)
+            move_non_scene_elements(node)
+            move_scene_elements(node)
             separate_scenes(node, l1)
         flatten_centers(node)
     attach_punct(l0, l1)
