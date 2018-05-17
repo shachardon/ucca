@@ -1,4 +1,7 @@
+import os
+import pytest
 import random
+from glob import glob
 
 from ucca import layer0, layer1, convert, textutil, ioutil, diffutil
 from ucca.convert import FROM_FORMAT
@@ -6,6 +9,14 @@ from ucca.textutil import is_annotated
 from .conftest import create_crossing_passage, create_multi_passage, create_passage, create_discontiguous, load_xml
 
 """Tests the util module functions and classes."""
+
+
+@pytest.mark.parametrize("suffix", ("xml", "export", "sdp", "conll"))
+def test_read_files_and_dirs(suffix):
+    for passage in ioutil.read_files_and_dirs(glob(os.path.join("test_files", "standard3." + suffix)),
+                                              converters=FROM_FORMAT):
+        assert passage.layer(layer0.LAYER_ID).all, "No terminals in passage " + passage.ID
+        assert len(passage.layer(layer1.LAYER_ID).all), "No non-terminals but the root in passage " + passage.ID
 
 
 def test_break2sentences():
