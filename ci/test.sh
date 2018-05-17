@@ -3,7 +3,7 @@
 case "$TEST_SUITE" in
 unit)
     # unit tests
-    python -m unittest discover -v || exit 1
+    pytest --durations=0 -v ucca/tests || exit 1
     PASSAGES=../doc/toy.xml
     ;;
 convert)

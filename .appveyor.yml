@@ -4,11 +4,11 @@ environment:
     - PYTHON: "C:\\Python36\\python.exe"
 
 install:
-  - "%PYTHON% -m pip install -U pip wheel"
+  - "%PYTHON% -m pip install -U pip wheel pytest"
   - "%PYTHON% setup.py install"
   - "%PYTHON% -m spacy download en_core_web_md"
 
 build: off
 
 test_script:
-  - "%PYTHON% -m unittest discover -v"
+  - pytest --durations=0 -v ucca/tests
