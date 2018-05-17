@@ -1103,20 +1103,20 @@ class DependencyConverter(FormatConverter):
         paragraph = 1
         for line in lines:
             line = line.strip()
-            if dep_nodes is None:
-                dep_nodes = [DependencyConverter.Node()]  # dummy root
-                multi_word_nodes = []
             if line.startswith("#"):  # comment
                 m = re.match("#\s*(\d+).*", line) or re.match("#\s*sent_id\s*=\s*(\S+)", line)
                 if m:  # comment may optionally contain the sentence ID
                     sentence_id = m.group(1)
             elif line:
+                if dep_nodes is None:
+                    dep_nodes = [DependencyConverter.Node()]  # dummy root
+                    multi_word_nodes = []
                 dep_node = self.read_line(line, previous_node, copy_of)  # different implementation for each subclass
                 if dep_node is not None:
                     previous_node = dep_node
                     dep_node.token.paragraph = paragraph  # mark down which paragraph this is in
                     (multi_word_nodes if dep_node.is_multi_word else dep_nodes).append(dep_node)
-            elif split:
+            elif split and dep_nodes:
                 try:
                     self._link_heads(dep_nodes, multi_word_nodes, copy_of)
                     yield dep_nodes, sentence_id
