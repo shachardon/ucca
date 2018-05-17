@@ -6,27 +6,27 @@ from .conftest import load_xml
 """Tests convert module correctness and API."""
 
 
-def _test_edges(self, node, tags):
+def _test_edges(node, tags):
     """Tests that the node edge tags and number match tags argument."""
-    self.assertEqual(len(node), len(tags))
+    assert len(node) == len(tags)
     for edge, tag in zip(node, tags):
-        self.assertEqual(edge.tag, tag)
+        assert edge.tag == tag
 
 
-def _test_terms(self, node, terms):
+def _test_terms(node, terms):
     """Tests that node contain the terms given, and only them."""
     for edge, term in zip(node, terms):
-        self.assertEqual(edge.tag, layer1.EdgeTags.Terminal)
-        self.assertEqual(edge.child, term)
+        assert edge.tag == layer1.EdgeTags.Terminal
+        assert edge.child == term
 
 
-def test_site_terminals(self):
+def test_site_terminals():
     elem = load_xml("test_files/site1.xml")
     passage = convert.from_site(elem)
     terms = passage.layer(layer0.LAYER_ID).all
 
-    self.assertEqual(passage.ID, "118")
-    self.assertEqual(len(terms), 15)
+    assert passage.ID == "118"
+    assert len(terms) == 15
 
     # There are two punctuation signs (dots, positions 5 and 11), which
     # also serve as paragraph end points. All others are words whose text
@@ -35,19 +35,19 @@ def test_site_terminals(self):
     for i, t in enumerate(terms):
         # i starts in 0, positions at 1, hence 5,11 ==> 4,10
         if i in (4, 10):
-            self.assertTrue(t.text == "." and t.punct is True)
+            assert t.text == "." and t.punct
         else:
-            self.assertTrue(t.text == str(i + 1) and t.punct is False)
+            assert t.text == str(i + 1) and not t.punct
         if i < 5:
             par = 1
         elif i < 11:
             par = 2
         else:
             par = 3
-        self.assertEqual(t.paragraph, par)
+        assert t.paragraph == par
 
 
-def test_site_simple(self):
+def test_site_simple():
     elem = load_xml("test_files/site2.xml")
     passage = convert.from_site(elem)
     terms = passage.layer(layer0.LAYER_ID).all
@@ -57,28 +57,28 @@ def test_site_simple(self):
     # with this layer1 hierarchy: [[1 C] [2 E] L] [3 4 . H]
     # with the linker having a remark and the parallel scene is uncertain
     head = l1.heads[0]
-    self.assertEqual(len(head), 12)  # including all "unused" terminals
-    self.assertEqual(head[9].tag, layer1.EdgeTags.Linker)
-    self.assertEqual(head[10].tag, layer1.EdgeTags.ParallelScene)
+    assert len(head) == 12  # including all "unused" terminals
+    assert head[9].tag == layer1.EdgeTags.Linker
+    assert head[10].tag == layer1.EdgeTags.ParallelScene
     linker = head.children[9]
-    self._test_edges(linker, [layer1.EdgeTags.Center,
-                              layer1.EdgeTags.Elaborator])
-    self.assertTrue(linker.extra["remarks"], '"remark"')
+    _test_edges(linker, [layer1.EdgeTags.Center,
+                         layer1.EdgeTags.Elaborator])
+    assert linker.extra["remarks"], '"remark"'
     center = linker.children[0]
     elab = linker.children[1]
-    self._test_terms(center, terms[0:1])
-    self._test_terms(elab, terms[1:2])
+    _test_terms(center, terms[0:1])
+    _test_terms(elab, terms[1:2])
     ps = head.children[10]
-    self._test_edges(ps, [layer1.EdgeTags.Terminal,
-                          layer1.EdgeTags.Terminal,
-                          layer1.EdgeTags.Punctuation])
-    self.assertTrue(ps.attrib.get("uncertain"))
-    self.assertEqual(ps.children[0], terms[2])
-    self.assertEqual(ps.children[1], terms[3])
-    self.assertEqual(ps.children[2].children[0], terms[4])
+    _test_edges(ps, [layer1.EdgeTags.Terminal,
+                     layer1.EdgeTags.Terminal,
+                     layer1.EdgeTags.Punctuation])
+    assert ps.attrib.get("uncertain")
+    assert ps.children[0] == terms[2]
+    assert ps.children[1] == terms[3]
+    assert ps.children[2].children[0] == terms[4]
 
 
-def test_site_advanced(self):
+def test_site_advanced():
     elem = load_xml("test_files/site3.xml")
     passage = convert.from_site(elem)
     terms = passage.layer(layer0.LAYER_ID).all
@@ -93,70 +93,70 @@ def test_site_advanced(self):
     # [12 H] [13 H] [14 H] [15 L], where 15 linkage links 12, 13 and 14 and
     # [15 L] has an implicit Center unit
     head, lkg = l1.heads
-    self._test_edges(head, [layer1.EdgeTags.Linker,
-                            layer1.EdgeTags.ParallelScene,
-                            layer1.EdgeTags.ParallelScene,
-                            layer1.EdgeTags.Function,
-                            layer1.EdgeTags.Punctuation,
-                            layer1.EdgeTags.ParallelScene,
-                            layer1.EdgeTags.ParallelScene,
-                            layer1.EdgeTags.ParallelScene,
-                            layer1.EdgeTags.Linker])
+    _test_edges(head, [layer1.EdgeTags.Linker,
+                       layer1.EdgeTags.ParallelScene,
+                       layer1.EdgeTags.ParallelScene,
+                       layer1.EdgeTags.Function,
+                       layer1.EdgeTags.Punctuation,
+                       layer1.EdgeTags.ParallelScene,
+                       layer1.EdgeTags.ParallelScene,
+                       layer1.EdgeTags.ParallelScene,
+                       layer1.EdgeTags.Linker])
 
     # we only take what we haven"t checked already
     ps1, func, punct, ps2, ps3, ps4, link = head.children[2:]
-    self._test_edges(ps1, [layer1.EdgeTags.Participant,
-                           layer1.EdgeTags.Process,
-                           layer1.EdgeTags.Adverbial])
-    self.assertTrue(ps1[2].attrib.get("remote"))
+    _test_edges(ps1, [layer1.EdgeTags.Participant,
+                      layer1.EdgeTags.Process,
+                      layer1.EdgeTags.Adverbial])
+    assert ps1[2].attrib.get("remote")
     ps1_a, ps1_p, ps1_d = ps1.children
-    self._test_edges(ps1_a, [layer1.EdgeTags.Elaborator,
-                             layer1.EdgeTags.Center])
-    self._test_terms(ps1_a.children[0], terms[5:6])
-    self._test_terms(ps1_a.children[1], terms[6:9:2])
-    self._test_terms(ps1_p, terms[7:8])
-    self.assertEqual(ps1_d, func)
-    self._test_terms(func, terms[9:10])
-    self._test_terms(punct, terms[10:11])
-    self._test_terms(ps2, terms[11:12])
-    self._test_terms(ps3, terms[12:13])
-    self._test_terms(ps4, terms[13:14])
-    self.assertEqual(len(link), 2)
-    self.assertEqual(link[0].tag, layer1.EdgeTags.Center)
-    self.assertTrue(link.children[0].attrib.get("implicit"))
-    self.assertEqual(link[1].tag, layer1.EdgeTags.Elaborator)
-    self.assertEqual(link.children[1][0].tag, layer1.EdgeTags.Terminal)
-    self.assertEqual(link.children[1][0].child, terms[14])
-    self.assertEqual(lkg.relation, link)
-    self.assertSequenceEqual(lkg.arguments, [ps2, ps3, ps4])
+    _test_edges(ps1_a, [layer1.EdgeTags.Elaborator,
+                        layer1.EdgeTags.Center])
+    _test_terms(ps1_a.children[0], terms[5:6])
+    _test_terms(ps1_a.children[1], terms[6:9:2])
+    _test_terms(ps1_p, terms[7:8])
+    assert ps1_d == func
+    _test_terms(func, terms[9:10])
+    _test_terms(punct, terms[10:11])
+    _test_terms(ps2, terms[11:12])
+    _test_terms(ps3, terms[12:13])
+    _test_terms(ps4, terms[13:14])
+    assert len(link) == 2
+    assert link[0].tag == layer1.EdgeTags.Center
+    assert link.children[0].attrib.get("implicit")
+    assert link[1].tag == layer1.EdgeTags.Elaborator
+    assert link.children[1][0].tag == layer1.EdgeTags.Terminal
+    assert link.children[1][0].child == terms[14]
+    assert lkg.relation == link
+    assert lkg.arguments == [ps2, ps3, ps4]
 
 
-def test_to_standard(self):
+def test_to_standard():
     passage = convert.from_site(load_xml("test_files/site3.xml"))
     ref = load_xml("test_files/standard3.xml")
     root = convert.to_standard(passage)
-    self.assertEqual(ETree.tostring(ref), ETree.tostring(root))
+    assert ETree.tostring(ref) == ETree.tostring(root)
 
 
-def test_from_standard(self):
+def test_from_standard():
     passage = convert.from_standard(load_xml("test_files/standard3.xml"))
     ref = convert.from_site(load_xml("test_files/site3.xml"))
-    self.assertTrue(passage.equals(ref, ordered=True))
+    assert passage.equals(ref, ordered=True)
 
 
-def test_from_text(self):
+def test_from_text():
     sample = ["Hello . again", "nice", " ? ! end", ""]
     passage = next(convert.from_text(sample))
     terms = passage.layer(layer0.LAYER_ID).all
     pos = 0
     for i, par in enumerate(sample):
         for text in par.split():
-            self.assertEqual(terms[pos].text, text)
-            self.assertEqual(terms[pos].paragraph, i + 1)
+            assert terms[pos].text == text
+            assert terms[pos].paragraph == i + 1
             pos += 1
 
 
-def test_from_text_long(self):
+def test_from_text_long():
     sample = """
         After graduation, John moved to New York City.
 
@@ -166,59 +166,57 @@ def test_from_text_long(self):
         And he lived happily ever after.
         """
     passages = list(convert.from_text(sample))
-    self.assertEqual(len(passages), 3, list(map(convert.to_text, passages)))
+    assert len(passages) == 3, list(map(convert.to_text, passages))
 
 
-def test_to_text(self):
+def test_to_text():
     passage = convert.from_standard(load_xml("test_files/standard3.xml"))
-    self.assertEqual(convert.to_text(passage, False)[0],
-                     "1 2 3 4 . 6 7 8 9 10 . 12 13 14 15")
-    self.assertSequenceEqual(convert.to_text(passage, True),
-                             ["1 2 3 4 .", "6 7 8 9 10 .", "12 13 14 15"])
+    assert convert.to_text(passage, False)[0] == "1 2 3 4 . 6 7 8 9 10 . 12 13 14 15"
+    assert convert.to_text(passage, True) == ["1 2 3 4 .", "6 7 8 9 10 .", "12 13 14 15"]
 
 
-def test_to_site(self):
+def test_to_site():
     passage = convert.from_standard(load_xml("test_files/standard3.xml"))
     root = convert.to_site(passage)
     copy = convert.from_site(root)
-    self.assertTrue(passage.equals(copy))
+    assert passage.equals(copy)
 
 
-def test_to_conll(self):
+def test_to_conll():
     passage = convert.from_standard(load_xml("test_files/standard3.xml"))
     converted = convert.to_conll(passage)
     with open("test_files/standard3.conll", encoding="utf-8") as f:
         # f.write("\n".join(converted))
-        self.assertSequenceEqual(converted, f.read().splitlines() + [""])
+        assert converted == f.read().splitlines() + [""]
     converted_passage = next(convert.from_conll(converted, passage.ID))
     # ioutil.passage2file(converted_passage, "test_files/standard3.conll.xml")
     ref = convert.from_standard(load_xml("test_files/standard3.conll.xml"))
-    self.assertTrue(converted_passage.equals(ref))
+    assert converted_passage.equals(ref)
     # Put the same sentence twice and try converting again
     for converted_passage in convert.from_conll(converted * 2, passage.ID):
         ref = convert.from_standard(load_xml("test_files/standard3.conll.xml"))
-    self.assertTrue(converted_passage.equals(ref), "Passage does not match expected")
+    assert converted_passage.equals(ref), "Passage does not match expected"
 
 
-def test_to_sdp(self):
+def test_to_sdp():
     passage = convert.from_standard(load_xml("test_files/standard3.xml"))
     converted = convert.to_sdp(passage)
     with open("test_files/standard3.sdp", encoding="utf-8") as f:
         # f.write("\n".join(converted))
-        self.assertSequenceEqual(converted, f.read().splitlines() + [""])
+        assert converted == f.read().splitlines() + [""]
     converted_passage = next(convert.from_sdp(converted, passage.ID))
     # ioutil.passage2file(converted_passage, "test_files/standard3.sdp.xml")
     ref = convert.from_standard(load_xml("test_files/standard3.sdp.xml"))
-    self.assertTrue(converted_passage.equals(ref), "Passage does not match expected")
+    assert converted_passage.equals(ref), "Passage does not match expected"
 
 
-def test_to_export(self):
+def test_to_export():
     passage = convert.from_standard(load_xml("test_files/standard3.xml"))
     converted = convert.to_export(passage)
     with open("test_files/standard3.export", encoding="utf-8") as f:
         # f.write("\n".join(converted))
-        self.assertSequenceEqual(converted, f.read().splitlines())
+        assert converted == f.read().splitlines()
     converted_passage = next(convert.from_export(converted, passage.ID))
     # ioutil.passage2file(converted_passage, "test_files/standard3.export.xml")
     ref = convert.from_standard(load_xml("test_files/standard3.export.xml"))
-    self.assertTrue(converted_passage.equals(ref), "Passage does not match expected")
+    assert converted_passage.equals(ref), "Passage does not match expected"

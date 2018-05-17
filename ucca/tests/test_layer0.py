@@ -3,7 +3,7 @@ from ucca import core, layer0
 """Tests module layer0 functionality."""
 
 
-def test_terminals(self):
+def test_terminals():
     """Tests :class:layer0.Terminal new and inherited functionality."""
     p = core.Passage("1")
     layer0.Layer0(p)
@@ -38,26 +38,25 @@ def test_terminals(self):
                                            "paragraph": 2,
                                            "paragraph_position": 1})
 
-    self.assertSequenceEqual([t.punct for t in terms],
-                             [False, False, True])
-    self.assertSequenceEqual([t.text for t in terms], ["1", "2", "."])
-    self.assertSequenceEqual([t.position for t in terms], [1, 2, 3])
-    self.assertSequenceEqual([t.paragraph for t in terms], [1, 2, 2])
-    self.assertSequenceEqual([t.para_pos for t in terms], [1, 1, 2])
-    self.assertFalse(terms[0] == terms[1])
-    self.assertFalse(terms[0] == terms[2])
-    self.assertFalse(terms[1] == terms[2])
-    self.assertTrue(terms[0] == terms[0])
-    self.assertTrue(terms[0].equals(equal_term))
-    self.assertFalse(terms[1].equals(unequal_term))
+    assert [t.punct for t in terms] == [False, False, True]
+    assert [t.text for t in terms] == ["1", "2", "."]
+    assert [t.position for t in terms] == [1, 2, 3]
+    assert [t.paragraph for t in terms] == [1, 2, 2]
+    assert [t.para_pos for t in terms] == [1, 1, 2]
+    assert not (terms[0] == terms[1])
+    assert not (terms[0] == terms[2])
+    assert not (terms[1] == terms[2])
+    assert terms[0] == terms[0]
+    assert terms[0].equals(equal_term)
+    assert not (terms[1].equals(unequal_term))
 
 
-def test_layer0(self):
+def test_layer0():
     p = core.Passage("1")
     l0 = layer0.Layer0(p)
     t1 = l0.add_terminal(text="1", punct=False)
     l0.add_terminal(text="2", punct=True, paragraph=2)
     t3 = l0.add_terminal(text="3", punct=False, paragraph=2)
-    self.assertSequenceEqual([x[0] for x in l0.pairs], [1, 2, 3])
-    self.assertSequenceEqual([t.para_pos for t in l0.all], [1, 1, 2])
-    self.assertSequenceEqual(l0.words, (t1, t3))
+    assert [x[0] for x in l0.pairs] == [1, 2, 3]
+    assert [t.para_pos for t in l0.all] == [1, 1, 2]
+    assert l0.words == (t1, t3)
