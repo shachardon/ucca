@@ -1,6 +1,5 @@
 """Testing code for the ucca package, unit-testing only."""
 
-import operator
 import random
 import unittest
 import xml.etree.ElementTree as ETree
@@ -8,13 +7,15 @@ import xml.etree.ElementTree as ETree
 from ucca import core, layer0, layer1, convert, textutil, ioutil, diffutil
 from ucca.convert import FROM_FORMAT
 from ucca.textutil import is_annotated
+from .conftest import create_basic_passage, create_crossing_passage, create_multi_passage, create_passage, \
+    create_discontiguous, load_xml
 
 
 class CoreTests(unittest.TestCase):
 
     def test_creation(self):
 
-        p = TestUtil.create_basic_passage()
+        p = create_basic_passage()
 
         self.assertEqual(p.ID, "1")
         self.assertEqual(p.root, p)
@@ -54,7 +55,7 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(node22[2].ID, "2.2->1.3")
 
     def test_modifying(self):
-        p = TestUtil.create_basic_passage()
+        p = create_basic_passage()
         l1, l2 = p.layer("1"), p.layer("2")
         node11, node12, node13 = l1.all
         node22, node21 = l2.all
@@ -154,7 +155,7 @@ class CoreTests(unittest.TestCase):
 
     def test_copying(self):
         # we don't need such a complex passage, but it will work anyway
-        p1 = TestUtil.create_passage()
+        p1 = create_passage()
 
         p2 = p1.copy(())
         self.assertEqual(p1.ID, p2.ID)
@@ -167,7 +168,7 @@ class CoreTests(unittest.TestCase):
         self.assertTrue(p1.layer(l0id).equals(p2.layer(l0id)))
 
     def test_iteration(self):
-        p = TestUtil.create_basic_passage()
+        p = create_basic_passage()
         l1, l2 = p.layer("1"), p.layer("2")
         node11, node12, node13 = l1.all
         node22, node21 = l2.all
@@ -255,7 +256,7 @@ class Layer1Tests(unittest.TestCase):
     """Tests layer1 module functionality and correctness."""
 
     def test_creation(self):
-        p = TestUtil.create_passage()
+        p = create_passage()
         head = p.layer("1").heads[0]
         self.assertSequenceEqual([x.tag for x in head], ["L", "H", "H", "U"])
         self.assertSequenceEqual([x.child.position for x in head.children[0]],
@@ -274,7 +275,7 @@ class Layer1Tests(unittest.TestCase):
         self.assertTrue(head.children[1][3].attrib.get("remote"))
 
     def test_fnodes(self):
-        p = TestUtil.create_passage()
+        p = create_passage()
         l0 = p.layer("0")
         l1 = p.layer("1")
 
@@ -308,7 +309,7 @@ class Layer1Tests(unittest.TestCase):
         self.assertEqual(d2.fparent, ps2)
 
     def test_layer1(self):
-        p = TestUtil.create_passage()
+        p = create_passage()
         l1 = p.layer("1")
 
         head, lkg1, lkg2 = l1.heads
@@ -341,7 +342,7 @@ class Layer1Tests(unittest.TestCase):
         self.assertSequenceEqual(l1.top_linkages, [lkg1, lkg2])
 
     def test_str(self):
-        p = TestUtil.create_passage()
+        p = create_passage()
         self.assertSequenceEqual([str(x) for x in p.layer("1").heads],
                                  ["[L 1] [H [P 2 3 4 5] [A 6 7 8 9] [U 10] "
                                   "... [A* 15] ] [H [H [P* 2 3 4 5] [A 11 12 "
@@ -350,7 +351,7 @@ class Layer1Tests(unittest.TestCase):
                                   "1.2-->1.3", "1.11-->1.8,1.12"])
 
     def test_destroy(self):
-        p = TestUtil.create_passage()
+        p = create_passage()
         l1 = p.layer("1")
 
         head, lkg1, lkg2 = l1.heads
@@ -366,7 +367,7 @@ class Layer1Tests(unittest.TestCase):
 
     def test_discontiguous(self):
         """Tests FNode.discontiguous and FNode.get_sequences"""
-        p = TestUtil.create_discontiguous()
+        p = create_discontiguous()
         l1 = p.layer("1")
         head = l1.heads[0]
         ps1, ps2, ps3 = head.children
@@ -427,7 +428,7 @@ class ConversionTests(unittest.TestCase):
             self.assertEqual(edge.child, term)
 
     def test_site_terminals(self):
-        elem = TestUtil.load_xml("test_files/site1.xml")
+        elem = load_xml("test_files/site1.xml")
         passage = convert.from_site(elem)
         terms = passage.layer(layer0.LAYER_ID).all
 
@@ -453,7 +454,7 @@ class ConversionTests(unittest.TestCase):
             self.assertEqual(t.paragraph, par)
 
     def test_site_simple(self):
-        elem = TestUtil.load_xml("test_files/site2.xml")
+        elem = load_xml("test_files/site2.xml")
         passage = convert.from_site(elem)
         terms = passage.layer(layer0.LAYER_ID).all
         l1 = passage.layer("1")
@@ -483,7 +484,7 @@ class ConversionTests(unittest.TestCase):
         self.assertEqual(ps.children[2].children[0], terms[4])
 
     def test_site_advanced(self):
-        elem = TestUtil.load_xml("test_files/site3.xml")
+        elem = load_xml("test_files/site3.xml")
         passage = convert.from_site(elem)
         terms = passage.layer(layer0.LAYER_ID).all
         l1 = passage.layer("1")
@@ -535,14 +536,14 @@ class ConversionTests(unittest.TestCase):
         self.assertSequenceEqual(lkg.arguments, [ps2, ps3, ps4])
 
     def test_to_standard(self):
-        passage = convert.from_site(TestUtil.load_xml("test_files/site3.xml"))
-        ref = TestUtil.load_xml("test_files/standard3.xml")
+        passage = convert.from_site(load_xml("test_files/site3.xml"))
+        ref = load_xml("test_files/standard3.xml")
         root = convert.to_standard(passage)
         self.assertEqual(ETree.tostring(ref), ETree.tostring(root))
 
     def test_from_standard(self):
-        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
-        ref = convert.from_site(TestUtil.load_xml("test_files/site3.xml"))
+        passage = convert.from_standard(load_xml("test_files/standard3.xml"))
+        ref = convert.from_site(load_xml("test_files/site3.xml"))
         self.assertTrue(passage.equals(ref, ordered=True))
 
     def test_from_text(self):
@@ -569,53 +570,53 @@ class ConversionTests(unittest.TestCase):
         self.assertEqual(len(passages), 3, list(map(convert.to_text, passages)))
 
     def test_to_text(self):
-        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
+        passage = convert.from_standard(load_xml("test_files/standard3.xml"))
         self.assertEqual(convert.to_text(passage, False)[0],
                          "1 2 3 4 . 6 7 8 9 10 . 12 13 14 15")
         self.assertSequenceEqual(convert.to_text(passage, True),
                                  ["1 2 3 4 .", "6 7 8 9 10 .", "12 13 14 15"])
 
     def test_to_site(self):
-        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
+        passage = convert.from_standard(load_xml("test_files/standard3.xml"))
         root = convert.to_site(passage)
         copy = convert.from_site(root)
         self.assertTrue(passage.equals(copy))
 
     def test_to_conll(self):
-        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
+        passage = convert.from_standard(load_xml("test_files/standard3.xml"))
         converted = convert.to_conll(passage)
         with open("test_files/standard3.conll", encoding="utf-8") as f:
             # f.write("\n".join(converted))
             self.assertSequenceEqual(converted, f.read().splitlines() + [""])
         converted_passage = next(convert.from_conll(converted, passage.ID))
         # ioutil.passage2file(converted_passage, "test_files/standard3.conll.xml")
-        ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.conll.xml"))
+        ref = convert.from_standard(load_xml("test_files/standard3.conll.xml"))
         self.assertTrue(converted_passage.equals(ref))
         # Put the same sentence twice and try converting again
         for converted_passage in convert.from_conll(converted * 2, passage.ID):
-            ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.conll.xml"))
+            ref = convert.from_standard(load_xml("test_files/standard3.conll.xml"))
         self.assertTrue(converted_passage.equals(ref), "Passage does not match expected")
 
     def test_to_sdp(self):
-        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
+        passage = convert.from_standard(load_xml("test_files/standard3.xml"))
         converted = convert.to_sdp(passage)
         with open("test_files/standard3.sdp", encoding="utf-8") as f:
             # f.write("\n".join(converted))
             self.assertSequenceEqual(converted, f.read().splitlines() + [""])
         converted_passage = next(convert.from_sdp(converted, passage.ID))
         # ioutil.passage2file(converted_passage, "test_files/standard3.sdp.xml")
-        ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.sdp.xml"))
+        ref = convert.from_standard(load_xml("test_files/standard3.sdp.xml"))
         self.assertTrue(converted_passage.equals(ref), "Passage does not match expected")
 
     def test_to_export(self):
-        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
+        passage = convert.from_standard(load_xml("test_files/standard3.xml"))
         converted = convert.to_export(passage)
         with open("test_files/standard3.export", encoding="utf-8") as f:
             # f.write("\n".join(converted))
             self.assertSequenceEqual(converted, f.read().splitlines())
         converted_passage = next(convert.from_export(converted, passage.ID))
         # ioutil.passage2file(converted_passage, "test_files/standard3.export.xml")
-        ref = convert.from_standard(TestUtil.load_xml("test_files/standard3.export.xml"))
+        ref = convert.from_standard(load_xml("test_files/standard3.export.xml"))
         self.assertTrue(converted_passage.equals(ref), "Passage does not match expected")
 
 
@@ -625,13 +626,13 @@ class UtilTests(unittest.TestCase):
     def test_break2sentences(self):
         """Tests identifying correctly sentence ends.
         """
-        p = TestUtil.create_multi_passage()
+        p = create_multi_passage()
         self.assertSequenceEqual(textutil.break2sentences(p), [4, 7, 11])
 
     def test_split2sentences(self):
         """Tests splitting a passage by sentence ends.
         """
-        p = TestUtil.create_multi_passage()
+        p = create_multi_passage()
         split = convert.split2sentences(p)
         self.assertEqual(len(split), 3)
         terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
@@ -648,7 +649,7 @@ class UtilTests(unittest.TestCase):
     def test_split2paragraphs(self):
         """Tests splitting a passage by paragraph ends.
         """
-        p = TestUtil.create_multi_passage()
+        p = create_multi_passage()
         split = convert.split2paragraphs(p)
         self.assertEqual(len(split), 2)
         terms = [[t.text for t in s.layer(layer0.LAYER_ID).all] for s in split]
@@ -664,14 +665,14 @@ class UtilTests(unittest.TestCase):
                 self.assertEqual(n.incoming[0].tag, layer1.EdgeTags.ParallelScene)
 
     def test_split_join_sentences(self):
-        p = TestUtil.create_multi_passage()
+        p = create_multi_passage()
         split = convert.split2sentences(p, remarks=True)
         copy = convert.join_passages(split)
         diffutil.diff_passages(p, copy)
         self.assertTrue(p.equals(copy))
 
     def test_split_join_paragraphs(self):
-        p = TestUtil.create_multi_passage()
+        p = create_multi_passage()
         split = convert.split2paragraphs(p, remarks=True)
         copy = convert.join_passages(split)
         diffutil.diff_passages(p, copy)
@@ -681,7 +682,7 @@ class UtilTests(unittest.TestCase):
     #     """Test that splitting and joining a passage by sentences results in the same passage,
     #     when the passage has edges crossing sentences.
     #     """
-    #     p = TestUtil.create_crossing_passage()
+    #     p = create_crossing_passage()
     #     split = textutil.split2sentences(p, remarks=True)
     #     copy = textutil.join_passages(split)
     #     diffutil.diff_passages(p, copy)
@@ -691,7 +692,7 @@ class UtilTests(unittest.TestCase):
     #     """Test that splitting and joining a passage by paragraphs results in the same passage
     #     when the passage has edges crossing paragraphs.
     #     """
-    #     p = TestUtil.create_crossing_passage()
+    #     p = create_crossing_passage()
     #     split = textutil.split2paragraphs(p, remarks=True)
     #     copy = textutil.join_passages(split)
     #     diffutil.diff_passages(p, copy)
@@ -719,7 +720,7 @@ class UtilTests(unittest.TestCase):
             self.assertEqual(len(vector), dim, "Vector dimension for %s is %d != %d" % (word, len(vector), dim))
 
     def test_annotate_passage(self):
-        passage = convert.from_standard(TestUtil.load_xml("test_files/standard3.xml"))
+        passage = convert.from_standard(load_xml("test_files/standard3.xml"))
         textutil.annotate(passage)
         textutil.annotate(passage, as_array=True)
         for p in passage, convert.from_standard(convert.to_standard(passage)):
@@ -732,9 +733,9 @@ class UtilTests(unittest.TestCase):
                 self.assertEqual(len(terminal.tok), len(textutil.Attr))
 
     def test_annotate_all(self):
-        passages = [convert.from_standard(TestUtil.load_xml("test_files/standard3.xml")),
-                    TestUtil.create_passage(), TestUtil.create_crossing_passage(),
-                    TestUtil.create_discontiguous(), TestUtil.create_multi_passage()]
+        passages = [convert.from_standard(load_xml("test_files/standard3.xml")),
+                    create_passage(), create_crossing_passage(),
+                    create_discontiguous(), create_multi_passage()]
         list(textutil.annotate_all(passages))
         for passage, compare in textutil.annotate_all(((p, p) for p in passages), as_array=True, as_tuples=True):
             assert passage is compare
@@ -749,270 +750,3 @@ class UtilTests(unittest.TestCase):
                         terminal, passage.ID))
                     self.assertEqual(len(terminal.tok), len(textutil.Attr))
 
-
-class TestUtil:
-    """Utilities for tests."""
-    
-    @staticmethod
-    def create_basic_passage():
-        """Creates a basic :class:Passage to tinker with.
-
-        Passage structure is as follows:
-            Layer1: order by ID, heads = [1.2], all = [1.1, 1.2, 1.3]
-            Layer2: order by node unique ID descending,
-                    heads = all = [2.2, 2.1], attrib={"test": True}
-            Nodes (tag):
-                1.1 (1)
-                1.3 (3), attrib={"node": True}
-                1.2 (x), order by edge tag
-                    children: 1.3 Edge: tag=test1, attrib={"Edge": True}
-                              1.1 Edge: tag=test2
-                2.1 (2), children [1.1, 1.2] with edge tags [test, test2]
-                2.2 (2), children [1.1, 1.2, 1.3] with tags [test, test1, test]
-
-        """
-        p = core.Passage(ID="1")
-        core.Layer(ID="1", root=p)
-        core.Layer(ID="2", root=p, attrib={"test": True},
-                   orderkey=lambda x: -1 * int(x.ID.split(".")[1]))
-
-        # Order is explicitly different in order to break the alignment between
-        # the ID/Edge ordering and the order of creation/addition
-        node11 = core.Node(ID="1.1", root=p, tag="1")
-        node13 = core.Node(ID="1.3", root=p, tag="3", attrib={"node": True})
-        node12 = core.Node(ID="1.2", root=p, tag="x",
-                           orderkey=operator.attrgetter("tag"))
-        node21 = core.Node(ID="2.1", root=p, tag="2")
-        node22 = core.Node(ID="2.2", root=p, tag="2")
-        node12.add("test2", node11)
-        node12.add("test1", node13, edge_attrib={"edge": True})
-        node21.add("test2", node12)
-        node21.add("test", node11)
-        node22.add("test1", node12)
-        node22.add("test", node13)
-        node22.add("test", node11)
-        return p
-
-    @staticmethod
-    def create_passage():
-        """Creates a Passage to work with using layer1 objects.
-
-        Annotation layout (what annotation each terminal has):
-            1: Linker, linked with the first parallel scene
-            2-10: Parallel scene #1, 2-5 ==> Participant #1
-                6-9 ==> Process #1, 10 ==> Punctuation, remote Participant is
-                Adverbial #2
-            11-19: Parallel scene #23, which encapsulated 2 scenes and a linker
-                (not a real scene, has no process, only for grouping)
-            11-15: Parallel scene #2 (under #23), 11-14 ==> Participant #3,
-                15 ==> Adverbial #2, remote Process is Process #1
-            16: Linker #2, links Parallel scenes #2 and #3
-            17-19: Parallel scene #3, 17-18 ==> Process #3,
-                19 ==> Participant #3, implicit Participant
-            20: Punctuation (under the head)
-
-        """
-
-        p = core.Passage("1")
-        l0 = layer0.Layer0(p)
-        l1 = layer1.Layer1(p)
-        # 20 terminals (1-20), #10 and #20 are punctuation
-        terms = [l0.add_terminal(text=str(i), punct=(i % 10 == 0))
-                 for i in range(1, 21)]
-
-        # Linker #1 with terminal 1
-        link1 = l1.add_fnode(None, layer1.EdgeTags.Linker)
-        link1.add(layer1.EdgeTags.Terminal, terms[0])
-
-        # Scene #1: [[2 3 4 5 P] [6 7 8 9 A] [10 U] H]
-        ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
-        a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
-        p1.add(layer1.EdgeTags.Terminal, terms[1])
-        p1.add(layer1.EdgeTags.Terminal, terms[2])
-        p1.add(layer1.EdgeTags.Terminal, terms[3])
-        p1.add(layer1.EdgeTags.Terminal, terms[4])
-        a1.add(layer1.EdgeTags.Terminal, terms[5])
-        a1.add(layer1.EdgeTags.Terminal, terms[6])
-        a1.add(layer1.EdgeTags.Terminal, terms[7])
-        a1.add(layer1.EdgeTags.Terminal, terms[8])
-        l1.add_punct(ps1, terms[9])
-
-        # Scene #23: [[11 12 13 14 15 H] [16 L] [17 18 19 H] H]
-        # Scene #2: [[11 12 13 14 P] [15 D]]
-        ps23 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        ps2 = l1.add_fnode(ps23, layer1.EdgeTags.ParallelScene)
-        a2 = l1.add_fnode(ps2, layer1.EdgeTags.Participant)
-        a2.add(layer1.EdgeTags.Terminal, terms[10])
-        a2.add(layer1.EdgeTags.Terminal, terms[11])
-        a2.add(layer1.EdgeTags.Terminal, terms[12])
-        a2.add(layer1.EdgeTags.Terminal, terms[13])
-        d2 = l1.add_fnode(ps2, layer1.EdgeTags.Adverbial)
-        d2.add(layer1.EdgeTags.Terminal, terms[14])
-
-        # Linker #2: [16 L]
-        link2 = l1.add_fnode(ps23, layer1.EdgeTags.Linker)
-        link2.add(layer1.EdgeTags.Terminal, terms[15])
-
-        # Scene #3: [[16 17 S] [18 A] (implicit participant) H]
-        ps3 = l1.add_fnode(ps23, layer1.EdgeTags.ParallelScene)
-        p3 = l1.add_fnode(ps3, layer1.EdgeTags.State)
-        p3.add(layer1.EdgeTags.Terminal, terms[16])
-        p3.add(layer1.EdgeTags.Terminal, terms[17])
-        a3 = l1.add_fnode(ps3, layer1.EdgeTags.Participant)
-        a3.add(layer1.EdgeTags.Terminal, terms[18])
-        l1.add_fnode(ps3, layer1.EdgeTags.Participant, implicit=True)
-
-        # Punctuation #20 - not under a scene
-        l1.add_punct(None, terms[19])
-
-        # adding remote argument to scene #1, remote process to scene #2
-        # creating linkages L1->H1, H2<-L2->H3
-        l1.add_remote(ps1, layer1.EdgeTags.Participant, d2)
-        l1.add_remote(ps2, layer1.EdgeTags.Process, p1)
-        l1.add_linkage(link1, ps1)
-        l1.add_linkage(link2, ps2, ps3)
-
-        return p
-
-    @staticmethod
-    def create_multi_passage():
-        """Creates a :class:Passage with multiple sentences and paragraphs.
-
-        Passage: [1 2 [3 P] H] . [[5 6 . P] H]
-                 [[8 P] . 10 . H]
-
-        """
-        p = core.Passage("1")
-        l0 = layer0.Layer0(p)
-        l1 = layer1.Layer1(p)
-        terms = [l0.add_terminal(str(i), False) for i in range(1, 4)]
-        terms.append(l0.add_terminal(".", True))
-        terms.append(l0.add_terminal("5", False))
-        terms.append(l0.add_terminal("6", False))
-        terms.append(l0.add_terminal(".", True))
-        terms.append(l0.add_terminal("8", False, paragraph=2))
-        terms.append(l0.add_terminal(".", True, paragraph=2))
-        terms.append(l0.add_terminal("10", False, paragraph=2))
-        terms.append(l0.add_terminal(".", True, paragraph=2))
-        h1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        h2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        h3 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        p1 = l1.add_fnode(h1, layer1.EdgeTags.Process)
-        p2 = l1.add_fnode(h2, layer1.EdgeTags.Process)
-        p3 = l1.add_fnode(h3, layer1.EdgeTags.Process)
-        h1.add(layer1.EdgeTags.Terminal, terms[0])
-        h1.add(layer1.EdgeTags.Terminal, terms[1])
-        p1.add(layer1.EdgeTags.Terminal, terms[2])
-        l1.add_punct(None, terms[3])
-        p2.add(layer1.EdgeTags.Terminal, terms[4])
-        p2.add(layer1.EdgeTags.Terminal, terms[5])
-        l1.add_punct(p2, terms[6])
-        p3.add(layer1.EdgeTags.Terminal, terms[7])
-        l1.add_punct(h3, terms[8])
-        h3.add(layer1.EdgeTags.Terminal, terms[9])
-        l1.add_punct(h3, terms[10])
-        return p
-
-    @staticmethod
-    def create_crossing_passage():
-        """Creates a :class:Passage with multiple sentences and paragraphs, with crossing edges.
-
-        Passage: [1 2 [3 P(remote)] H] .
-                 [[3 P] . 4 . H]
-
-        """
-        p = core.Passage("1")
-        l0 = layer0.Layer0(p)
-        l1 = layer1.Layer1(p)
-        terms = [
-            l0.add_terminal("1", False),
-            l0.add_terminal("2", False),
-            l0.add_terminal(".", True),
-            l0.add_terminal("3", False, paragraph=2),
-            l0.add_terminal(".", True, paragraph=2),
-            l0.add_terminal("4", False, paragraph=2),
-            l0.add_terminal(".", True, paragraph=2),
-        ]
-        h1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        h2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        p1 = l1.add_fnode(h2, layer1.EdgeTags.Process)
-        l1.add_remote(h1, layer1.EdgeTags.Process, p1)
-        h1.add(layer1.EdgeTags.Terminal, terms[0])
-        h1.add(layer1.EdgeTags.Terminal, terms[1])
-        l1.add_punct(None, terms[2])
-        p1.add(layer1.EdgeTags.Terminal, terms[3])
-        l1.add_punct(h2, terms[4])
-        h2.add(layer1.EdgeTags.Terminal, terms[5])
-        l1.add_punct(h2, terms[6])
-        return p
-
-    @staticmethod
-    def create_discontiguous():
-        """Creates a highly-discontiguous Passage object."""
-        p = core.Passage("1")
-        l0 = layer0.Layer0(p)
-        l1 = layer1.Layer1(p)
-        # 20 terminals (1-20), #10 and #20 are punctuation
-        terms = [l0.add_terminal(text=str(i), punct=(i % 10 == 0))
-                 for i in range(1, 21)]
-
-        # First parallel scene, stretching on terminals 1-10
-        # The dashed edge tags (e.g. -C, C-) mean discontiguous units
-        # [PS [D [E 0] [C- 1] [E 2] [-C 3]]
-        #     [A- 4] [P- 5 6] [-A 7] [F 8] [-P [U 9]]]
-        # In addition, D takes P as a remote G
-        ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        d1 = l1.add_fnode(ps1, layer1.EdgeTags.Adverbial)
-        e1 = l1.add_fnode(d1, layer1.EdgeTags.Elaborator)
-        c1 = l1.add_fnode(d1, layer1.EdgeTags.Center)
-        e2 = l1.add_fnode(d1, layer1.EdgeTags.Elaborator)
-        a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
-        p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
-        f1 = l1.add_fnode(ps1, layer1.EdgeTags.Function)
-        l1.add_remote(d1, layer1.EdgeTags.Ground, p1)
-        e1.add(layer1.EdgeTags.Terminal, terms[0])
-        c1.add(layer1.EdgeTags.Terminal, terms[1])
-        e2.add(layer1.EdgeTags.Terminal, terms[2])
-        c1.add(layer1.EdgeTags.Terminal, terms[3])
-        a1.add(layer1.EdgeTags.Terminal, terms[4])
-        p1.add(layer1.EdgeTags.Terminal, terms[5])
-        p1.add(layer1.EdgeTags.Terminal, terms[6])
-        a1.add(layer1.EdgeTags.Terminal, terms[7])
-        f1.add(layer1.EdgeTags.Terminal, terms[8])
-        l1.add_punct(p1, terms[9])
-
-        # Second parallel scene, stretching on terminals 11-14 + 18-20
-        # [PS- [D IMPLICIT] [G IMPLICIT] [P 10 11 12 13]]
-        # [-PS [A 17 18 [U 19]]]
-        ps2 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        l1.add_fnode(ps2, layer1.EdgeTags.Adverbial, implicit=True)
-        l1.add_fnode(ps2, layer1.EdgeTags.Ground, implicit=True)
-        p2 = l1.add_fnode(ps2, layer1.EdgeTags.Process)
-        a2 = l1.add_fnode(ps2, layer1.EdgeTags.Participant)
-        p2.add(layer1.EdgeTags.Terminal, terms[10])
-        p2.add(layer1.EdgeTags.Terminal, terms[11])
-        p2.add(layer1.EdgeTags.Terminal, terms[12])
-        p2.add(layer1.EdgeTags.Terminal, terms[13])
-        a2.add(layer1.EdgeTags.Terminal, terms[17])
-        a2.add(layer1.EdgeTags.Terminal, terms[18])
-        l1.add_punct(a2, terms[19])
-
-        # Third parallel scene, stretching on terminals 15-17
-        # [PS [P IMPLICIT] 14 [A 15 16]]
-        ps3 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
-        ps3.add(layer1.EdgeTags.Terminal, terms[14])
-        l1.add_fnode(ps3, layer1.EdgeTags.Process, implicit=True)
-        a3 = l1.add_fnode(ps3, layer1.EdgeTags.Participant)
-        a3.add(layer1.EdgeTags.Terminal, terms[15])
-        a3.add(layer1.EdgeTags.Terminal, terms[16])
-
-        return p
-
-    @staticmethod
-    def load_xml(path):
-        """XML file path ==> root element
-        :param path: path to XML file
-        """
-        with open(path, encoding="utf-8") as f:
-            return ETree.ElementTree().parse(f)
