@@ -1,3 +1,4 @@
+import pytest
 import xml.etree.ElementTree as ETree
 
 from ucca import layer0, layer1, convert
@@ -180,6 +181,21 @@ def test_to_site():
     root = convert.to_site(passage)
     copy = convert.from_site(root)
     assert passage.equals(copy)
+
+
+@pytest.mark.parametrize("num_passages", range(3))
+@pytest.mark.parametrize("trailing_newlines", range(3))
+def test_from_conll(num_passages, trailing_newlines):
+    lines = num_passages * ["# sent_id = 120",
+                            "1	1	_	Word	Word	_	0	root	_	_",
+                            "2	2	_	Word	Word	_	1	nsubj	_	_",
+                            ""]
+    lines[-1:] = trailing_newlines * [""]
+    passages = list(convert.from_conll(lines, "test"))
+    assert len(passages) == num_passages
+    for passage in passages:
+        assert len(passage.layer(layer0.LAYER_ID).all) == 2
+        assert passage.ID == "120"
 
 
 def test_to_conll():
