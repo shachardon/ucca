@@ -48,7 +48,7 @@ def topological_layout(passage):
                 remaining += [node] + children
                 continue
             xs, ys = zip(*(pos[c.ID] for c in node.children))
-            pos[node.ID] = (sum(xs) / len(xs), 1 + max(ys))  # done with children
+            pos[node.ID] = (sum(xs) / len(xs), 1 + max(ys) ** 1.2)  # done with children
         elif node.layer.ID == layer0.LAYER_ID:  # terminal
             pos[node.ID] = (int(node.position), 0)
         else:  # implicit
