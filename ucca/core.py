@@ -1011,3 +1011,9 @@ class Passage:
         """
         # Currently no work is done in the Passage level
         node.layer._change_node_tag(node, old_tag)
+
+    def __str__(self):
+        try:
+            return str(self._layers[max(self._layers)].heads[0])
+        except (KeyError, ValueError, IndexError):
+            return super().__str__()
