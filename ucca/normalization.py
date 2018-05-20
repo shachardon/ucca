@@ -44,8 +44,9 @@ def move_sub_scene_elements(node):
 
 def separate_scenes(node, l1, top_level=False):
     if (node.is_scene() or node.participants) and (top_level or node.parallel_scenes):
+        edges = list(node)
         scene = l1.add_fnode(node, ETags.ParallelScene)
-        for edge in node:
+        for edge in edges:
             if edge.tag not in (ETags.ParallelScene, ETags.Punctuation, ETags.Linker, ETags.Ground):
                 scene.add(edge.tag, edge.child, edge_attrib=edge.attrib)
                 node.remove(edge)
@@ -99,12 +100,13 @@ def flatten_centers(node):
 
 
 def normalize_node(node, l1, extra):
-    if extra:
-        replace_edge_tags(node)
-        move_scene_elements(node)
-        move_sub_scene_elements(node)
-    separate_scenes(node, l1, top_level=node in l1.heads)
-    flatten_centers(node)
+    if node.tag == L1Tags.Foundational:
+        if extra:
+            replace_edge_tags(node)
+            move_scene_elements(node)
+            move_sub_scene_elements(node)
+        separate_scenes(node, l1, top_level=node in l1.heads)
+        flatten_centers(node)
 
 
 def normalize(passage, extra=False):
