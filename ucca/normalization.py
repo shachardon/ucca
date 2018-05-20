@@ -43,8 +43,8 @@ def move_sub_scene_elements(node):
 
 
 def separate_scenes(node, l1):
-    if (node.is_scene() or node.participants) and node.parallel_scenes:
-        scene = l1.add_fnode(node, ETags.ParallelScene)
+    if node.incoming and (node.is_scene() or node.participants) and node.parallel_scenes:
+        scene = l1.add_fnode(node.fparent, ETags.ParallelScene)
         for edge in node:
             if edge.tag not in (ETags.ParallelScene, ETags.Punctuation, ETags.Linker, ETags.Ground):
                 scene.add(edge.tag, edge.child, edge_attrib=edge.attrib)
