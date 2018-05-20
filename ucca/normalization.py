@@ -19,14 +19,14 @@ def replace_edge_tags(node):
 
 def move_elements(node, tags, parent_tags, forward=True):
     for edge in node:
-        if edge.child.tag == L1Tags.Foundational and edge.tag in (tags,) if isinstance(tags, str) else tags:
+        if edge.child.tag == L1Tags.Foundational and edge.tag in ((tags,) if isinstance(tags, str) else tags):
             try:
                 parent_edge = min((e for e in node if e != edge and e.child.tag == L1Tags.Foundational),
                                   key=lambda e: abs(((edge.child.start_position - e.child.end_position),
                                                      (e.child.start_position - edge.child.end_position))[forward]))
             except ValueError:
                 continue
-            if parent_edge.tag in (parent_tags,) if isinstance(parent_tags, str) else parent_tags:
+            if parent_edge.tag in ((parent_tags,) if isinstance(parent_tags, str) else parent_tags):
                 parent = parent_edge.child
                 parent.add(edge.tag, edge.child, edge_attrib=edge.attrib)
                 node.remove(edge)
@@ -34,17 +34,17 @@ def move_elements(node, tags, parent_tags, forward=True):
 
 def move_scene_elements(node):
     if node.parallel_scenes:
-        move_elements(node, tags=ETags.Relator, parent_tags=ETags.ParallelScene)
+        move_elements(node, tags=(ETags.Relator, ETags.Elaborator, ETags.Center), parent_tags=ETags.ParallelScene)
 
 
 def move_sub_scene_elements(node):
     if node.is_scene():
-        move_elements(node, tags=ETags.Elaborator, parent_tags=ETags.Participant, forward=False)
+        move_elements(node, tags=(ETags.Elaborator, ETags.Center), parent_tags=ETags.Participant, forward=False)
 
 
-def separate_scenes(node, l1):
-    if node.incoming and (node.is_scene() or node.participants) and node.parallel_scenes:
-        scene = l1.add_fnode(node.fparent, ETags.ParallelScene)
+def separate_scenes(node, l1, top_level=False):
+    if (node.is_scene() or node.participants) and (top_level or node.parallel_scenes):
+        scene = l1.add_fnode(node, ETags.ParallelScene)
         for edge in node:
             if edge.tag not in (ETags.ParallelScene, ETags.Punctuation, ETags.Linker, ETags.Ground):
                 scene.add(edge.tag, edge.child, edge_attrib=edge.attrib)
@@ -98,14 +98,39 @@ def flatten_centers(node):
         node.destroy()
 
 
+def normalize_node(node, l1, extra):
+    if extra:
+        replace_edge_tags(node)
+        move_scene_elements(node)
+        move_sub_scene_elements(node)
+        separate_scenes(node, l1, top_level=node in l1.heads)
+    flatten_centers(node)
+
+
 def normalize(passage, extra=False):
     l0 = passage.layer(layer0.LAYER_ID)
     l1 = passage.layer(layer1.LAYER_ID)
-    for node in l1.all:
-        if extra:
-            replace_edge_tags(node)
-            move_sub_scene_elements(node)
-            move_scene_elements(node)
-            separate_scenes(node, l1)
-        flatten_centers(node)
+    heads = list(l1.heads)
+    stack = [heads]
+    visited = set()
+    path = []
+    path_set = set(path)
+    while stack:
+        for node in stack[-1]:
+            if node in path_set:
+                try:
+                    node.fparent.remove(node)
+                except AttributeError:
+                    pass
+            elif node not in visited:
+                visited.add(node)
+                path.append(node)
+                path_set.add(node)
+                stack.append(node.children)
+                normalize_node(node, l1, extra)
+                break
+        else:
+            if path:
+                path_set.remove(path.pop())
+            stack.pop()
     attach_punct(l0, l1)
