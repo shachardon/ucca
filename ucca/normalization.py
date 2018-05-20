@@ -103,7 +103,7 @@ def normalize_node(node, l1, extra):
         replace_edge_tags(node)
         move_scene_elements(node)
         move_sub_scene_elements(node)
-        separate_scenes(node, l1, top_level=node in l1.heads)
+    separate_scenes(node, l1, top_level=node in l1.heads)
     flatten_centers(node)
 
 
