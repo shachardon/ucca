@@ -82,7 +82,7 @@ class NodeValidator:
             if len(s) > 1:
                 yield "Multiple outgoing %s edges (%s)" % (tag, join(s))
         if ETags.Function in self.incoming:
-            s = self.outgoing_tags.difference(ETags.Terminal, ETags.Punctuation)
+            s = self.outgoing_tags.difference((ETags.Terminal, ETags.Punctuation))
             if s:
                 yield "%s node (%s) with outgoing %s edge" % (ETags.Function, self.node.ID, join(s))
         if ETags.Linker in self.incoming_tags:
