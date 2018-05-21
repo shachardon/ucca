@@ -133,11 +133,17 @@ def attach_punct(l0, l1):
             l1.add_punct(nearest_parent(l0, terminal), terminal)
 
 
-def attach_terminals_as_function(l0, l1):
+def attach_terminals(l0, l1):
     for terminal in l0.all:
-        if not terminal.incoming:
-            fnode = l1.add_fnode(nearest_parent(l0, terminal), layer1.EdgeTags.Function)
-            fnode.add(layer1.EdgeTags.Terminal, terminal)
+        if terminal.incoming:
+            for edge in terminal.incoming:
+                if any(e.tag != ETags.Terminal for e in edge.parent):
+                    node = l1.add_fnode(edge.parent, layer1.EdgeTags.Center)
+                    copy_edge(edge, parent=node)
+                    remove(edge.parent, edge)
+        else:
+            node = l1.add_fnode(nearest_parent(l0, terminal), layer1.EdgeTags.Function)
+            node.add(layer1.EdgeTags.Terminal, terminal)
 
 
 def flatten_centers(node):
@@ -193,4 +199,4 @@ def normalize(passage, extra=False):
             stack.pop()
     attach_punct(l0, l1)
     if extra:
-        attach_terminals_as_function(l0, l1)
+        attach_terminals(l0, l1)
