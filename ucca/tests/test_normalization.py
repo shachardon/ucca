@@ -83,7 +83,20 @@ def unary_punct():
     return p
 
 
-def flat_punct():
+def unattached_punct():
+    p = core.Passage("1")
+    l0 = layer0.Layer0(p)
+    l1 = layer1.Layer1(p)
+    terms = [l0.add_terminal(text=str(i), punct=(i == 3)) for i in range(1, 4)]
+    ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
+    a1.add(layer1.EdgeTags.Terminal, terms[0])
+    p1.add(layer1.EdgeTags.Terminal, terms[1])
+    return p
+
+
+def attached_punct():
     p = core.Passage("1")
     l0 = layer0.Layer0(p)
     l1 = layer1.Layer1(p)
@@ -100,7 +113,8 @@ def flat_punct():
 @pytest.mark.parametrize("unnormalized, normalized", (
         (root_scene, top_scene),
         (nested_center, flat_center),
-        (unary_punct, flat_punct),
+        (unary_punct, attached_punct),
+        (unattached_punct, attached_punct),
 ))
 def test_normalize(unnormalized, normalized):
     p1 = unnormalized()
