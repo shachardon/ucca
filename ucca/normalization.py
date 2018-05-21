@@ -16,6 +16,8 @@ def fparent(node_or_edge):
 def remove_unmarked_implicits(node):
     while node is not None and not node.children and not node.attrib.get("implicit"):
         parent = fparent(node)
+        if parent is None:
+            break
         node.destroy()
         node = parent
 
