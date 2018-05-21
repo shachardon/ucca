@@ -1277,7 +1277,7 @@ class DependencyConverter(FormatConverter):
         while unit.outgoing:
             unit = self.find_head_child_edge(unit).child
         if unit.layer.ID != layer0.LAYER_ID:
-            raise ValueError("Implicit unit (%s): %s" % (unit.ID, unit))
+            raise ValueError("Implicit unit in conversion to dependencies (%s): %s" % (unit.ID, unit.root))
         return unit
 
     def find_top_headed_edges(self, unit):
