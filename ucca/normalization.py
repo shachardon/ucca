@@ -115,7 +115,7 @@ def by_position(l0, position):
         return None
 
 
-def punct_parent(l0, *terminals):
+def nearest_parent(l0, *terminals):
     return lowest_common_ancestor(*filter(lambda n: n is not None and n.tag == L0Tags.Word,
                                           (by_position(l0, terminals[0].position - 1),
                                            by_position(l0, terminals[-1].position + 1))))
@@ -127,7 +127,14 @@ def attach_punct(l0, l1):
             destroy(node)
     for terminal in l0.all:
         if layer0.is_punct(terminal) and not terminal.incoming:
-            l1.add_punct(punct_parent(l0, terminal), terminal)
+            l1.add_punct(nearest_parent(l0, terminal), terminal)
+
+
+def attach_terminals_as_function(l0, l1):
+    for terminal in l0.all:
+        if not terminal.incoming:
+            fnode = l1.add_fnode(nearest_parent(l0, terminal), layer1.EdgeTags.Function)
+            fnode.add(layer1.EdgeTags.Terminal, terminal)
 
 
 def flatten_centers(node):
@@ -182,3 +189,5 @@ def normalize(passage, extra=False):
                 path_set.remove(path.pop())
             stack.pop()
     attach_punct(l0, l1)
+    if extra:
+        attach_terminals_as_function(l0, l1)

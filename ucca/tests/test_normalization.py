@@ -157,10 +157,50 @@ def cycle():
         (top_punct_only, top_punct_only),
         (cycle, top_scene),
 ))
-def test_normalize(unnormalized, normalized):
+def test_normalize(unnormalized, normalized, extra=False):
     p1 = unnormalized()
     p2 = normalized()
     if unnormalized != normalized:
         assert not p1.equals(p2), "Unnormalized and normalized passage: %s == %s" % (str(p1), str(p2))
-    normalize(p1)
+    normalize(p1, extra=extra)
+    assert p1.equals(p2), "Normalized passage: %s != %s" % (str(p1), str(p2))
+
+
+def unattached_terms():
+    p = core.Passage("1")
+    l0 = layer0.Layer0(p)
+    l1 = layer1.Layer1(p)
+    terms = [l0.add_terminal(text=str(i), punct=False) for i in range(1, 4)]
+    ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
+    a1.add(layer1.EdgeTags.Terminal, terms[0])
+    p1.add(layer1.EdgeTags.Terminal, terms[1])
+    return p
+
+
+def attached_terms():
+    p = core.Passage("1")
+    l0 = layer0.Layer0(p)
+    l1 = layer1.Layer1(p)
+    terms = [l0.add_terminal(text=str(i), punct=False) for i in range(1, 4)]
+    ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
+    f1 = l1.add_fnode(ps1, layer1.EdgeTags.Function)
+    a1.add(layer1.EdgeTags.Terminal, terms[0])
+    p1.add(layer1.EdgeTags.Terminal, terms[1])
+    f1.add(layer1.EdgeTags.Terminal, terms[2])
+    return p
+
+
+@pytest.mark.parametrize("unnormalized, normalized", (
+        (unattached_terms, attached_terms),
+))
+def test_normalize_extra(unnormalized, normalized):
+    p1 = unnormalized()
+    p2 = normalized()
+    if unnormalized != normalized:
+        assert not p1.equals(p2), "Unnormalized and normalized passage: %s == %s" % (str(p1), str(p2))
+    normalize(p1, extra=True)
     assert p1.equals(p2), "Normalized passage: %s != %s" % (str(p1), str(p2))
