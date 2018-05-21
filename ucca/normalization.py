@@ -108,17 +108,20 @@ def lowest_common_ancestor(*nodes):
     return None
 
 
-def by_position(l0, position):
-    try:
-        return l0.by_position(position)
-    except IndexError:
-        return None
+def nearest_word(l0, position, step):
+    while True:
+        position += step
+        try:
+            terminal = l0.by_position(position)
+        except IndexError:
+            return None
+        if terminal.tag == L0Tags.Word:
+            return terminal
 
 
 def nearest_parent(l0, *terminals):
-    return lowest_common_ancestor(*filter(lambda n: n is not None and n.tag == L0Tags.Word,
-                                          (by_position(l0, terminals[0].position - 1),
-                                           by_position(l0, terminals[-1].position + 1))))
+    return lowest_common_ancestor(*filter(None, (nearest_word(l0, terminals[0].position, -1),
+                                                 nearest_word(l0, terminals[-1].position, 1))))
 
 
 def attach_punct(l0, l1):
