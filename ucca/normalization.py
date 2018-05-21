@@ -3,6 +3,46 @@ from ucca.layer0 import NodeTags as L0Tags
 from ucca.layer1 import EdgeTags as ETags, NodeTags as L1Tags
 
 
+def fparent(node):
+    try:
+        return node.fparent
+    except AttributeError:
+        try:
+            return node.parent  # actually an edge?
+        except AttributeError:
+            return node.parents[0] if node.parents else None
+
+
+def remove_unmarked_implicits(node):
+    while node is not None and not node.children and not node.attrib.get("implicit"):
+        parent = fparent(node)
+        node.destroy()
+        node = parent
+
+
+def remove(parent, child):
+    if parent is not None:
+        parent.remove(child)
+        remove_unmarked_implicits(parent)
+
+
+def destroy(node):
+    parent = fparent(node)
+    node.destroy()
+    if parent is not None:
+        remove_unmarked_implicits(parent)
+
+
+def copy_edge(edge, parent=None, child=None, tag=None):
+    if parent is None:
+        parent = edge.parent
+    if child is None:
+        child = edge.child
+    if tag is None:
+        tag = edge.tag
+    parent.add(tag, child, edge_attrib=edge.attrib)
+
+
 def replace_center(edge):
     if len(edge.parent) == 1 and not edge.parent.parents:
         return ETags.ParallelScene
@@ -28,8 +68,8 @@ def move_elements(node, tags, parent_tags, forward=True):
                 continue
             if parent_edge.tag in ((parent_tags,) if isinstance(parent_tags, str) else parent_tags):
                 parent = parent_edge.child
-                parent.add(edge.tag, edge.child, edge_attrib=edge.attrib)
-                node.remove(edge)
+                copy_edge(edge, parent=parent)
+                remove(node, edge)
 
 
 def move_scene_elements(node):
@@ -48,8 +88,8 @@ def separate_scenes(node, l1, top_level=False):
         scene = l1.add_fnode(node, ETags.ParallelScene)
         for edge in edges:
             if edge.tag not in (ETags.ParallelScene, ETags.Punctuation, ETags.Linker, ETags.Ground):
-                scene.add(edge.tag, edge.child, edge_attrib=edge.attrib)
-                node.remove(edge)
+                copy_edge(edge, parent=scene)
+                remove(node, edge)
 
 
 def lowest_common_ancestor(*nodes):
@@ -79,7 +119,7 @@ def punct_parent(l0, *terminals):
 def attach_punct(l0, l1):
     for node in l1.all:
         if node.tag == L1Tags.Punctuation:
-            node.destroy()
+            destroy(node)
     for terminal in l0.all:
         if layer0.is_punct(terminal) and not terminal.incoming:
             l1.add_punct(punct_parent(l0, terminal), terminal)
@@ -90,13 +130,13 @@ def flatten_centers(node):
     Whenever there are Cs inside Cs, remove the external C.
     """
     if node.tag == L1Tags.Foundational and node.ftag == ETags.Center and \
-            len(node.centers) == len(node.fparent.centers) == 1:
+            len(node.centers) == len(fparent(node).centers) == 1:
         for edge in node.incoming:
             if edge.attrib.get("remote"):
-                edge.parent.add(edge.tag, node.centers[0], edge_attrib=edge.attrib)
-        for edge in node.outgoing:
-            node.fparent.add(edge.tag, edge.child, edge_attrib=edge.attrib)
-        node.destroy()
+                copy_edge(edge, child=node.centers[0])
+        for edge in node:
+            copy_edge(edge, parent=node.fparent)
+        destroy(node)
 
 
 def normalize_node(node, l1, extra):
@@ -120,10 +160,7 @@ def normalize(passage, extra=False):
     while stack:
         for node in stack[-1]:
             if node in path_set:
-                try:
-                    node.fparent.remove(node)
-                except AttributeError:
-                    pass
+                remove(fparent(node), node)
             elif node not in visited:
                 visited.add(node)
                 path.append(node)
