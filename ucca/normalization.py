@@ -3,14 +3,14 @@ from ucca.layer0 import NodeTags as L0Tags
 from ucca.layer1 import EdgeTags as ETags, NodeTags as L1Tags
 
 
-def fparent(node):
+def fparent(node_or_edge):
     try:
-        return node.fparent
+        return node_or_edge.fparent
     except AttributeError:
         try:
-            return node.parent  # actually an edge?
+            return node_or_edge.parent
         except AttributeError:
-            return node.parents[0] if node.parents else None
+            return node_or_edge.parents[0] if node_or_edge.parents else None
 
 
 def remove_unmarked_implicits(node):
@@ -26,9 +26,12 @@ def remove(parent, child):
         remove_unmarked_implicits(parent)
 
 
-def destroy(node):
-    parent = fparent(node)
-    node.destroy()
+def destroy(node_or_edge):
+    parent = fparent(node_or_edge)
+    try:
+        node_or_edge.destroy()
+    except AttributeError:
+        parent.remove(node_or_edge)
     if parent is not None:
         remove_unmarked_implicits(parent)
 
@@ -156,16 +159,20 @@ def normalize(passage, extra=False):
     stack = [heads]
     visited = set()
     path = []
-    path_set = set(path)
+    path_set = set()
     while stack:
-        for node in stack[-1]:
+        for edge in stack[-1]:
+            try:
+                node = edge.child
+            except AttributeError:
+                node = edge
             if node in path_set:
-                remove(fparent(node), node)
+                destroy(edge)
             elif node not in visited:
                 visited.add(node)
                 path.append(node)
                 path_set.add(node)
-                stack.append(node.children)
+                stack.append(node)
                 normalize_node(node, l1, extra)
                 break
         else:

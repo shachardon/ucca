@@ -110,16 +110,32 @@ def attached_punct():
     return p
 
 
+def cycle():
+    p = core.Passage("1")
+    l0 = layer0.Layer0(p)
+    l1 = layer1.Layer1(p)
+    terms = [l0.add_terminal(text=str(i), punct=False) for i in range(1, 4)]
+    ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
+    a2 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    l1.add_remote(a2, layer1.EdgeTags.Elaborator, ps1)
+    a1.add(layer1.EdgeTags.Terminal, terms[0])
+    p1.add(layer1.EdgeTags.Terminal, terms[1])
+    a2.add(layer1.EdgeTags.Terminal, terms[2])
+    return p
+
+
 @pytest.mark.parametrize("unnormalized, normalized", (
         (root_scene, top_scene),
         (nested_center, flat_center),
         (unary_punct, attached_punct),
         (unattached_punct, attached_punct),
+        (cycle, top_scene),
 ))
 def test_normalize(unnormalized, normalized):
     p1 = unnormalized()
     p2 = normalized()
-    assert not p1.equals(p2), "Unnormalized and normalized passage"
+    assert not p1.equals(p2), "Unnormalized and normalized passage: %s == %s" % (str(p1), str(p2))
     normalize(p1)
-    assert str(p1) == str(p2), "Normalized passage string"
-    assert p1.equals(p2), "Normalized passage"
+    assert p1.equals(p2), "Normalized passage: %s != %s" % (str(p1), str(p2))
