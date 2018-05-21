@@ -375,6 +375,8 @@ class PunctNode(FoundationalNode):
     def add(self, edge_tag, node, *, edge_attrib=None):
         if node.layer.ID != layer0.LAYER_ID:
             raise ValueError("Non-terminal child (%s) for %s node (%s)" % (node.ID, NodeTags.Punctuation, self.ID))
+        if not layer0.is_punct(node):
+            raise ValueError("%s child (%s) for %s node (%s)" % (node.tag, node.ID, NodeTags.Punctuation, self.ID))
         super().add(edge_tag, node, edge_attrib=None)
 
     @property
