@@ -1345,7 +1345,7 @@ class DependencyConverter(FormatConverter):
         multi_words = [None]
         dep_nodes = [self.Node(terminal.position, self.incoming_edges(terminal, test, tree), terminal=terminal,
                                is_top=self.is_top(terminal),
-                               token=self.Token(terminal.text, terminal.tag,
+                               token=self.Token(terminal.text, terminal.extra.get("tag", terminal.tag),
                                                 lemma=terminal.extra.get("lemma"),
                                                 pos=terminal.extra.get("pos"),
                                                 features=terminal.extra.get("features")),
