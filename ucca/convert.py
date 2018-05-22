@@ -1215,11 +1215,14 @@ class DependencyConverter(FormatConverter):
         return dep_node.token.tag == layer0.NodeTags.Punct
 
     def link_pre_terminals(self, dep_nodes):
+        preterminals = []
         for dep_node in dep_nodes:
             if dep_node.preterminal is not None:  # link pre-terminal to terminal
                 dep_node.preterminal.add(EdgeTags.Terminal, dep_node.terminal)
-                if layer0.is_punct(dep_node.terminal):
-                    dep_node.preterminal.tag = layer1.NodeTags.Punctuation
+                preterminals.append(dep_node.preterminal)
+        for preterminal in preterminals:  # update tag to PNCT when necessary
+            if all(map(layer0.is_punct, preterminal.children)):
+                preterminal.tag = layer1.NodeTags.Punctuation
 
     def from_format(self, lines, passage_id, split=False):
         """Converts from parsed text in dependency format to a Passage object.
