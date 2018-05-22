@@ -1,7 +1,7 @@
 import pytest
 import xml.etree.ElementTree as ETree
 
-from ucca import layer0, layer1, convert
+from ucca import core, layer0, layer1, convert
 from .conftest import loaded, load_xml
 
 """Tests convert module correctness and API."""
@@ -183,28 +183,43 @@ def test_to_site():
     assert passage.equals(copy)
 
 
-@pytest.mark.parametrize("converter, lines", (
-        (convert.from_conll,
-         ["# sent_id = 120",
-          "1	1	_	Word	Word	_	0	root	_	_",
-          "2	2	_	Word	Word	_	1	nsubj	_	_",
-          ""]
-         ),
-        (convert.from_sdp,
-         ["#120",
-          "1	1	_	Word	-	+	_	_",
-          "2	2	_	Word	-	-	_	arg0",
-          ""])))
+def simple():
+    p = core.Passage("120")
+    l0 = layer0.Layer0(p)
+    l1 = layer1.Layer1(p)
+    terms = [l0.add_terminal(text=str(i), punct=False) for i in range(1, 3)]
+    p1 = l1.add_fnode(None, layer1.EdgeTags.Process)
+    a1 = l1.add_fnode(None, layer1.EdgeTags.Participant)
+    p1.add(layer1.EdgeTags.Terminal, terms[0])
+    a1.add(layer1.EdgeTags.Terminal, terms[1])
+    return p
+
+
+simple_conll = ["# sent_id = 120",
+                "1	1	_	Word	Word	_	0	ROOT	_	_",
+                "2	2	_	Word	Word	_	1	A	_	_",
+                ""]
+
+simple_sdp = ["#120",
+              "1	1	_	Word	-	+	_	_",
+              "2	2	_	Word	-	-	_	A",
+              ""]
+
+
+@pytest.mark.parametrize("converter, create_passage, lines", (
+        (convert.from_conll, simple, simple_conll),
+        (convert.from_sdp,   simple, simple_sdp),
+))
 @pytest.mark.parametrize("num_passages", range(3))
 @pytest.mark.parametrize("trailing_newlines", range(3))
-def test_from_dep(converter, lines, num_passages, trailing_newlines):
+def test_from_dep(converter, create_passage, lines, num_passages, trailing_newlines):
+    p = create_passage()
     lines = num_passages * lines
     lines[-1:] = trailing_newlines * [""]
     passages = list(converter(lines, "test"))
     assert len(passages) == num_passages
     for passage in passages:
-        assert len(passage.layer(layer0.LAYER_ID).all) == 2
-        assert passage.ID == "120"
+        assert passage.equals(p), "%s: %s != %s" % (converter, str(passage), str(p))
 
 
 def test_to_conll():
