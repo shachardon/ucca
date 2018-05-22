@@ -16,12 +16,12 @@ from collections import defaultdict
 from itertools import islice, repeat
 
 import json
-import operator
 import os
 import pickle
 import re
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
+from operator import attrgetter, itemgetter
 
 from ucca import textutil, core, layer0, layer1
 from ucca.layer1 import EdgeTags
@@ -581,7 +581,7 @@ def to_standard(passage):
     _add_attrib(passage, root)
     _add_extra(passage, root)
 
-    for layer in sorted(passage.layers, key=operator.attrgetter('ID')):
+    for layer in sorted(passage.layers, key=attrgetter('ID')):
         layer_elem = ET.SubElement(root, 'layer', layerID=layer.ID)
         _add_attrib(layer, layer_elem)
         _add_extra(layer, layer_elem)
@@ -723,7 +723,7 @@ def to_text(passage, sentences=True, lang="en", *args, **kwargs):
     """
     del args, kwargs
     tokens = [x.text for x in sorted(passage.layer(layer0.LAYER_ID).all,
-                                     key=operator.attrgetter('position'))]
+                                     key=attrgetter('position'))]
     # break2sentences return the positions of the end tokens, which is
     # always the index into tokens incremented by ones (tokens index starts
     # with 0, positions with 1). So in essence, it returns the index to start
@@ -802,7 +802,7 @@ def from_json(lines, *args, all_categories=None, skip_category_mapping=False, **
     l0 = layer0.Layer0(passage)
     token_id_to_terminal = {token["id"]: l0.add_terminal(
         text=token["text"], punct=not token["require_annotation"], paragraph=1)
-        for token in sorted(d["tokens"], key=operator.itemgetter("start_index"))}
+        for token in sorted(d["tokens"], key=itemgetter("start_index"))}
     # Create non-terminals
     l1 = layer1.Layer1(passage)
     tree_id_to_node = {}
@@ -874,7 +874,7 @@ def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=Non
     del args, kwargs
     # Create tokens
     terminal_id_to_token_id = {}
-    terminals = sorted(passage.layer(layer0.LAYER_ID).all, key=operator.attrgetter("position"))
+    terminals = sorted(passage.layer(layer0.LAYER_ID).all, key=attrgetter("position"))
     if tok_task is True or tok_task is None:  # Necessary because bool(tok_task) == True also if a task dict is given
         tokens = []
         start_index = 0
@@ -887,7 +887,7 @@ def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=Non
             tokens.append(token)
             start_index = end_index + 1
     else:
-        tokens = sorted(tok_task["tokens"], key=operator.itemgetter("start_index"))
+        tokens = sorted(tok_task["tokens"], key=itemgetter("start_index"))
         if len(tokens) != len(terminals):
             raise ValueError("Number of tokens in tokenization task != number of terminals in passage: %d != %d" %
                              (len(tokens), len(terminals)))
@@ -981,7 +981,6 @@ class DependencyConverter(FormatConverter):
 
         def add_edges(self, edges):
             for edge in edges:
-                self.incoming.append(edge)
                 edge.dependent = self
 
         def __repr__(self):
@@ -998,8 +997,33 @@ class DependencyConverter(FormatConverter):
             self.head_index = head_index
             self.rel = rel
             self.remote = remote
-            self.head = None
-            self.dependent = None
+            self._head = None
+            self._dependent = None
+
+        @property
+        def head(self):
+            return self._head
+
+        @head.setter
+        def head(self, head):
+            if self._head is not None:
+                self._head.outgoing.remove(self)
+            self._head = head
+            if head is not None:
+                head.outgoing.append(self)
+                self.head_index = head.position - 1
+
+        @property
+        def dependent(self):
+            return self._dependent
+
+        @dependent.setter
+        def dependent(self, dependent):
+            if self._dependent is not None:
+                self._dependent.incoming.remove(self)
+            self._dependent = dependent
+            if dependent is not None:
+                dependent.incoming.append(self)
 
         @classmethod
         def create(cls, head_position, rel):
@@ -1009,14 +1033,10 @@ class DependencyConverter(FormatConverter):
             if isinstance(self.head_index, str):
                 self.head_index = int((copy_of or {}).get(self.head_index, re.sub(r"\..*", "", self.head_index)))
             self.head = heads[self.head_index]
-            self.head.outgoing.append(self)
 
         def remove(self):
-            self.head.outgoing.remove(self)
-            self.head = None
-            self.dependent.incoming.remove(self)
-            self.dependent = None
-    
+            self.head = self.dependent = None
+
         def __repr__(self):
             return (str(self.head_index) if self.head is None else repr(self.head)) + \
                    "-[" + (self.rel or "") + ("*" if self.remote else "") + "]->" + repr(self.dependent)
@@ -1354,7 +1374,7 @@ class DependencyConverter(FormatConverter):
                                                 features=terminal.extra.get("features")),
                                parent_multi_word=self.parent_multi_word(terminal, multi_words),
                                enhanced=terminal.extra.get("enhanced"), misc=terminal.extra.get("misc"))
-                     for terminal in sorted(terminals, key=operator.attrgetter("position"))]
+                     for terminal in sorted(terminals, key=attrgetter("position"))]
         self._link_heads(dep_nodes)
         self.preprocess(dep_nodes)
         lines += ["\t".join(map(str, entry)) for entry in self.generate_lines(passage.ID, dep_nodes, test, tree)] + [""]
