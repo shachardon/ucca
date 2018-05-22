@@ -1419,7 +1419,7 @@ class ConllConverter(DependencyConverter):
         previous_node.add_edges(edges)
 
     def generate_lines(self, passage_id, dep_nodes, test, tree):
-        yield ["# sent_id = " + passage_id]
+        yield from self.generate_header_lines(passage_id, dep_nodes)
         # id, form, lemma, coarse pos, fine pos, features
         for i, dep_node in enumerate(dep_nodes):
             position = i + 1
@@ -1438,6 +1438,9 @@ class ConllConverter(DependencyConverter):
                     heads = [heads[0]]
                 for head in heads:
                     yield fields + list(head) + [dep_node.enhanced, dep_node.misc]
+
+    def generate_header_lines(self, passage_id, dep_nodes):
+        yield ["# sent_id = " + passage_id]
 
     def omit_edge(self, edge, tree, linkage=False):
         return (tree or not linkage) and edge.tag == EdgeTags.LinkArgument or tree and edge.attrib.get("remote")
