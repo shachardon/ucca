@@ -1,10 +1,9 @@
+import matplotlib.pyplot as plt
 import os
 from argparse import ArgumentParser
-
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from ucca import visualization
+from ucca import visualization, layer0
 from ucca.ioutil import get_passages_with_progress_bar
 
 if __name__ == "__main__":
@@ -26,6 +25,8 @@ if __name__ == "__main__":
                 with tqdm.external_write_mode():
                     print(tikz)
         else:
+            width = len(passage.layer(layer0.LAYER_ID).all) * 19/27
+            plt.figure(figsize=(width, width * 10/19))
             visualization.draw(passage)
             if args.out_dir:
                 plt.savefig(os.path.join(args.out_dir, passage.ID + ".png"))
