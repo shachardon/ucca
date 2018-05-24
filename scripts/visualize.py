@@ -9,8 +9,9 @@ from ucca.ioutil import get_passages_with_progress_bar
 if __name__ == "__main__":
     argparser = ArgumentParser(description="Visualize the given passages as graphs.")
     argparser.add_argument("passages", nargs="+", help="UCCA passages, given as xml/pickle file names")
-    argparser.add_argument("--tikz", action="store_true", help="print tikz code rather than showing plots")
-    argparser.add_argument("--out-dir", help="directory to save figures in (otherwise displayed immediately)")
+    argparser.add_argument("-t", "--tikz", action="store_true", help="print tikz code rather than showing plots")
+    argparser.add_argument("-o", "--out-dir", help="directory to save figures in (otherwise displayed immediately)")
+    argparser.add_argument("-i", "--node-ids", action="store_true", help="print tikz code rather than showing plots")
     args = argparser.parse_args()
 
     if args.out_dir:
@@ -27,7 +28,7 @@ if __name__ == "__main__":
         else:
             width = len(passage.layer(layer0.LAYER_ID).all) * 19/27
             plt.figure(figsize=(width, width * 10/19))
-            visualization.draw(passage)
+            visualization.draw(passage, node_ids=args.node_ids)
             if args.out_dir:
                 plt.savefig(os.path.join(args.out_dir, passage.ID + ".png"))
             else:

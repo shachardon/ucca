@@ -7,29 +7,32 @@ import warnings
 from operator import attrgetter
 
 from ucca import layer0, layer1
-from ucca.layer1 import Linkage
 
 warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-def draw(passage):
-    G = nx.DiGraph()
+def node_label(node):
+    return re.sub("[^(]*\((.*)\)", "\\1", node.attrib.get("label", ""))
+
+
+def draw(passage, node_ids=False):
+    g = nx.DiGraph()
     terminals = sorted(passage.layer(layer0.LAYER_ID).all, key=attrgetter("position"))
-    G.add_nodes_from([(n.ID, {"label": n.text, "node_color": "white"}) for n in terminals])
-    G.add_nodes_from([(n.ID, {"label": "IMPLICIT" if n.attrib.get("implicit") else "",
-                              "node_color": "gray" if isinstance(n, Linkage) else (
-                                  "white" if n.attrib.get("implicit") else "black")})
+    g.add_nodes_from([(n.ID, {"label": n.text, "color": "white"}) for n in terminals])
+    g.add_nodes_from([(n.ID, {"label": node_label(n) or ("", "IMPLICIT", n.ID)[n.attrib.get("implicit", 2 * node_ids)],
+                              "color": ("black", "gray", "white")[n.tag == layer1.NodeTags.Linkage or
+                                                                  2 * n.attrib.get("implicit", node_ids)]})
                       for n in passage.layer(layer1.LAYER_ID).all])
-    G.add_edges_from([(n.ID, e.child.ID, {"label": e.tag, "style": "dashed" if e.attrib.get("remote") else "solid"})
+    g.add_edges_from([(n.ID, e.child.ID, {"label": e.tag, "style": "dashed" if e.attrib.get("remote") else "solid"})
                       for layer in passage.layers for n in layer.all for e in n])
     pos = topological_layout(passage)
-    nx.draw(G, pos, arrows=False, font_size=10,
-            node_color=[d["node_color"] for _, d in G.nodes(data=True)],
-            labels={n: d["label"] for n, d in G.nodes(data=True) if d["label"]},
-            style=[d["style"] for _, _, d in G.edges(data=True)])
-    nx.draw_networkx_edge_labels(G, pos, font_size=8,
-                                 edge_labels={(u, v): d["label"] for u, v, d in G.edges(data=True)})
+    nx.draw(g, pos, arrows=False, font_size=10,
+            node_color=[d["color"] for _, d in g.nodes(data=True)],
+            labels={n: d["label"] for n, d in g.nodes(data=True) if d["label"]},
+            style=[d["style"] for _, _, d in g.edges(data=True)])
+    nx.draw_networkx_edge_labels(g, pos, font_size=8,
+                                 edge_labels={(u, v): d["label"] for u, v, d in g.edges(data=True)})
 
 
 def topological_layout(passage):
@@ -82,7 +85,7 @@ def tex_escape(text):
     return TEX_ESCAPE_PATTERN.sub(lambda match: TEX_ESCAPE_TABLE[match.group()], text)
 
 
-def tikz(p, indent=None):
+def tikz(p, indent=None, node_ids=False):
     # child {node (After) [word] {After} edge from parent node[above] {\scriptsize $L$}}
     # child {node (graduation) [circle] {}
     # {
@@ -108,18 +111,18 @@ def tikz(p, indent=None):
   level 1/.style={sibling distance=4cm},
   level 2/.style={sibling distance=15mm},
   level 3/.style={sibling distance=15mm},
-  every circle node/.append style={fill=black}]
+  every circle node/.append style={%s=black}]
   \tikzstyle{word} = [font=\rmfamily,color=black]
-  """ + "\\" + tikz(l1.heads[0], indent=1) + \
-               "\n".join([";"] + ["  \draw[dashed,->] (%s) to node [auto] {\scriptsize $%s$} (%s);" %
-                                  (e.parent.ID.replace(".", "_"), e.tag, e.child.ID.replace(".", "_"))
-                                  for n in l1.all for e in n if e.attrib.get("remote")] + [r"\end{tikzpicture}"])
+  """ % ("draw" if node_ids else "fill") + "\\" + tikz(l1.heads[0], indent=1, node_ids=node_ids) + \
+            "\n".join([";"] + ["  \draw[dashed,->] (%s) to node [auto] {\scriptsize $%s$} (%s);" %
+                               (e.parent.ID.replace(".", "_"), e.tag, e.child.ID.replace(".", "_"))
+                               for n in l1.all for e in n if e.attrib.get("remote")] + [r"\end{tikzpicture}"])
     return "node (" + p.ID.replace(".", "_") + ") " + (
         ("[word] {" +
          (" ".join(tex_escape(t.text)
                    for t in sorted(p.terminals, key=attrgetter("position"))) or r"\textbf{IMPLICIT}")
          + "} ") if p.terminals or p.attrib.get("implicit") else ("\n" + indent * "  ").join(
-            ["[circle] {}", "{"] +
+            ["[circle] {%s}" % (node_label(p) or (p.ID if node_ids else "")), "{"] +
             ["child {" + tikz(e.child, indent + 1) +
              " edge from parent node[auto]  {\scriptsize $" + e.tag + "$}}"
              for e in sorted(p, key=lambda f: f.child.start_position)
