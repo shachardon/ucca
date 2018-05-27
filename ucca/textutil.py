@@ -194,7 +194,7 @@ def annotate_all(passages, replace=False, as_array=False, as_tuples=False, lang=
     for passage_lang, passages_by_lang in groupby(passages, get_lang):
         for need_annotation, stream in groupby(to_annotate(passages_by_lang, replace, as_array), lambda x: bool(x[0])):
             annotated = get_nlp(passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
-            annotated = set_docs(annotated, as_array, passage_lang or lang, verbose)
+            annotated = set_docs(annotated, as_array, passage_lang or lang, replace, verbose)
             for passage, passages in groupby(annotated, itemgetter(0)):
                 yield deque(passages, maxlen=1).pop() if as_tuples else passage
 
@@ -217,7 +217,7 @@ def is_annotated(passage, as_array):
     return all(a.key in t.extra for t in l0.all for a in Attr)
 
 
-def set_docs(annotated, as_array, lang, verbose):
+def set_docs(annotated, as_array, lang, replace, verbose):
     for doc, (i, terminals, passage, *context) in annotated:
         if doc:  # Not empty, so copy values
             from spacy import attrs
@@ -227,7 +227,9 @@ def set_docs(annotated, as_array, lang, verbose):
                 docs = passage.layer(layer0.LAYER_ID).extra.setdefault("doc", [[]])
                 while len(docs) < i + 1:
                     docs.append([])
-                docs[i] = [[a(v, vocab, as_array=True) for a, v in zip(Attr, values)] for values in arr]
+                existing = docs[i] + (len(Attr) - len(docs[i])) * [None]
+                docs[i] = [[e if e is None or replace else a(v, vocab, as_array=True)
+                            for a, v, e in zip(Attr, values, existing)] for values in arr]
             else:
                 for terminal, values in zip(terminals, arr):
                     for attr, value in zip(Attr, values):
