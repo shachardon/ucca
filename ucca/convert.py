@@ -1409,7 +1409,7 @@ class ConllConverter(DependencyConverter):
     def read_line(self, line, previous_node, copy_of):
         fields = self.split_line(line)
         # id, form, lemma, coarse pos, fine pos, features, head, relation, [enhanced], [misc]
-        position, text, lemma, tag, pos, features, head_position, rel, *enhanced_misc = fields[:10]
+        position, text, lemma, pos, tag, features, head_position, rel, *enhanced_misc = fields[:10]
         edges = []
         if head_position and head_position != "_":
             edges.append(DependencyConverter.Edge.create(head_position, rel))
