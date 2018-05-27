@@ -228,7 +228,7 @@ def set_docs(annotated, as_array, lang, replace, verbose):
                 while len(docs) < i + 1:
                     docs.append([])
                 existing = docs[i] + (len(Attr) - len(docs[i])) * [None]
-                docs[i] = [[e if e is None or replace else a(v, vocab, as_array=True)
+                docs[i] = [[a(v, vocab, as_array=True) if e is None or replace else e
                             for a, v, e in zip(Attr, values, existing)] for values in arr]
             else:
                 for terminal, values in zip(terminals, arr):
