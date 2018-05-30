@@ -9,7 +9,10 @@ def validate(passage):
     for node in passage.layer(layer0.LAYER_ID).all:
         yield from NodeValidator(node).validate_terminal()
     heads = list(passage.layer(layer1.LAYER_ID).heads)
+    linkage = False
     for node in heads:
+        if node.tag == L1Tags.Linkage:
+            linkage = True
         yield from NodeValidator(node).validate_top_level()
     stack = [heads]
     visited = set()
@@ -24,7 +27,7 @@ def validate(passage):
                 path.append(node)
                 path_set.add(node)
                 stack.append(node.children)
-                yield from NodeValidator(node).validate_non_terminal()
+                yield from NodeValidator(node).validate_non_terminal(linkage)
                 break
         else:
             if path:
@@ -57,7 +60,7 @@ class NodeValidator:
         if s:
             yield "Top-level node (%s) with %s edge" % (self.node.ID, join(s))
 
-    def validate_non_terminal(self):
+    def validate_non_terminal(self, linkage=False):
         if self.node.tag == L1Tags.Linkage:
             yield from self.validate_linkage()
         elif self.node.tag == L1Tags.Foundational:
@@ -89,7 +92,7 @@ class NodeValidator:
             s = self.incoming_tags.difference((ETags.Linker, ETags.LinkRelation))
             if s:
                 yield "%s node (%s) with incoming %s edge" % (ETags.Linker, self.node.ID, join(s))
-            if ETags.LinkRelation not in self.incoming_tags:
+            if linkage and ETags.LinkRelation not in self.incoming_tags:
                 yield "%s node (%s) with no incoming %s" % (ETags.Linker, self.node.ID, ETags.LinkRelation)
 
     def validate_linkage(self):
