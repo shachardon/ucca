@@ -139,7 +139,21 @@ def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, conve
                               converters=converters, lang=lang)
 
 
-def write_passage(passage, output_format=None, binary=False, outdir=".", prefix="", converter=None, verbose=True):
+def write_passage(passage, output_format=None, binary=False, outdir=".", prefix="", converter=None, verbose=True,
+                  append=False):
+    """
+    Write a given UCCA passage in any format.
+    :param passage: Passage object to write
+    :param output_format: filename suffix (if given "ucca", suffix will be ".pickle" or ".xml" depending on `binary')
+    :param binary: save in pickle format with ".pickle" suffix
+    :param outdir: output directory, should exist already
+    :param prefix: string to prepend to output filename
+    :param converter: function to apply to passage before saving (if output_format is not "ucca"/"pickle"/"xml"),
+                      returning iterable of strings, each corresponding to an output line
+    :param verbose: print "Writing passage" message
+    :param append: if using converter, append to output file rather than creating a new file
+    :return: path of created output file
+    """
     suffix = output_format if output_format and output_format != "ucca" else ("pickle" if binary else "xml")
     outfile = os.path.join(outdir, prefix + passage.ID + "." + suffix)
     if verbose:
@@ -148,7 +162,6 @@ def write_passage(passage, output_format=None, binary=False, outdir=".", prefix=
     if output_format is None or output_format in ("ucca", "pickle", "xml"):
         passage2file(passage, outfile, binary=binary)
     else:
-        output = "\n".join(line for line in (converter or to_text)(passage))
-        with open(outfile, "w", encoding="utf-8") as f:
-            f.write(output + "\n")
+        with open(outfile, "a" if append else "w", encoding="utf-8") as f:
+            f.writelines(map("{}\n".format, (converter or to_text)(passage)))
     return outfile
