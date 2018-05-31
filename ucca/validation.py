@@ -68,6 +68,9 @@ class NodeValidator:
         primary_incoming = [e for e in self.node.incoming if not e.attrib.get("remote") and e.tag not in LINKAGE]
         if len(primary_incoming) > 1:
             yield "Multiple incoming non-remote (%s)" % join(primary_incoming)
+        remote_incoming = [e for e in self.node.incoming if e.attrib.get("remote")]
+        if remote_incoming and not primary_incoming:
+            yield "Node (%s) with remote parents but no primary parents" % self.node.ID
         for edge in self.node:
             if (edge.tag == ETags.Punctuation) != (edge.child.tag == L1Tags.Punctuation):
                 yield "%s edge (%s) with %s child" % (edge.tag, edge, edge.child.tag)
