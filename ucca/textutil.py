@@ -37,9 +37,12 @@ class Attr(Enum):
             return int(np.int64(value))
         try:
             if as_array:
-                if self in (Attr.ORTH, Attr.LEMMA):
+                is_str = isinstance(value, str)
+                if is_str or self in (Attr.ORTH, Attr.LEMMA):
                     try:
-                        get_vocab(vocab, lang).strings[value]
+                        i = get_vocab(vocab, lang).strings[value]
+                        if is_str:  # Replace with numeric ID since as_array=True
+                            value = i
                     except KeyError:
                         return None
                 return int(value)
@@ -228,7 +231,7 @@ def set_docs(annotated, as_array, lang, replace, verbose):
                 while len(docs) < i + 1:
                     docs.append([])
                 existing = docs[i] + (len(Attr) - len(docs[i])) * [None]
-                docs[i] = [[a(v, vocab, as_array=True) if e is None or replace else e
+                docs[i] = [[a(v if e is None or replace else e, vocab, as_array=True)
                             for a, v, e in zip(Attr, values, existing)] for values in arr]
             else:
                 for terminal, values in zip(terminals, arr):
