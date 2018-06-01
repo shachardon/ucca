@@ -57,3 +57,25 @@ def test_annotate_all(as_array, convert_and_back):
                 for attr in textutil.Attr:
                     assert attr.key in terminal.extra, "Terminal %s in passage %s has no %s" % (
                         terminal, passage.ID, attr.name)
+
+
+@pytest.mark.parametrize("create", PASSAGES)
+@pytest.mark.parametrize("as_array", (True, False))
+def test_preannotate_passage(create, as_array):
+    passage = create()
+    l0 = passage.layer(layer0.LAYER_ID)
+    docs = [len(l0.all) * [len(textutil.Attr) * [1]]]
+    l0.extra["doc"] = docs
+    textutil.annotate(passage, as_array=as_array)
+    assert textutil.is_annotated(passage, as_array=as_array), "Passage %s is not annotated" % passage.ID
+    for terminal in l0.all:
+        if as_array:
+            assert terminal.tok is not None, "Terminal %s has no annotation" % terminal
+            assert len(terminal.tok) == len(textutil.Attr)
+            # for t in terminal.tok:
+            #     assert t == 1
+        else:
+            for attr in textutil.Attr:
+                assert attr.key in terminal.extra, "Terminal %s has no %s" % (terminal, attr.name)
+            # for t in terminal.extra.values():
+            #     assert t == 1
