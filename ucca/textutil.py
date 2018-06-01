@@ -231,9 +231,9 @@ def set_docs(annotated, as_array, lang, replace, verbose):
                 docs = passage.layer(layer0.LAYER_ID).extra.setdefault("doc", [[]])
                 while len(docs) < i + 1:
                     docs.append([])
-                existing = docs[i] + (len(Attr) - len(docs[i])) * [None]
+                existing = docs[i] + (len(arr) - len(docs[i])) * [len(Attr) * [None]]
                 docs[i] = [[a(v if e is None or replace else e, vocab, as_array=True)
-                            for a, v, e in zip(Attr, values, existing)] for values in arr]
+                            for a, v, e in zip(Attr, values, es)] for values, es in zip(arr, existing)]
             else:
                 for terminal, values in zip(terminals, arr):
                     for attr, value in zip(Attr, values):
