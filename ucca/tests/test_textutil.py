@@ -25,7 +25,7 @@ def test_word_vectors():
 
 
 @pytest.mark.parametrize("create", PASSAGES)
-@pytest.mark.parametrize("as_array", (True, False))
+@pytest.mark.parametrize("as_array", (True, False), ids=("array", "extra"))
 def test_annotate_passage(create, as_array):
     passage = create()
     textutil.annotate(passage, as_array=as_array)
@@ -40,8 +40,8 @@ def test_annotate_passage(create, as_array):
                     assert attr.key in terminal.extra, "Terminal %s has no %s" % (terminal, attr.name)
 
 
-@pytest.mark.parametrize("as_array", (True, False))
-@pytest.mark.parametrize("convert_and_back", (True, False))
+@pytest.mark.parametrize("as_array", (True, False), ids=("array", "extra"))
+@pytest.mark.parametrize("convert_and_back", (True, False), ids=("convert", "direct"))
 def test_annotate_all(as_array, convert_and_back):
     passages = [create() for create in PASSAGES]
     list(textutil.annotate_all(passages))
@@ -65,24 +65,31 @@ def assert_spacy_not_loaded(*args, **kwargs):
 
 
 @pytest.mark.parametrize("create", PASSAGES)
-@pytest.mark.parametrize("as_array", (True, False))
-@pytest.mark.parametrize("convert_and_back", (True, False))
-def test_preannotate_passage(create, as_array, convert_and_back, monkeypatch):
-    monkeypatch.setattr(textutil, "get_nlp", assert_spacy_not_loaded)
+@pytest.mark.parametrize("as_array", (True, False), ids=("array", "extra"))
+@pytest.mark.parametrize("convert_and_back", (True, False), ids=("convert", "direct"))
+@pytest.mark.parametrize("partial", (True, False), ids=("partial", "full"))
+def test_preannotate_passage(create, as_array, convert_and_back, partial, monkeypatch):
+    if not partial:
+        monkeypatch.setattr(textutil, "get_nlp", assert_spacy_not_loaded)
     passage = create()
     l0 = passage.layer(layer0.LAYER_ID)
-    attr_values = list(range(len(textutil.Attr)))
+    attr_values = list(range(10, 10 + len(textutil.Attr)))
+    if partial:
+        attr_values[textutil.Attr.ENT_TYPE.value] = ""
     if as_array:
         l0.extra["doc"] = [len(p) * [attr_values] for p in textutil.break2paragraphs(passage, return_terminals=True)]
     else:
         for terminal in l0.all:
             for attr, value in zip(textutil.Attr, attr_values):
-                terminal.extra[attr.key] = value
+                if value:
+                    terminal.extra[attr.key] = value
     passage = (passage, convert.from_standard(convert.to_standard(passage)))[convert_and_back]
-    assert textutil.is_annotated(passage, as_array=as_array), "Passage %s is not pre-annotated" % passage.ID
+    if not partial:
+        assert textutil.is_annotated(passage, as_array=as_array), "Passage %s is not pre-annotated" % passage.ID
     textutil.annotate(passage, as_array=as_array)
     assert textutil.is_annotated(passage, as_array=as_array), "Passage %s is not annotated" % passage.ID
     for terminal in l0.all:
-        for i, attr in enumerate(textutil.Attr):
-            assert (terminal.tok[i] if as_array else terminal.extra[attr.key]) == i, \
-                "Terminal %s has wrong %s" % (terminal, attr.name)
+        for i, (attr, value) in enumerate(zip(textutil.Attr, attr_values)):
+            if value:
+                assert (terminal.tok[i] if as_array else terminal.extra.get(attr.key)) == value, \
+                    "Terminal %s has wrong %s" % (terminal, attr.name)
