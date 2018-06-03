@@ -237,7 +237,8 @@ def set_docs(annotated, as_array, lang, replace, verbose):
             else:
                 for terminal, values in zip(terminals, arr):
                     for attr, value in zip(Attr, values):
-                        terminal.extra[attr.key] = attr(value, vocab)
+                        if replace or not terminal.extra.get(attr.key):
+                            terminal.extra[attr.key] = attr(value, vocab)
         if verbose:
             data = [[a.key for a in Attr]] + \
                    [[str(a(t.tok[a.value], get_nlp(lang).vocab) if as_array else t.extra[a.key])
