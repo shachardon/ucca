@@ -59,23 +59,30 @@ def test_annotate_all(as_array, convert_and_back):
                         terminal, passage.ID, attr.name)
 
 
+def assert_spacy_not_loaded(*args, **kwargs):
+    del args, kwargs
+    assert False, "Should not load spaCy when passage is pre-annotated"
+
+
 @pytest.mark.parametrize("create", PASSAGES)
 @pytest.mark.parametrize("as_array", (True, False))
-def test_preannotate_passage(create, as_array):
+@pytest.mark.parametrize("convert_and_back", (True, False))
+def test_preannotate_passage(create, as_array, convert_and_back, monkeypatch):
+    monkeypatch.setattr(textutil, "get_nlp", assert_spacy_not_loaded)
     passage = create()
     l0 = passage.layer(layer0.LAYER_ID)
-    docs = [len(l0.all) * [len(textutil.Attr) * [1]]]
-    l0.extra["doc"] = docs
+    attr_values = list(range(len(textutil.Attr)))
+    if as_array:
+        l0.extra["doc"] = [len(p) * [attr_values] for p in textutil.break2paragraphs(passage, return_terminals=True)]
+    else:
+        for terminal in l0.all:
+            for attr, value in zip(textutil.Attr, attr_values):
+                terminal.extra[attr.key] = value
+    passage = (passage, convert.from_standard(convert.to_standard(passage)))[convert_and_back]
+    assert textutil.is_annotated(passage, as_array=as_array), "Passage %s is not pre-annotated" % passage.ID
     textutil.annotate(passage, as_array=as_array)
     assert textutil.is_annotated(passage, as_array=as_array), "Passage %s is not annotated" % passage.ID
     for terminal in l0.all:
-        if as_array:
-            assert terminal.tok is not None, "Terminal %s has no annotation" % terminal
-            assert len(terminal.tok) == len(textutil.Attr)
-            # for t in terminal.tok:
-            #     assert t == 1
-        else:
-            for attr in textutil.Attr:
-                assert attr.key in terminal.extra, "Terminal %s has no %s" % (terminal, attr.name)
-            # for t in terminal.extra.values():
-            #     assert t == 1
+        for i, attr in enumerate(textutil.Attr):
+            assert (terminal.tok[i] if as_array else terminal.extra[attr.key]) == i, \
+                "Terminal %s has wrong %s" % (terminal, attr.name)
