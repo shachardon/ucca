@@ -169,19 +169,15 @@ def read_word_vectors(dim, size, filename):
         raise IOError("Failed loading word vectors from '%s'" % filename) from e
 
 
-def annotate(passage, replace=False, as_array=False, lang="en", verbose=False):
+def annotate(passage, *args, **kwargs):
     """
     Run spaCy pipeline on the given passage, unless already annotated
     :param passage: Passage object, whose layer 0 nodes will be added entries in the `extra' dict
-    :param replace: even if a given passage is already annotated, replace with new annotation
-    :param as_array: instead of adding `extra' entries to each terminal, set layer 0 extra["doc"] to array of ids
-    :param lang: optional two-letter language code
-    :param verbose: whether to print annotated text
     """
-    list(annotate_all([passage], verbose=verbose, replace=replace, as_array=as_array, lang=lang))
+    list(annotate_all([passage], *args, **kwargs))
 
 
-def annotate_all(passages, replace=False, as_array=False, as_tuples=False, lang="en", verbose=False):
+def annotate_all(passages, replace=False, as_array=False, as_tuples=False, lang="en", vocab=None, verbose=False):
     """
     Run spaCy pipeline on the given passages, unless already annotated
     :param passages: iterable of Passage objects, whose layer 0 nodes will be added entries in the `extra' dict
@@ -189,6 +185,7 @@ def annotate_all(passages, replace=False, as_array=False, as_tuples=False, lang=
     :param as_array: instead of adding `extra' entries to each terminal, set layer 0 extra["doc"] to array of ids
     :param as_tuples: treat input as tuples of (passage text, context), and return context for each passage as-is
     :param lang: optional two-letter language code, will be overridden if passage has "lang" attrib
+    :param vocab: optional dictionary of vocabulary IDs to string values, to avoid loading spaCy model
     :param verbose: whether to print annotated text
     :return generator of annotated passages, which are actually modified in-place (same objects as input)
     """
@@ -197,7 +194,7 @@ def annotate_all(passages, replace=False, as_array=False, as_tuples=False, lang=
     for passage_lang, passages_by_lang in groupby(passages, get_lang):
         for need_annotation, stream in groupby(to_annotate(passages_by_lang, replace, as_array), lambda x: bool(x[0])):
             annotated = get_nlp(passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
-            annotated = set_docs(annotated, as_array, passage_lang or lang, replace, verbose)
+            annotated = set_docs(annotated, as_array, passage_lang or lang, vocab, replace, verbose)
             for passage, passages in groupby(annotated, itemgetter(0)):
                 yield deque(passages, maxlen=1).pop() if as_tuples else passage
 
@@ -221,27 +218,26 @@ def is_annotated(passage, as_array):
     return all(a.key in t.extra for t in l0.all for a in Attr)
 
 
-def set_docs(annotated, as_array, lang, replace, verbose):
+def set_docs(annotated, as_array, lang, vocab, replace, verbose):
     for doc, (i, terminals, passage, *context) in annotated:
         if doc:  # Not empty, so copy values
             from spacy import attrs
             arr = doc.to_array([getattr(attrs, a.name) for a in Attr])
-            vocab = get_nlp(lang).vocab
             if as_array:
                 docs = passage.layer(layer0.LAYER_ID).extra.setdefault("doc", [[]])
                 while len(docs) < i + 1:
                     docs.append([])
                 existing = docs[i] + (len(arr) - len(docs[i])) * [len(Attr) * [None]]
-                docs[i] = [[a(v if e is None or replace else e, vocab, as_array=True)
+                docs[i] = [[a(v if e is None or replace else e, get_vocab(vocab, lang), as_array=True)
                             for a, v, e in zip(Attr, values, es)] for values, es in zip(arr, existing)]
             else:
                 for terminal, values in zip(terminals, arr):
                     for attr, value in zip(Attr, values):
                         if replace or not terminal.extra.get(attr.key):
-                            terminal.extra[attr.key] = attr(value, vocab)
+                            terminal.extra[attr.key] = attr(value, get_vocab(vocab, lang))
         if verbose:
             data = [[a.key for a in Attr]] + \
-                   [[str(a(t.tok[a.value], get_nlp(lang).vocab) if as_array else t.extra[a.key])
+                   [[str(a(t.tok[a.value], get_vocab(vocab, lang)) if as_array else t.extra[a.key])
                      for a in Attr] for j, t in enumerate(terminals)]
             width = [max(len(f) for f in t) for t in data]
             for j in range(len(Attr)):
