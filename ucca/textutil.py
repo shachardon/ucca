@@ -35,17 +35,17 @@ class Attr(Enum):
             return None
         if self in (Attr.ENT_IOB, Attr.HEAD):
             return int(np.int64(value))
+        if as_array:
+            is_str = isinstance(value, str)
+            if is_str or self in (Attr.ORTH, Attr.LEMMA):
+                try:
+                    i = get_vocab(vocab, lang).strings[value]
+                    if is_str:  # Replace with numeric ID since as_array=True
+                        value = i
+                except KeyError:
+                    value = None
+            return value if value is None or isinstance(value, str) else int(value)
         try:
-            if as_array:
-                is_str = isinstance(value, str)
-                if is_str or self in (Attr.ORTH, Attr.LEMMA):
-                    try:
-                        i = get_vocab(vocab, lang).strings[value]
-                        if is_str:  # Replace with numeric ID since as_array=True
-                            value = i
-                    except KeyError:
-                        return None
-                return int(value)
             return get_vocab(vocab, lang)[value].text
         except KeyError:
             return None
