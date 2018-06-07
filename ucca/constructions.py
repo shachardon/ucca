@@ -143,10 +143,9 @@ DEFAULT = OrderedDict((str(c), c) for c in CONSTRUCTIONS if c.default)
 
 
 def add_argument(argparser, default=True):
-    d = list(DEFAULT.keys()) if default else [n for n in CONSTRUCTION_BY_NAME if n not in DEFAULT]
+    d = list(DEFAULT) if default else [n for n in CONSTRUCTION_BY_NAME if n not in DEFAULT]
     argparser.add_argument("--constructions", nargs="*", choices=CONSTRUCTION_BY_NAME, default=d, metavar="x",
-                           help="construction types to include, out of {%s}" %
-                                ",".join(CONSTRUCTION_BY_NAME.keys()))
+                           help="construction types to include, out of {%s}" % ",".join(CONSTRUCTION_BY_NAME))
 
 
 def get_by_name(name):
