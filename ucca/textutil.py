@@ -108,7 +108,7 @@ def get_word_vectors(dim=None, size=None, filename=None, vocab=None):
     """
     orig_keys = vocab is None
     if isinstance(vocab, str) or not filename:
-        vocab = get_nlp(vocab or "en").vocab
+        vocab = get_nlp(vocab if isinstance(vocab, str) else "en").vocab
 
     def _lookup(word):
         try:
