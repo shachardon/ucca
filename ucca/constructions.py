@@ -122,21 +122,13 @@ CONSTRUCTIONS = (
                  lambda c: c.pos == {"VERB"} and c.edge.tag == EdgeTags.Function),
     Construction("mwe", "Multi-word expressions",
                  lambda c: c.is_primary() and c.edge.child.tag == NodeTags.Foundational and len(
-                     c.edge.child.terminals) > 1),  # inseparable unit
+                     c.edge.child.terminals) > 1),  # Unanalyzable unit
     Construction("pred_nouns", "Predicate nouns",
                  lambda c: "ADJ" not in c.pos and "NOUN" in c.pos and c.is_predicate()),
     Construction("pred_adjs", "Predicate adjectives",
                  lambda c: "ADJ" in c.pos and "NOUN" not in c.pos and c.is_predicate()),
     Construction("expletives", "Expletives",
                  lambda c: c.tokens <= {"it", "there"} and c.edge.tag == EdgeTags.Function),
-    # Construction("part_whole", "Part-whole constructions",
-    #              lambda c: is_primary(c) and c.edge.child.tag == NodeTags.Foundational and (
-    #                  len(c.edge.child.centers) > 1 and
-    #                  not c.heads & {t for n in c.edge.child.centers for t in n.get_terminals()})),
-    # Construction("classifiers", "Classifier constructions",
-    #              lambda c: is_primary(c) and c.edge.child.tag == NodeTags.Foundational and (
-    #                  len(c.edge.child.centers) > 1 and c.dep & {"appos"} and
-    #                  not c.heads & {t for n in c.edge.child.centers for t in n.get_terminals()})),
 )
 PRIMARY = CONSTRUCTIONS[0]
 EDGE_TYPES_NAME = "edge_types"
@@ -197,12 +189,4 @@ def extract_edges(passage, constructions=None, reference=None, verbose=False):
             for construction in constructions:
                 if construction.criterion(candidate):
                     extracted[construction].append(edge)
-    # edges = (e for n in l1.all for e in n if e.tag)
-    # for edge in edges:
-    #     if args.mwe:
-    #         pass
-    #     if args.part_whole:
-    #         pass
-    #     if args.classifiers:
-    #         pass
     return extracted
