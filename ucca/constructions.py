@@ -50,21 +50,27 @@ class Candidate:
         self.out_tags = {e.tag for e in edge.child}
         self.reference = reference
         self.verbose = verbose
-        self._terminals = self._pos = self._dep = self._heads = self._tokens = None
+        self.terminals = None
+        self.extra = {}
 
-    def _init_terminals(self, annotate=False):
-        if self._terminals is None:
+    def _init_terminals(self, attr=None, annotate=False):
+        if self.terminals is None:
             try:
-                self._terminals = self.edge.child.get_terminals()
+                self.terminals = self.edge.child.get_terminals()
             except (AttributeError, ValueError):
-                self._terminals = ()
+                self.terminals = ()
             if self.reference is not None:
                 # noinspection PyTypeChecker
-                self._terminals = [self.reference.by_id(t.ID) for t in self._terminals]
+                self.terminals = [self.reference.by_id(t.ID) for t in self.terminals]
             passage = self.edge.parent.root
             if annotate and not passage.extra.get("annotated"):
                 textutil.annotate(passage, as_array=True, verbose=self.verbose)
                 passage.extra["annotated"] = True
+        if attr:
+            ret = self.extra.get(attr)
+            if ret is None:
+                ret = self.extra[attr] = {t.get_annotation(attr, as_array=True) for t in self.terminals}
+            return ret
 
     @property
     def remote(self):
@@ -80,32 +86,30 @@ class Candidate:
 
     @property
     def pos(self):
-        if self._pos is None:
-            self._init_terminals(annotate=True)
-            self._pos = {t.get_annotation(textutil.Attr.POS, as_array=True) for t in self._terminals}
-        return self._pos
+        return self._init_terminals(attr=textutil.Attr.POS, annotate=True)
 
     @property
     def dep(self):
-        if self._dep is None:
-            self._init_terminals(annotate=True)
-            self._dep = {t.get_annotation(textutil.Attr.DEP, as_array=True) for t in self._terminals}
-        return self._dep
+        return self._init_terminals(attr=textutil.Attr.DEP, annotate=True)
 
     @property
     def heads(self):
-        if self._heads is None:
+        attr = textutil.Attr.HEAD
+        ret = self.extra.get(attr)
+        if ret is None:
             self._init_terminals(annotate=True)
-            positions = {t.para_pos for t in self._terminals}
-            self._heads = {t for t in self._terminals if int(t.tok[textutil.Attr.HEAD]) not in positions}
-        return self._heads
+            positions = {t.para_pos for t in self.terminals}
+            ret = self.extra[attr] = {t for t in self.terminals if int(t.tok[attr]) not in positions}
+        return ret
 
     @property
     def tokens(self):
-        if self._tokens is None:
+        attr = "tokens"
+        ret = self.extra.get(attr)
+        if ret is None:
             self._init_terminals()
-            self._tokens = {t.text.lower() for t in self._terminals}
-        return self._tokens
+            ret = self.extra[attr] = {t.text.lower() for t in self.terminals}
+        return ret
 
     def is_primary(self):
         return not self.remote and not self.implicit and not self.excluded
