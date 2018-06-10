@@ -142,9 +142,12 @@ def check_primary_remote(scores, primary_labeled_f1, remote_labeled_f1, primary_
 
 
 @pytest.mark.parametrize("create", PASSAGES + (passage1, passage2))
-def test_evaluate_self(create):
+@pytest.mark.parametrize("units", (True, False), ids=("units", ""))
+@pytest.mark.parametrize("errors", (True, False), ids=("errors", ""))
+@pytest.mark.parametrize("normalize", (True, False), ids=("normalize", ""))
+def test_evaluate_self(create, units, errors, normalize):
     p = create()
-    scores = evaluate(p, p)
+    scores = evaluate(p, p, units=units, errors=errors, normalize=normalize)
     assert scores.average_f1() == 1.0
     for eval_type, results in scores.evaluators.items():
         for construction, stats in results.results.items():
@@ -158,6 +161,9 @@ def test_evaluate_self(create):
                          "primary_unlabeled_f1, remote_unlabeled_f1", (
                                  (passage1, passage2, 0.5, 0.4, 0.75, 0.8),
                          ))
-def test_evaluate(create1, create2, primary_labeled_f1, remote_labeled_f1, primary_unlabeled_f1, remote_unlabeled_f1):
-    scores = evaluate(create1(), create2())
+@pytest.mark.parametrize("units", (True, False), ids=("units", ""))
+@pytest.mark.parametrize("errors", (True, False), ids=("errors", ""))
+def test_evaluate(create1, create2, primary_labeled_f1, remote_labeled_f1, primary_unlabeled_f1, remote_unlabeled_f1,
+                  units, errors):
+    scores = evaluate(create1(), create2(), units=units, errors=errors)
     check_primary_remote(scores, primary_labeled_f1, remote_labeled_f1, primary_unlabeled_f1, remote_unlabeled_f1)
