@@ -6,7 +6,7 @@ v1.2
 2017-01-16: fix bug in moving common Fs
 2018-04-12: exclude punctuation nodes regardless of edge tag
 """
-from collections import Counter, defaultdict, OrderedDict
+from collections import Counter, OrderedDict
 
 from operator import attrgetter
 
@@ -46,18 +46,16 @@ def get_text(p, positions):
     return [l0.by_position(i).text for i in range(1, len(l0.all) + 1) if i in positions]
 
 
-def create_passage_yields(p, constructions=None, reference=None, verbose=False):
+def create_passage_yields(p, *args, **kwargs):
     """
     :returns dict: Construction ->
                    dict: set of terminal indices (excluding punctuation) ->
                          list of edges of the Construction whose yield (excluding remotes and punctuation) is that set
     """
     yield_tags = OrderedDict()
-    for construction, edges in extract_edges(
-            p, constructions=constructions, reference=reference, verbose=verbose).items():
-        yield_tags[construction] = {}
+    for construction, edges in extract_edges(p, *args, **kwargs).items():
         for edge in edges:
-            yield_tags[construction].setdefault(get_yield(edge.child), []).append(edge.tag)
+            yield_tags.setdefault(construction, {}).setdefault(get_yield(edge.child), []).append(edge.tag)
     return yield_tags
 
 
@@ -98,11 +96,11 @@ class Evaluator:
         self.fscore = fscore
         self.errors = errors
 
-        self.mutual = defaultdict(dict)
-        self.error_counters = defaultdict(lambda: defaultdict(Counter))
+        self.mutual = OrderedDict()
+        self.error_counters = OrderedDict()
 
     def find_mutuals(self, m1, m2, eval_type, construction):
-        mutual_tags = self.mutual[construction]
+        mutual_tags = self.mutual.setdefault(construction, {})
         for y in m1.keys() & m2.keys():
             if eval_type == UNLABELED:
                 mutual_tags[y] = ()
@@ -114,7 +112,8 @@ class Evaluator:
                 if intersection:  # non-empty intersection
                     mutual_tags[y] = intersection
                 elif self.errors:
-                    self.error_counters[eval_type][construction][tuple("|".join(sorted(t)) for t in tags)] += 1
+                    self.error_counters.setdefault(eval_type, {}).setdefault(construction, Counter())[
+                        tuple("|".join(sorted(t)) for t in tags)] += 1
 
     def get_scores(self, p1, p2, eval_type):
         """
@@ -129,11 +128,12 @@ class Evaluator:
                          requires one match)
         :returns EvaluatorResults object if self.fscore is True, otherwise None
         """
-        maps = [defaultdict(dict), create_passage_yields(p2, self.constructions)]
+        maps = [{}, create_passage_yields(p2, self.constructions)]
         if p1 is not None:
             maps[0] = create_passage_yields(p1, self.constructions, reference=p2)
-            for construction, yield_tags1 in maps[0].items():
-                yield_tags2 = maps[1][construction]
+            for construction in list(maps[0]) + [c for c in maps[1] if c not in maps[0]]:
+                yield_tags1 = maps[0].get(construction, {})
+                yield_tags2 = maps[1].get(construction, {})
                 self.find_mutuals(yield_tags1, yield_tags2, eval_type, construction)
 
         if self.verbose:
@@ -149,7 +149,7 @@ class Evaluator:
             print_tags_and_text(p2, only[1][PRIMARY])
 
         res = EvaluatorResults((c, SummaryStatistics(len(self.mutual[c]), len(only[0][c]), len(only[1][c]),
-                                                     self.error_counters[eval_type][c])) for c in self.constructions)
+                                                     self.error_counters[eval_type][c])) for c in self.mutual)
         if self.verbose:
             if self.fscore:
                 res.print()
@@ -176,7 +176,7 @@ class Scores:
         :param mode: LABELED, UNLABELED or WEAK_LABELED
         :return: a single number, the average F1
         """
-        return float(self.evaluators[mode].aggregate_default().f1)
+        return float(self[mode].aggregate_default().f1)
 
     @staticmethod
     def aggregate(scores):
@@ -208,19 +208,19 @@ class Scores:
                 evaluator.print_confusion_matrix("Evaluation type: (" + eval_type + ")", *args, **kwargs)
 
     def fields(self, eval_type=LABELED):
-        e = self.evaluators[eval_type]
+        e = self[eval_type]
         return ["%.3f" % float(getattr(x, y)) for x in e.results.values() for y in ("p", "r", "f1")]
 
     def titles(self, eval_type=LABELED):
-        return self.field_titles(self.evaluators[eval_type].results.keys())
+        return self.field_titles(self[eval_type].results.keys())
 
     @staticmethod
     def field_titles(constructions=DEFAULT, eval_type=LABELED):
         return ["_".join(((str(x),) if len(constructions) > 1 else ()) + (eval_type, y))
                 for x in constructions for y in ("precision", "recall", "f1")]
 
-    def __getitem__(self, item):
-        return self.evaluators[item]
+    def __getitem__(self, eval_type):
+        return self.evaluators[eval_type]
 
 
 class EvaluatorResults:
@@ -240,8 +240,8 @@ class EvaluatorResults:
         print(**kwargs)
 
     def print_confusion_matrix(self, prefix=None, sep=None, **kwargs):
-        primary = self.results.get(PRIMARY)
-        if primary and primary.errors:
+        primary = self[PRIMARY]
+        if primary.errors:
             errors = primary.errors.most_common()
             if sep:
                 print(sep.join(("guessed", "ref", "count")), **kwargs)
@@ -273,17 +273,13 @@ class EvaluatorResults:
         Aggregate primary and remote SummaryStatistics in this EvaluatorResults instance
         :return: SummaryStatistics object representing aggregation over primary and remote
         """
-        try:
-            return SummaryStatistics.aggregate([self.results[c] for c in self.default.values()])
-        except KeyError as e:
-            raise ValueError("Default constructions missing from evaluation results: " +
-                             ", ".join(map(str, self.results.keys()))) from e
+        return SummaryStatistics.aggregate([self[c] for c in self.default.values()])
 
     def __bool__(self):
         return bool(self.results)
 
-    def __getitem__(self, item):
-        return self.results[item]
+    def __getitem__(self, construction):
+        return self.results.get(construction, SummaryStatistics(0, 0, 0, Counter()))
 
 
 class SummaryStatistics:
