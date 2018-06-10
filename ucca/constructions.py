@@ -155,7 +155,7 @@ def get_by_name(name):
 def get_by_names(names):
     constructions = [get_by_name(c) for c in names if c != EDGE_TYPES_NAME]
     if EDGE_TYPES_NAME in names:
-        constructions += list(EDGE_TYPES.values())
+        constructions += [t for t in EDGE_TYPES.values() if t not in constructions]
     return constructions or CONSTRUCTIONS
 
 
