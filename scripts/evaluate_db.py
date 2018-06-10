@@ -38,7 +38,6 @@ if __name__ == '__main__':
                            help="the units the annotations have in common, and those each has separately")
     argparser.add_argument("-f", "--fscore", action="store_true",
                            help="outputs the traditional P,R,F instead of the scene structure evaluation")
-    argparser.add_argument("--debug", action="store_true", help="run in debug mode")
     argparser.add_argument("-e", "--errors", action="store_true",
                            help="prints the error distribution according to its frequency")
     constructions.add_argument(argparser)
