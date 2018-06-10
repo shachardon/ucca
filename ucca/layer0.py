@@ -70,6 +70,9 @@ class Terminal(core.Node):
         except (KeyError, IndexError):
             return None
 
+    def get_annotation(self, attr, as_array=False):
+        return attr(self.tok[attr.value]) if as_array else self.extra.get(attr.key)
+
     @property
     def attrib(self):
         return self._attrib.copy()
