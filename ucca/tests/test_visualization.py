@@ -8,6 +8,8 @@ from .conftest import PASSAGES
 
 @pytest.mark.parametrize("create", PASSAGES)
 def test_draw(create):
+    import matplotlib
+    matplotlib.use('Agg')
     draw(create())
 
 

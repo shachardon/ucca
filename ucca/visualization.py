@@ -1,15 +1,10 @@
 from collections import defaultdict
 
-import matplotlib.cbook
-import networkx as nx
 import re
 import warnings
 from operator import attrgetter
 
 from ucca import layer0, layer1
-
-warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
-warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def node_label(node):
@@ -17,6 +12,10 @@ def node_label(node):
 
 
 def draw(passage, node_ids=False):
+    import matplotlib.cbook
+    import networkx as nx
+    warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
+    warnings.filterwarnings("ignore", category=UserWarning)
     g = nx.DiGraph()
     terminals = sorted(passage.layer(layer0.LAYER_ID).all, key=attrgetter("position"))
     g.add_nodes_from([(n.ID, {"label": n.text, "color": "white"}) for n in terminals])
