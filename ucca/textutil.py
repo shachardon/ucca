@@ -13,11 +13,12 @@ from tqdm import tqdm
 
 from ucca import layer0, layer1
 
-MODEL_ENV_VAR = "SPACY_MODEL"
+MODEL_ENV_VAR = "SPACY_MODEL"  # Determines the default spaCy model to load
 DEFAULT_MODEL = {"en": "en_core_web_md", "fr": "fr_core_news_md", "de": "de_core_news_sm"}
 
 
 class Attr(Enum):
+    """Wrapper for spaCy Attr, determining order for saving in layer0.extra per token when as_array=True"""
     ORTH = 0
     LEMMA = 1
     TAG = 2
@@ -31,6 +32,7 @@ class Attr(Enum):
     SUFFIX = 10
 
     def __call__(self, value, vocab=None, as_array=False, lang=None):
+        """Resolve numeric ID of attribute value to string (if as_array=False) or to int (if as_array=True)"""
         if value is None:
             return None
         if self in (Attr.ENT_IOB, Attr.HEAD):
@@ -38,7 +40,7 @@ class Attr(Enum):
         if as_array:
             is_str = isinstance(value, str)
             if is_str or self in (Attr.ORTH, Attr.LEMMA):
-                try:
+                try:  # Will find the value even if it's a new string, but that's OK since the hash is deterministic
                     i = get_vocab(vocab, lang).strings[value]
                     if is_str:  # Replace with numeric ID since as_array=True
                         value = i
@@ -52,10 +54,12 @@ class Attr(Enum):
     
     @property
     def key(self):
+        """String used in `extra' dict of Terminals to store this attribute when as_array=False"""
         return self.name.lower()
 
 
 def get_nlp(lang="en"):
+    """Load spaCy model for a given language, determined by `models' dict or by MODEL_ENV_VAR"""
     instance = nlp.get(lang)
     if instance is None:
         import spacy
@@ -81,9 +85,9 @@ def get_nlp(lang="en"):
     return instance
 
 
-models = {}
-nlp = {}
-tokenizer = {}
+models = {}  # maps language two-letter code to name of spaCy model
+nlp = {}  # maps language two-letter code to actual loaded spaCy model
+tokenizer = {}  # maps language two-letter code to tokenizer of spaCy model
 
 
 def get_tokenizer(tokenized=False, lang="en"):
@@ -204,12 +208,15 @@ def get_lang(passage_context):
 
 
 def to_annotate(passage_contexts, replace, as_array):
+    """Filter passages to get only those that require annotation; split to paragraphs and return generator of
+    (list of tokens, paragraph index, list of Terminals, Passage) tuples + original context appended"""
     return (([t.text for t in terminals] if replace or not is_annotated(passage, as_array) else (),
              (i, terminals, passage) + tuple(context)) for passage, *context in passage_contexts
             for i, terminals in enumerate(break2paragraphs(passage, return_terminals=True)))
 
 
 def is_annotated(passage, as_array):
+    """Whether the passage is already annotated or only partially annotated"""
     l0 = passage.layer(layer0.LAYER_ID)
     if as_array:
         docs = l0.extra.get("doc")
@@ -219,6 +226,7 @@ def is_annotated(passage, as_array):
 
 
 def set_docs(annotated, as_array, lang, vocab, replace, verbose):
+    """Given spaCy annotations, set values in layer0.extra per paragraph if as_array=True, or else in Terminal.extra"""
     for doc, (i, terminals, passage, *context) in annotated:
         if doc:  # Not empty, so copy values
             from spacy import attrs
