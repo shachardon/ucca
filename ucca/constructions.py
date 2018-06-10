@@ -184,7 +184,7 @@ def extract_edges(passage, constructions=None, reference=None, verbose=False):
             reference.ID, len(terminal_ids(passage)), len(terminal_ids(reference)),
             "\n".join(map(str, diff_terminals(passage, reference))))
     if any(not c.default for c in constructions):
-        textutil.annotate(passage, verbose=verbose)
+        textutil.annotate(passage, as_array=True, verbose=verbose)
     extracted = OrderedDict((c, []) for c in constructions)
     for node in passage.layer(layer1.LAYER_ID).all:
         for edge in node:
