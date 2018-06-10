@@ -10,13 +10,6 @@ from ucca import convert, constructions
 from ucca.evaluation import evaluate
 
 
-##############################################################################
-# Returns the command line parser.
-##############################################################################
-def cmd_line_parser():
-    return argparser
-
-
 def main(args):
     keys = [args.guessed, args.ref]
     xmls = ucca_db.get_by_xids(args.db_filename, args.host, keys) if args.from_xids else \
