@@ -134,7 +134,7 @@ def passage2():
     return p
 
 
-@pytest.mark.parametrize("create", PASSAGES)
+@pytest.mark.parametrize("create", PASSAGES + (passage1, passage2))
 def test_evaluate_self(create):
     p = create()
     scores = evaluate(p, p)
@@ -146,7 +146,6 @@ def test_evaluate_self(create):
             assert stats.r == 1.0, (eval_type, construction)
 
 
-# loaded, multi_sent, crossing, discontiguous, l1_passage, empty
 @pytest.mark.parametrize("create1, create2, primary_labeled_f1, remote_labeled_f1,"
                          "primary_unlabeled_f1, remote_unlabeled_f1", (
                                  (passage1, passage2, 0.5, 0.4, 0.75, 0.8),
