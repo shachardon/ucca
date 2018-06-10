@@ -1,7 +1,7 @@
 import pytest
 
 from ucca import textutil
-from ucca.constructions import extract_edges, CONSTRUCTION_BY_NAME, CATEGORIES_NAME, DEFAULT
+from ucca.constructions import extract_edges, CATEGORIES_NAME, DEFAULT
 from .conftest import PASSAGES
 
 """Tests the constructions module functions and classes."""
@@ -12,11 +12,11 @@ def assert_spacy_not_loaded(*args, **kwargs):
     assert False, "Should not load spaCy when passage is pre-annotated"
 
 
-def extract_and_check(p, constructions=None):
+def extract_and_check(p, constructions=None, expected=None):
     d = extract_edges(p, constructions=constructions)
-    for construction in constructions or CONSTRUCTION_BY_NAME:
-        if construction != CATEGORIES_NAME:
-            assert construction in d
+    if expected:
+        for construction, size in expected.items():
+            assert len(d[construction]) == size
 
 
 @pytest.mark.parametrize("create", PASSAGES)
