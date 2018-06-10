@@ -219,6 +219,9 @@ class Scores(object):
         return ["_".join(((str(x),) if len(constructions) > 1 else ()) + (eval_type, y))
                 for x in constructions for y in ("precision", "recall", "f1")]
 
+    def __getitem__(self, item):
+        return self.evaluators[item]
+
 
 class EvaluatorResults(object):
     def __init__(self, results, default=None):
@@ -278,6 +281,9 @@ class EvaluatorResults(object):
 
     def __bool__(self):
         return bool(self.results)
+
+    def __getitem__(self, item):
+        return self.results[item]
 
 
 class SummaryStatistics(object):
