@@ -6,7 +6,7 @@ The evaluation software for UCCA layer 1.
 from argparse import ArgumentParser
 
 from scripts import ucca_db
-from ucca import convert
+from ucca import convert, constructions
 from ucca.evaluation import evaluate
 
 
@@ -23,7 +23,8 @@ def main(args):
         ucca_db.get_xml_trees(args.db_filename, args.host, args.pid, keys)
     guessed, ref = [convert.from_site(x) for x in xmls]
     if args.units or args.fscore or args.errors:
-        evaluate(guessed, ref, units=args.units, fscore=args.fscore, errors=args.errors, verbose=True)
+        evaluate(guessed, ref, units=args.units, fscore=args.fscore, errors=args.errors,
+                 constructions=args.constructions, verbose=True)
 
 
 if __name__ == '__main__':
@@ -47,4 +48,5 @@ if __name__ == '__main__':
     argparser.add_argument("--debug", action="store_true", help="run in debug mode")
     argparser.add_argument("-e", "--errors", action="store_true",
                            help="prints the error distribution according to its frequency")
+    constructions.add_argument(argparser)
     main(argparser.parse_args())
