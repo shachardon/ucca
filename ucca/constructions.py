@@ -28,10 +28,11 @@ class Construction(object):
 
 
 class Candidate(object):
-    def __init__(self, edge, reference=None):
+    def __init__(self, edge, reference=None, verbose=False):
         self.edge = edge
         self.out_tags = {e.tag for e in edge.child}
         self.reference = reference
+        self.verbose = verbose
         self._terminals = self._pos = self._dep = self._heads = self._tokens = None
 
     def _init_terminals(self, annotate=False):
@@ -45,7 +46,7 @@ class Candidate(object):
                 self._terminals = [self.reference.by_id(t.ID) for t in self._terminals]
             passage = self.edge.parent.root
             if annotate and not passage.extra.get("annotated"):
-                textutil.annotate(passage, as_array=True)
+                textutil.annotate(passage, as_array=True, verbose=self.verbose)
                 passage.extra["annotated"] = True
 
     @property
@@ -192,7 +193,7 @@ def extract_edges(passage, constructions=None, reference=None, verbose=False):
     extracted = OrderedDict((c, []) for c in constructions)
     for node in passage.layer(layer1.LAYER_ID).all:
         for edge in node:
-            candidate = Candidate(edge, reference=reference)
+            candidate = Candidate(edge, reference=reference, verbose=verbose)
             for construction in constructions:
                 if construction.criterion(candidate):
                     extracted[construction].append(edge)
