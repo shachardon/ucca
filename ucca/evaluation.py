@@ -148,12 +148,13 @@ class Evaluator:
             print("==> Only in reference:")
             print_tags_and_text(p2, only[1][PRIMARY])
 
+        error_counters = self.error_counters.get(eval_type, {})
         res = EvaluatorResults((c, SummaryStatistics(len(self.mutual[c]), len(only[0][c]), len(only[1][c]),
-                                                     self.error_counters[eval_type][c])) for c in self.mutual)
+                                                     error_counters.get(c))) for c in self.mutual)
         if self.verbose:
             if self.fscore:
                 res.print()
-            if self.errors and self.error_counters[eval_type]:
+            if self.errors and error_counters:
                 res.print_confusion_matrix()
 
         return res
