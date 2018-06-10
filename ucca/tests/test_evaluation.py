@@ -134,6 +134,13 @@ def passage2():
     return p
 
 
+def check_primary_remote(scores, primary_labeled_f1, remote_labeled_f1, primary_unlabeled_f1, remote_unlabeled_f1):
+    assert scores[LABELED]["primary"].f1 == primary_labeled_f1
+    assert scores[LABELED]["remote"].f1 == remote_labeled_f1
+    assert scores[UNLABELED]["primary"].f1 == primary_unlabeled_f1
+    assert scores[UNLABELED]["remote"].f1 == remote_unlabeled_f1
+
+
 @pytest.mark.parametrize("create", PASSAGES + (passage1, passage2))
 def test_evaluate_self(create):
     p = create()
@@ -144,6 +151,7 @@ def test_evaluate_self(create):
             assert stats.f1 == 1.0, (eval_type, construction)
             assert stats.p == 1.0, (eval_type, construction)
             assert stats.r == 1.0, (eval_type, construction)
+    check_primary_remote(scores, 1.0, 1.0, 1.0, 1.0)
 
 
 @pytest.mark.parametrize("create1, create2, primary_labeled_f1, remote_labeled_f1,"
@@ -152,7 +160,4 @@ def test_evaluate_self(create):
                          ))
 def test_evaluate(create1, create2, primary_labeled_f1, remote_labeled_f1, primary_unlabeled_f1, remote_unlabeled_f1):
     scores = evaluate(create1(), create2())
-    assert scores[LABELED]["primary"].f1 == primary_labeled_f1
-    assert scores[LABELED]["remote"].f1 == remote_labeled_f1
-    assert scores[UNLABELED]["primary"].f1 == primary_unlabeled_f1
-    assert scores[UNLABELED]["remote"].f1 == remote_unlabeled_f1
+    check_primary_remote(scores, primary_labeled_f1, remote_labeled_f1, primary_unlabeled_f1, remote_unlabeled_f1)
