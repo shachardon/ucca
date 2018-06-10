@@ -34,7 +34,7 @@ class Candidate(object):
         self.reference = reference
         self._terminals = self._pos = self._dep = self._heads = self._tokens = None
 
-    def _init_terminals(self):
+    def _init_terminals(self, annotate=False):
         if self._terminals is None:
             try:
                 self._terminals = self.edge.child.get_terminals()
@@ -43,6 +43,10 @@ class Candidate(object):
             if self.reference is not None:
                 # noinspection PyTypeChecker
                 self._terminals = [self.reference.by_id(t.ID) for t in self._terminals]
+            passage = self.edge.parent.root
+            if annotate and not passage.extra.get("annotated"):
+                textutil.annotate(passage, as_array=True)
+                passage.extra["annotated"] = True
 
     @property
     def remote(self):
@@ -59,21 +63,21 @@ class Candidate(object):
     @property
     def pos(self):
         if self._pos is None:
-            self._init_terminals()
-            self._pos = {textutil.Attr.POS(t.tok[textutil.Attr.POS.value]) for t in self._terminals}
+            self._init_terminals(annotate=True)
+            self._pos = {t.get_annotation(textutil.Attr.POS, as_array=True) for t in self._terminals}
         return self._pos
 
     @property
     def dep(self):
         if self._dep is None:
-            self._init_terminals()
-            self._dep = {textutil.Attr.DEP(t.tok[textutil.Attr.DEP.value]) for t in self._terminals}
+            self._init_terminals(annotate=True)
+            self._dep = {t.get_annotation(textutil.Attr.DEP, as_array=True) for t in self._terminals}
         return self._dep
 
     @property
     def heads(self):
         if self._heads is None:
-            self._init_terminals()
+            self._init_terminals(annotate=True)
             positions = {t.para_pos for t in self._terminals}
             self._heads = {t for t in self._terminals if int(t.tok[textutil.Attr.HEAD]) not in positions}
         return self._heads
@@ -185,8 +189,6 @@ def extract_edges(passage, constructions=None, reference=None, verbose=False):
         assert ids1 == ids2, "Reference passage terminals do not match: %s (%d != %d)\nDifference:\n%s" % (
             reference.ID, len(terminal_ids(passage)), len(terminal_ids(reference)),
             "\n".join(map(str, diff_terminals(passage, reference))))
-    if any(not c.default for c in constructions):
-        textutil.annotate(passage, as_array=True, verbose=verbose)
     extracted = OrderedDict((c, []) for c in constructions)
     for node in passage.layer(layer1.LAYER_ID).all:
         for edge in node:
