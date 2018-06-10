@@ -273,6 +273,10 @@ def loaded():
     return convert.from_standard(load_xml("test_files/standard3.xml"))
 
 
+def loaded_valid():
+    return convert.from_standard(load_xml("test_files/standard3_valid.xml"))
+
+
 def load_xml(path):
     """XML file path ==> root element
     :param path: path to XML file
@@ -281,4 +285,4 @@ def load_xml(path):
         return ETree.ElementTree().parse(f)
 
 
-PASSAGES = (loaded, multi_sent, crossing, discontiguous, l1_passage, empty)
+PASSAGES = (loaded, loaded_valid, multi_sent, crossing, discontiguous, l1_passage, empty)
