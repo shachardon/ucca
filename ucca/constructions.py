@@ -4,7 +4,7 @@ from ucca import textutil, layer0, layer1
 from ucca.layer1 import EdgeTags, NodeTags
 
 
-class Construction(object):
+class Construction:
     def __init__(self, name, description, criterion, default=False):
         """
         :param name: short name
@@ -26,8 +26,25 @@ class Construction(object):
     def __eq__(self, other):
         return self.name == (other.name if isinstance(other, Construction) else other)
 
+    def __call__(self, candidate):
+        if self.criterion(candidate):
+            yield self
 
-class Candidate(object):
+
+CATEGORIES_NAME = "categories"
+CATEGORY_DESCRIPTIONS = {v: k for k, v in EdgeTags.__dict__.items() if not k.startswith("_")}
+
+
+class Categories(Construction):
+    def __init__(self):
+        super().__init__(CATEGORIES_NAME, description=None, criterion=None)
+
+    def __call__(self, candidate):
+        tag = candidate.edge.tag
+        yield Construction(tag, CATEGORY_DESCRIPTIONS.get(tag, tag), criterion=None)
+
+
+class Candidate:
     def __init__(self, edge, reference=None, verbose=False):
         self.edge = edge
         self.out_tags = {e.tag for e in edge.child}
@@ -101,6 +118,10 @@ class Candidate(object):
             self.out_tags <= {EdgeTags.Center, EdgeTags.Function, EdgeTags.Terminal} and \
             "to" not in self.tokens
 
+    def constructions(self, constructions=None):
+        for construction in constructions or CONSTRUCTIONS:
+            yield from construction(self)
+
 
 EXCLUDED_EDGE_TAGS = (EdgeTags.Punctuation,
                       EdgeTags.LinkArgument,
@@ -129,13 +150,10 @@ CONSTRUCTIONS = (
                  lambda c: "ADJ" in c.pos and "NOUN" not in c.pos and c.is_predicate()),
     Construction("expletives", "Expletives",
                  lambda c: c.tokens <= {"it", "there"} and c.edge.tag == EdgeTags.Function),
+    Categories(),
 )
 PRIMARY = CONSTRUCTIONS[0]
-EDGE_TYPES_NAME = "edge_types"
-EDGE_TYPES = OrderedDict((v, Construction(v, k, lambda c, tag=v: c.edge.tag == tag))
-                         for k, v in sorted(EdgeTags.__dict__.items()) if not k.startswith("_"))
-CONSTRUCTION_BY_NAME = OrderedDict([(c.name, c) for c in CONSTRUCTIONS] +
-                                   [(EDGE_TYPES_NAME, EDGE_TYPES)] + list(EDGE_TYPES.items()))
+CONSTRUCTION_BY_NAME = OrderedDict([(c.name, c) for c in CONSTRUCTIONS])
 DEFAULT = OrderedDict((str(c), c) for c in CONSTRUCTIONS if c.default)
 
 
@@ -146,16 +164,11 @@ def add_argument(argparser, default=True):
 
 
 def get_by_name(name):
-    return name if isinstance(name, Construction) else EDGE_TYPES.get(name) or CONSTRUCTION_BY_NAME[name]
+    return name if isinstance(name, Construction) else CATEGORY_DESCRIPTIONS.get(name) or CONSTRUCTION_BY_NAME[name]
 
 
 def get_by_names(names=None):
-    if names is None:
-        names = CONSTRUCTION_BY_NAME
-    constructions = [get_by_name(c) for c in names if c != EDGE_TYPES_NAME]
-    if EDGE_TYPES_NAME in names:
-        constructions += [t for t in EDGE_TYPES.values() if t not in constructions]
-    return constructions or CONSTRUCTIONS
+    return list(map(get_by_name, names or ()))
 
 
 def terminal_ids(passage):
@@ -186,7 +199,6 @@ def extract_edges(passage, constructions=None, reference=None, verbose=False):
     for node in passage.layer(layer1.LAYER_ID).all:
         for edge in node:
             candidate = Candidate(edge, reference=reference, verbose=verbose)
-            for construction in constructions:
-                if construction.criterion(candidate):
-                    extracted[construction].append(edge)
+            for construction in candidate.constructions(constructions):
+                extracted.setdefault(construction, []).append(edge)
     return extracted
