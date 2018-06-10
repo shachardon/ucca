@@ -1,8 +1,8 @@
+from time import sleep
+
 import json
 import logging
 import os
-from time import sleep
-
 import requests
 
 DEFAULT_SERVER = "http://ucca-demo.cs.huji.ac.il"
@@ -18,7 +18,7 @@ MAX_RETRIES = 3
 RETRY_WAIT_DURATION = 60
 
 
-class ServerAccessor(object):
+class ServerAccessor:
     def __init__(self, server_address, email, password, auth_token, project_id, source_id, verbose, **kwargs):
         if verbose:
             logging.basicConfig(level=logging.DEBUG)

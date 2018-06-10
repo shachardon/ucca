@@ -13,7 +13,7 @@ from ucca.convert import file2passage, passage2file, from_text, to_text, split2s
 from ucca.core import Passage
 
 
-class LazyLoadedPassages(object):
+class LazyLoadedPassages:
     """
     Iterable interface to Passage objects that loads files on-the-go and can be iterated more than once
     """

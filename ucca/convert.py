@@ -944,7 +944,7 @@ def to_json(passage, *args, return_dict=False, tok_task=None, all_categories=Non
     return d if return_dict else json.dumps(d).splitlines()
 
 
-class FormatConverter(object):
+class FormatConverter:
     def from_format(self, lines, passage_id, split=False):
         pass
 

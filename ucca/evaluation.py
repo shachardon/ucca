@@ -82,7 +82,7 @@ def expand_equivalents(tag_set):
     return tag_set.union(t1 for t in tag_set for pair in EQUIV for t1 in pair if t in pair and t != t1)
 
 
-class Evaluator(object):
+class Evaluator:
     def __init__(self, verbose, constructions, units, fscore, errors):
         """
         :param verbose: whether to print the scores
@@ -159,7 +159,7 @@ class Evaluator(object):
         return res
 
 
-class Scores(object):
+class Scores:
     def __init__(self, evaluator_results, name=None, evaluation_format=None):
         """
         :param evaluator_results: dict: eval_type -> EvaluatorResults
@@ -223,7 +223,7 @@ class Scores(object):
         return self.evaluators[item]
 
 
-class EvaluatorResults(object):
+class EvaluatorResults:
     def __init__(self, results, default=None):
         """
         :param results: dict: Construction -> SummaryStatistics
@@ -286,7 +286,7 @@ class EvaluatorResults(object):
         return self.results[item]
 
 
-class SummaryStatistics(object):
+class SummaryStatistics:
     def __init__(self, num_matches, num_only_guessed, num_only_ref, errors=None):
         self.num_matches = num_matches
         self.num_only_guessed = num_only_guessed
