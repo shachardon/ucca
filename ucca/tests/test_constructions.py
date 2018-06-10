@@ -15,9 +15,11 @@ def assert_spacy_not_loaded(*args, **kwargs):
 def extract_and_check(p, constructions=None, expected=None):
     d = extract_edges(p, constructions=constructions)
     # print({c.name: len(e) for c, e in d.items()})
-    if expected:
+    if expected is not None:
         for construction, size in expected.items():
-            assert len(d[construction]) == size
+            assert len(d[construction]) == size, construction
+        for construction in d:
+            assert construction in expected
 
 
 @pytest.mark.parametrize("create, expected", (
