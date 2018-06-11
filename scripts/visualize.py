@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import os
 from argparse import ArgumentParser
 from tqdm import tqdm
@@ -16,6 +15,9 @@ if __name__ == "__main__":
 
     if args.out_dir:
         os.makedirs(args.out_dir, exist_ok=True)
+        if not args.tikz:
+            import matplotlib
+            matplotlib.use('Agg')
     for passage in get_passages_with_progress_bar(args.passages, desc="Visualizing"):
         if args.tikz:
             tikz = visualization.tikz(passage)
@@ -26,6 +28,7 @@ if __name__ == "__main__":
                 with tqdm.external_write_mode():
                     print(tikz)
         else:
+            import matplotlib.pyplot as plt
             width = len(passage.layer(layer0.LAYER_ID).all) * 19/27
             plt.figure(figsize=(width, width * 10/19))
             visualization.draw(passage, node_ids=args.node_ids)
