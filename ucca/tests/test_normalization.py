@@ -61,6 +61,18 @@ def flat_center():
     return p
 
 
+def unary_function():
+    p, l1, terms = create_passage()
+    ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    c1 = l1.add_fnode(a1, layer1.EdgeTags.Center)
+    f1 = l1.add_fnode(c1, layer1.EdgeTags.Function)
+    p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
+    a2 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    attach_terminals(terms, f1, p1, a2)
+    return p
+
+
 def unary_punct():
     p, l1, terms = create_passage(3, 3)
     ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
@@ -201,6 +213,7 @@ def normalize_and_compare(unnormalized, normalized, extra=False):
 @pytest.mark.parametrize("unnormalized, normalized", (
         (root_scene, top_scene),
         (nested_center, flat_center),
+        (unary_function, flat_center),
         (unary_punct, attached_punct),
         (unattached_punct, attached_punct),
         (top_punct, attached_punct),
