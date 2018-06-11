@@ -34,5 +34,6 @@ if __name__ == "__main__":
             visualization.draw(passage, node_ids=args.node_ids)
             if args.out_dir:
                 plt.savefig(os.path.join(args.out_dir, passage.ID + ".png"))
+                plt.close()
             else:
                 plt.show()
