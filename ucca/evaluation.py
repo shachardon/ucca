@@ -149,8 +149,11 @@ class Evaluator:
             print_tags_and_text(p2, only[1][PRIMARY])
 
         error_counters = self.error_counters.get(eval_type, {})
-        res = EvaluatorResults((c, SummaryStatistics(len(self.mutual[c]), len(only[0][c]), len(only[1][c]),
-                                                     error_counters.get(c))) for c in self.mutual)
+        res = EvaluatorResults((c, SummaryStatistics(len(self.mutual[c]),
+                                                     len(only[0].get(c, ())),
+                                                     len(only[1].get(c, ())),
+                                                     error_counters.get(c)))
+                               for c in self.mutual)
         if self.verbose:
             if self.fscore:
                 res.print()
