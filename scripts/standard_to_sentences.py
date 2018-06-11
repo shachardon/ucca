@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import argparse
-import os
 import sys
 
+import argparse
+import os
 from tqdm import tqdm
 
 from ucca.convert import split2sentences, split_passage
@@ -34,6 +34,7 @@ def main(args):
     if args.sentences:
         with open(args.sentences, encoding="utf-8") as f:
             order = dict(map(reversed, enumerate(map(str.strip, f))))
+    os.makedirs(args.outdir, exist_ok=True)
     for passage in get_passages_with_progress_bar(args.filenames, "Splitting"):
         for sentence in split(passage, order) if order else split2sentences(
                 passage, remarks=args.remarks, lang=args.lang):
