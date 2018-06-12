@@ -41,7 +41,7 @@ def main(args):
             outfile = os.path.join(args.outdir, args.prefix + sentence.ID + (".pickle" if args.binary else ".xml"))
             with tqdm.external_write_mode():
                 print("Writing passage file for sentence '%s'..." % outfile, file=sys.stderr)
-            passage2file(sentence, outfile, args.binary)
+            passage2file(sentence, outfile, binary=args.binary)
 
 
 if __name__ == "__main__":

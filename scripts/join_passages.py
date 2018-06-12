@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-import argparse
 import sys
 from collections import defaultdict
+
+import argparse
 
 import ucca.convert
 from ucca.ioutil import passage2file, get_passages
@@ -24,7 +25,7 @@ def main(args):
         joined = ucca.convert.join_passages(passages, passage_id=passage_id, remarks=args.remarks)
         outfile = "%s/%s.%s" % (args.outdir, args.prefix + joined.ID, "pickle" if args.binary else "xml")
         print("Writing joined passage file '%s'..." % outfile, file=sys.stderr)
-        passage2file(joined, outfile, args.binary)
+        passage2file(joined, outfile, binary=args.binary)
 
 
 if __name__ == '__main__':
