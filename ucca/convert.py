@@ -1850,10 +1850,12 @@ def split_passage(passage, ends, remarks=False, ids=None):
         level = set()
         nodes = set()
         id_to_other = {}
+        paragraphs = set()
         for terminal in l0.all[start:end]:
             other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, 1)
             _copy_attrib_and_extra(terminal, other_terminal, remarks)
             other_terminal.extra["orig_paragraph"] = terminal.paragraph
+            paragraphs.add(terminal.paragraph)
             id_to_other[terminal.ID] = other_terminal
             level.update(terminal.parents)
             nodes.add(terminal)
@@ -1864,6 +1866,8 @@ def split_passage(passage, ends, remarks=False, ids=None):
 
         layer1.Layer1(root=other, attrib=passage.layer(layer1.LAYER_ID).attrib.copy())
         _copy_l1_nodes(passage, other, id_to_other, nodes, remarks=remarks)
+        for j, paragraph in enumerate(paragraphs, start=1):
+            other_l0.doc(j)[:] = l0.doc(paragraph)
         other.frozen = passage.frozen
         passages.append(other)
     return passages
@@ -1889,15 +1893,19 @@ def join_passages(passages, passage_id=None, remarks=False):
     paragraph = 0
     for passage in passages:
         l0 = passage.layer(layer0.LAYER_ID)
+        paragraphs = set()
         for terminal in l0.all:
             if terminal.para_pos == 1:
                 paragraph += 1
             orig_paragraph = terminal.extra.get("orig_paragraph")
             if orig_paragraph is not None:
                 paragraph = orig_paragraph
+            paragraphs.add(paragraph)
             other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, paragraph)
             _copy_attrib_and_extra(terminal, other_terminal, remarks)
             id_to_other[terminal.ID] = other_terminal
+        for paragraph in paragraphs:
+            other_l0.doc(paragraph).extend(l0.doc(1))
         _copy_l1_nodes(passage, other, id_to_other, remarks=remarks)
     return other
 

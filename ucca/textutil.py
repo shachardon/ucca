@@ -232,9 +232,7 @@ def set_docs(annotated, as_array, lang, vocab, replace, verbose):
             from spacy import attrs
             arr = doc.to_array([getattr(attrs, a.name) for a in Attr])
             if as_array:
-                docs = passage.layer(layer0.LAYER_ID).extra.setdefault("doc", [[]])
-                while len(docs) < i + 1:
-                    docs.append([])
+                docs = passage.layer(layer0.LAYER_ID).docs(i + 1)
                 existing = docs[i] + (len(arr) - len(docs[i])) * [len(Attr) * [None]]
                 docs[i] = [[a(v if e is None or replace else e, get_vocab(vocab, lang), as_array=True)
                             for a, v, e in zip(Attr, values, es)] for values, es in zip(arr, existing)]

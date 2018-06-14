@@ -195,6 +195,15 @@ class Layer0(core.Layer):
             copied = other.add_terminal(t.text, t.punct, t.paragraph)
             copied.extra = t.extra.copy()
 
+    def docs(self, num_paragraphs=1):
+        docs = self.extra.setdefault("doc", [[]])
+        while len(docs) < num_paragraphs:
+            docs.append([])
+        return docs
+
+    def doc(self, paragraph):
+        return self.docs(paragraph)[paragraph - 1]
+
 
 def is_punct(node):
     """Returns whether the unit is a layer0 punctuation (for all Units)."""
