@@ -1049,13 +1049,13 @@ class DependencyConverter(FormatConverter):
             return hash((self.head_index, self.dependent, self.rel, self.remote))
 
     class Token:
-        def __init__(self, text, tag, lemma=None, pos=None, features=None):
+        def __init__(self, text, tag, lemma=None, pos=None, features=None, paragraph=None):
             self.text = text
             self.tag = tag
-            self.paragraph = None
             self.lemma = "_" if lemma is None else lemma
             self.pos = tag if pos is None else pos
             self.features = "_" if features is None else features
+            self.paragraph = paragraph
 
     def __init__(self, mark_aux=False):
         self.mark_aux = mark_aux
@@ -1371,7 +1371,8 @@ class DependencyConverter(FormatConverter):
                                token=self.Token(terminal.text, terminal.extra.get("tag", terminal.tag),
                                                 lemma=terminal.extra.get("lemma"),
                                                 pos=terminal.extra.get("pos"),
-                                                features=terminal.extra.get("features")),
+                                                features=terminal.extra.get("features"),
+                                                paragraph=terminal.paragraph),
                                parent_multi_word=self.parent_multi_word(terminal, multi_words),
                                enhanced=terminal.extra.get("enhanced"), misc=terminal.extra.get("misc"))
                      for terminal in sorted(terminals, key=attrgetter("position"))]
