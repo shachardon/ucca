@@ -11,7 +11,7 @@ from collections import Counter, OrderedDict
 from operator import attrgetter
 
 from ucca import layer0, layer1, normalization
-from ucca.constructions import extract_edges, get_by_names, PRIMARY, DEFAULT
+from ucca.constructions import get_by_names, create_passage_yields, PRIMARY, DEFAULT, ALL_EDGES
 from ucca.layer1 import EdgeTags, NodeTags
 
 UNLABELED = "unlabeled"
@@ -25,6 +25,13 @@ EQUIV = ((EdgeTags.Process, EdgeTags.State),
          (EdgeTags.ParallelScene, EdgeTags.Center),
          (EdgeTags.Connector, EdgeTags.Linker),
          (EdgeTags.Function, EdgeTags.Relator))
+
+
+def get_yield(unit):
+    try:
+        return frozenset(t.position for t in unit.get_terminals(punct=False))
+    except ValueError:
+        return frozenset()
 
 
 def move_functions(p1, p2):
@@ -44,26 +51,6 @@ def move_functions(p1, p2):
 def get_text(p, positions):
     l0 = p.layer(layer0.LAYER_ID)
     return [l0.by_position(i).text for i in range(1, len(l0.all) + 1) if i in positions]
-
-
-def create_passage_yields(p, *args, **kwargs):
-    """
-    :returns dict: Construction ->
-                   dict: set of terminal indices (excluding punctuation) ->
-                         list of edges of the Construction whose yield (excluding remotes and punctuation) is that set
-    """
-    yield_tags = OrderedDict()
-    for construction, edges in extract_edges(p, *args, **kwargs).items():
-        for edge in edges:
-            yield_tags.setdefault(construction, {}).setdefault(get_yield(edge.child), []).append(edge.tag)
-    return yield_tags
-
-
-def get_yield(unit):
-    try:
-        return frozenset(t.position for t in unit.get_terminals(punct=False))
-    except ValueError:
-        return frozenset()
 
 
 def print_tags_and_text(p, yield_tags):
@@ -115,7 +102,7 @@ class Evaluator:
                     self.error_counters.setdefault(eval_type, {}).setdefault(construction, Counter())[
                         tuple("|".join(sorted(t)) for t in tags)] += 1
 
-    def get_scores(self, p1, p2, eval_type):
+    def get_scores(self, p1, p2, eval_type, r=None):
         """
         prints the relevant statistics and f-scores. eval_type can be 'unlabeled', 'labeled' or 'weak_labeled'.
         calculates a set of all the yields such that both passages have a unit with that yield.
@@ -126,12 +113,19 @@ class Evaluator:
         2. LABELED: also requires tag match (if there are multiple units with the same yield, requires one match)
         3. WEAK_LABELED: also requires weak tag match (if there are multiple units with the same yield,
                          requires one match)
+        :param r: reference passage for fine-grained evaluation
         :returns EvaluatorResults object if self.fscore is True, otherwise None
         """
-        maps = [{}, create_passage_yields(p2, self.constructions)]
+        reference_yield_tags = None if r is None else create_passage_yields(r)[ALL_EDGES.name]
+        maps = [{}, create_passage_yields(p2, self.constructions,
+                                          reference_yield_tags=reference_yield_tags)]
         if p1 is not None:
-            maps[0] = create_passage_yields(p1, self.constructions, reference=p2)
-            for construction in list(maps[0]) + [c for c in maps[1] if c not in maps[0]]:
+            maps[0] = create_passage_yields(p1, self.constructions,
+                                            reference=p2, reference_yield_tags=reference_yield_tags)
+            ordered_constructions = [c for c in self.constructions if c in maps[0] or c in maps[1]]
+            ordered_constructions += [c for c in maps[1] if c not in ordered_constructions]
+            ordered_constructions += [c for c in maps[0] if c not in ordered_constructions]
+            for construction in ordered_constructions:
                 yield_tags1 = maps[0].get(construction, {})
                 yield_tags2 = maps[1].get(construction, {})
                 self.find_mutuals(yield_tags1, yield_tags2, eval_type, construction)
@@ -316,7 +310,7 @@ class SummaryStatistics:
 
 
 def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
-             units=False, fscore=True, errors=False, normalize=True, eval_type=None, **kwargs):
+             units=False, fscore=True, errors=False, normalize=True, eval_type=None, ref_yield_tags=None, **kwargs):
     """
     Compare two passages and return requested diagnostics and scores, possibly printing them too.
     NOTE: since normalize=True by default, this method is destructive: it modifies the given passages before evaluation.
@@ -330,6 +324,7 @@ def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
     :param errors: whether to print the mistakes
     :param normalize: flatten centers and move common functions to root before evaluation - modifies passages
     :param eval_type: specific evaluation type to limit to
+    :param ref_yield_tags: reference passage for fine-grained evaluation
     :return: Scores object
     """
     del kwargs
@@ -342,5 +337,5 @@ def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
         move_functions(guessed, ref)  # move common Fs to be under the root
 
     evaluator = Evaluator(verbose, constructions, units, fscore, errors)
-    return Scores((evaluation_type, evaluator.get_scores(guessed, ref, evaluation_type))
+    return Scores((evaluation_type, evaluator.get_scores(guessed, ref, evaluation_type, r=ref_yield_tags))
                   for evaluation_type in ([eval_type] if eval_type else EVAL_TYPES))

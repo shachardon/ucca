@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """The evaluation script for UCCA layer 1."""
 import sys
+from itertools import repeat
+
 from argparse import ArgumentParser
 
 from ucca import evaluation, constructions, ioutil
 
 
 def main(args):
-    guessed, ref = [ioutil.read_files_and_dirs((x,)) for x in (args.guessed, args.ref)]
+    guessed, ref, ref_yield_tags = [None if x is None else ioutil.read_files_and_dirs((x,))
+                                    for x in (args.guessed, args.ref, args.ref_yield_tags)]
     if args.match_by_id:
         guessed = match_by_id(guessed, ref)
+        ref_yield_tags = match_by_id(ref_yield_tags, ref)
     results = []
-    for g, r in zip(guessed, ref):
+    for g, r, ryt in zip(guessed, ref, ref_yield_tags or repeat(None)):
         if len(guessed) > 1:
             sys.stdout.write("\rEvaluating %s%s" % (g.ID, ":" if args.verbose else "..."))
             sys.stdout.flush()
@@ -19,7 +23,7 @@ def main(args):
             print()
         result = evaluation.evaluate(g, r, constructions=args.constructions, units=args.units, fscore=args.fscore,
                                      errors=args.errors, verbose=args.verbose or len(guessed) == 1,
-                                     normalize=args.normalize,
+                                     normalize=args.normalize, ref_yield_tags=ryt,
                                      eval_type=evaluation.UNLABELED if args.unlabeled else None)
         if args.verbose:
             print_f1(result, args.unlabeled)
@@ -94,6 +98,9 @@ if __name__ == "__main__":
     argparser = ArgumentParser(description="Compare two UCCA passages or two directories containing passage files.")
     argparser.add_argument("guessed", help="xml/pickle file name for the guessed annotation, or directory of files")
     argparser.add_argument("ref", help="xml/pickle file name for the reference annotation, or directory of files")
+    argparser.add_argument("-r", "--ref-yield-tags", help="xml/pickle file name for reference used for extracting edge "
+                                                          "categories for fine-grained annotation "
+                                                          "(--constructions categories), or directory of files")
     argparser.add_argument("-u", "--units", action="store_true",
                            help="the units the annotations have in common, and those each has separately")
     argparser.add_argument("-f", "--fscore", action="store_true",

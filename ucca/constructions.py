@@ -1,5 +1,7 @@
 from collections import OrderedDict
 
+from operator import attrgetter
+
 from ucca import textutil, layer0, layer1
 from ucca.layer1 import EdgeTags, NodeTags
 
@@ -40,32 +42,35 @@ class Categories(Construction):
         super().__init__(CATEGORIES_NAME, description=None, criterion=None)
 
     def __call__(self, candidate):
-        tag = candidate.edge.tag
+        try:
+            tag = candidate.edge.tag
+        except AttributeError:
+            tag = candidate
         yield Construction(tag, CATEGORY_DESCRIPTIONS.get(tag, tag), criterion=None)
 
 
 class Candidate:
-    def __init__(self, edge, reference=None, verbose=False):
+    def __init__(self, edge, reference=None, reference_yield_tags=None, verbose=False):
         self.edge = edge
         self.out_tags = {e.tag for e in edge.child}
         self.reference = reference
+        self.reference_yield_tags = reference_yield_tags
         self.verbose = verbose
-        self.terminals = None
+        try:
+            self.terminals = self.edge.child.get_terminals(punct=False)
+        except (AttributeError, ValueError):
+            self.terminals = ()
+        self.terminal_yield = frozenset(map(attrgetter("position"), self.terminals))
+        if self.reference is not None:
+            # noinspection PyTypeChecker
+            self.terminals = [self.reference.by_id(t.ID) for t in self.terminals]
         self.extra = {}
 
-    def _init_terminals(self, attr=None, annotate=False):
-        if self.terminals is None:
-            try:
-                self.terminals = self.edge.child.get_terminals()
-            except (AttributeError, ValueError):
-                self.terminals = ()
-            if self.reference is not None:
-                # noinspection PyTypeChecker
-                self.terminals = [self.reference.by_id(t.ID) for t in self.terminals]
-            passage = self.edge.parent.root
-            if annotate and not passage.extra.get("annotated"):
-                textutil.annotate(passage, as_array=True, verbose=self.verbose)
-                passage.extra["annotated"] = True
+    def _annotate(self, attr=None):
+        passage = self.edge.parent.root
+        if not passage.extra.get("annotated"):
+            textutil.annotate(passage, as_array=True, verbose=self.verbose)
+            passage.extra["annotated"] = True
         if attr:
             ret = self.extra.get(attr)
             if ret is None:
@@ -86,18 +91,18 @@ class Candidate:
 
     @property
     def pos(self):
-        return self._init_terminals(attr=textutil.Attr.POS, annotate=True)
+        return self._annotate(attr=textutil.Attr.POS)
 
     @property
     def dep(self):
-        return self._init_terminals(attr=textutil.Attr.DEP, annotate=True)
+        return self._annotate(attr=textutil.Attr.DEP)
 
     @property
     def heads(self):
         attr = textutil.Attr.HEAD
         ret = self.extra.get(attr)
         if ret is None:
-            self._init_terminals(annotate=True)
+            self._annotate()
             positions = {t.para_pos for t in self.terminals}
             ret = self.extra[attr] = {t for t in self.terminals if int(t.tok[attr]) not in positions}
         return ret
@@ -107,7 +112,6 @@ class Candidate:
         attr = "tokens"
         ret = self.extra.get(attr)
         if ret is None:
-            self._init_terminals()
             ret = self.extra[attr] = {t.text.lower() for t in self.terminals}
         return ret
 
@@ -123,8 +127,12 @@ class Candidate:
             "to" not in self.tokens
 
     def constructions(self, constructions=None):
-        for construction in constructions or CONSTRUCTIONS:
-            yield from construction(self)
+        for construction in constructions or [ALL_EDGES]:
+            if construction.name == CATEGORIES_NAME and self.reference_yield_tags is not None:
+                for tag in self.reference_yield_tags.get(self.terminal_yield, ()):
+                    yield from construction(tag)
+            else:
+                yield from construction(self)
 
 
 EXCLUDED_EDGE_TAGS = (EdgeTags.Punctuation,
@@ -159,6 +167,7 @@ CONSTRUCTIONS = (
 PRIMARY = CONSTRUCTIONS[0]
 CONSTRUCTION_BY_NAME = OrderedDict([(c.name, c) for c in CONSTRUCTIONS])
 DEFAULT = OrderedDict((str(c), c) for c in CONSTRUCTIONS if c.default)
+ALL_EDGES = Construction("all", "All edges", bool)
 
 
 def add_argument(argparser, default=True):
@@ -184,25 +193,66 @@ def diff_terminals(*passages):
     return [[t for t in texts[i] if t not in texts[j]] for i, j in ((0, 1), (1, 0))]
 
 
-def extract_edges(passage, constructions=None, reference=None, verbose=False):
+def verify_terminals_match(passage, reference):
+    ids1, ids2 = terminal_ids(passage), terminal_ids(reference)
+    assert ids1 == ids2, "Reference passage terminals do not match: %s (%d != %d)\nDifference:\n%s" % (
+        reference.ID, len(terminal_ids(passage)), len(terminal_ids(reference)),
+        "\n".join(map(str, diff_terminals(passage, reference))))
+
+
+def get_candidates(passage, reference=None, reference_yield_tags=None, verbose=False):
+    for node in passage.layer(layer1.LAYER_ID).all:
+        for edge in node:
+            yield Candidate(edge, reference=reference or passage, reference_yield_tags=reference_yield_tags,
+                            verbose=verbose)
+
+
+def extract_candidates(passage, constructions=None, reference=None, reference_yield_tags=None, verbose=False):
     """
-    Find constructions in UCCA passage.
+    Find candidate edges by constructions in UCCA passage.
     :param passage: Passage object to find constructions in
     :param constructions: list of constructions to include or None for all
-    :param reference: Passage object to get POS tags from (default: `passage')
+    :param reference: Passage object to get POS tags from, and categories for fine-grained scores (default: `passage')
+    :param reference_yield_tags: yield tags from reference passage for fine-grained evaluation:
+                   dict: set of terminal indices (excluding punctuation) ->
+                   list of edges of the Construction whose yield (excluding remotes and punctuation) is that set
     :param verbose: whether to print tagged text
-    :return: dict of Construction -> list of corresponding edges
+    :return: dict of Construction -> list of corresponding Candidates
     """
     constructions = get_by_names(constructions)
     if reference is not None:
-        ids1, ids2 = terminal_ids(passage), terminal_ids(reference)
-        assert ids1 == ids2, "Reference passage terminals do not match: %s (%d != %d)\nDifference:\n%s" % (
-            reference.ID, len(terminal_ids(passage)), len(terminal_ids(reference)),
-            "\n".join(map(str, diff_terminals(passage, reference))))
+        verify_terminals_match(passage, reference)
     extracted = OrderedDict((c, []) for c in constructions)
-    for node in passage.layer(layer1.LAYER_ID).all:
-        for edge in node:
-            candidate = Candidate(edge, reference=reference, verbose=verbose)
-            for construction in candidate.constructions(constructions):
-                extracted.setdefault(construction, []).append(edge)
+    for candidate in get_candidates(passage, reference, reference_yield_tags, verbose):
+        for construction in candidate.constructions(constructions):
+            extracted.setdefault(construction, []).append(candidate)
     return extracted
+
+
+def extract_edges(passage, constructions=None, reference=None, reference_yield_tags=None, verbose=False):
+    """
+    Find edges by constructions in UCCA passage.
+    :param passage: Passage object to find constructions in
+    :param constructions: list of constructions to include or None for all
+    :param reference: Passage object to get POS tags from (default: `passage')
+    :param reference_yield_tags: yield tags from reference passage for fine-grained evaluation:
+                   dict: set of terminal indices (excluding punctuation) ->
+                   list of edges of the Construction whose yield (excluding remotes and punctuation) is that set
+    :param verbose: whether to print tagged text
+    :return: dict of Construction -> list of corresponding edges
+    """
+    return OrderedDict((construction, [candidate.edge for candidate in candidates]) for construction, candidates in
+                       extract_candidates(passage, constructions, reference, reference_yield_tags, verbose).items())
+
+
+def create_passage_yields(p, *args, **kwargs):
+    """
+    :returns dict: Construction ->
+                   dict: set of terminal indices (excluding punctuation) ->
+                         list of edges of the Construction whose yield (excluding remotes and punctuation) is that set
+    """
+    yield_tags = OrderedDict()
+    for construction, candidates in extract_candidates(p, *args, **kwargs).items():
+        for candidate in candidates:
+            yield_tags.setdefault(construction, {}).setdefault(candidate.terminal_yield, []).append(candidate.edge.tag)
+    return yield_tags
