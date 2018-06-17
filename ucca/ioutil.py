@@ -140,7 +140,7 @@ def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, conve
 
 
 def write_passage(passage, output_format=None, binary=False, outdir=".", prefix="", converter=None, verbose=True,
-                  append=False):
+                  append=False, basename=None):
     """
     Write a given UCCA passage in any format.
     :param passage: Passage object to write
@@ -152,10 +152,11 @@ def write_passage(passage, output_format=None, binary=False, outdir=".", prefix=
                       returning iterable of strings, each corresponding to an output line
     :param verbose: print "Writing passage" message
     :param append: if using converter, append to output file rather than creating a new file
+    :param basename: use this instead of `passage.ID' for the output filename
     :return: path of created output file
     """
     suffix = output_format if output_format and output_format != "ucca" else ("pickle" if binary else "xml")
-    outfile = os.path.join(outdir, prefix + passage.ID + "." + suffix)
+    outfile = os.path.join(outdir, prefix + (basename or passage.ID) + "." + suffix)
     if verbose:
         with tqdm.external_write_mode():
             print("Writing passage '%s'..." % outfile)
