@@ -37,9 +37,11 @@ class LazyLoadedPassages:
         return self
 
     def __next__(self):
-        passage = self._next_passage()
-        self._next_index += 1
-        return passage
+        while True:
+            passage = self._next_passage()
+            if passage is not None:
+                self._next_index += 1
+                return passage
 
     def _next_passage(self):
         passage = None
@@ -56,7 +58,7 @@ class LazyLoadedPassages:
                     with tqdm.external_write_mode(file=sys.stderr):
                         if attempts == 0:
                             print("File not found: %s" % file, file=sys.stderr)
-                            return next(self)
+                            return None
                         print("Failed reading %s, trying %d more times..." % (file, attempts), file=sys.stderr)
                     time.sleep(5)
                     attempts -= 1
@@ -82,7 +84,7 @@ class LazyLoadedPassages:
                 if self._file_handle is not None:
                     self._file_handle.close()
                     self._file_handle = None
-                return next(self)
+                return None
         return passage
 
     # The following three methods are implemented to support shuffle;
