@@ -221,6 +221,7 @@ def is_annotated(passage, as_array):
     if as_array:
         docs = l0.extra.get("doc")
         return not l0.all or docs is not None and len(docs) == max(t.paragraph for t in l0.all) and \
+            sum(map(len, docs)) == len(l0.all) and \
             all(i is None or isinstance(i, int) for l in docs for t in l for i in t)
     return all(a.key in t.extra for t in l0.all for a in Attr)
 
