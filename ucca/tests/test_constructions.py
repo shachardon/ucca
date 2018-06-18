@@ -1,7 +1,7 @@
 import pytest
 
 from ucca import textutil
-from ucca.constructions import extract_edges, CATEGORIES_NAME, DEFAULT
+from ucca.constructions import extract_edges, CATEGORIES_NAME, DEFAULT, CONSTRUCTIONS
 from .conftest import PASSAGES, loaded, loaded_valid, multi_sent, crossing, discontiguous, l1_passage, empty
 
 """Tests the constructions module functions and classes."""
@@ -14,12 +14,9 @@ def assert_spacy_not_loaded(*args, **kwargs):
 
 def extract_and_check(p, constructions=None, expected=None):
     d = extract_edges(p, constructions=constructions)
-    # print({c.name: len(e) for c, e in d.items()})
     if expected is not None:
-        for construction, size in expected.items():
-            assert len(d[construction]) == size, construction
-        for construction in d:
-            assert construction in expected
+        hist = {c.name: len(e) for c, e in d.items()}
+        assert hist == expected, " != ".join(",".join(sorted(h)) for h in (hist, expected))
 
 
 @pytest.mark.parametrize("create, expected", (
@@ -36,7 +33,7 @@ def extract_and_check(p, constructions=None, expected=None):
         (empty, {}),
 ))
 def test_extract_all(create, expected):
-    extract_and_check(create(), expected=expected)
+    extract_and_check(create(), constructions=CONSTRUCTIONS, expected=expected)
 
 
 @pytest.mark.parametrize("create", PASSAGES)
