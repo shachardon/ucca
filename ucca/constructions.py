@@ -242,7 +242,8 @@ def extract_edges(passage, constructions=None, reference=None, reference_yield_t
     :return: dict of Construction -> list of corresponding edges
     """
     return OrderedDict((construction, [candidate.edge for candidate in candidates]) for construction, candidates in
-                       extract_candidates(passage, constructions, reference, reference_yield_tags, verbose).items())
+                       extract_candidates(passage, constructions, reference, reference_yield_tags, verbose).items()
+                       if candidates)
 
 
 def create_passage_yields(p, *args, **kwargs):
