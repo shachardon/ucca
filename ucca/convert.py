@@ -1947,8 +1947,6 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
                     grandchild = child.children[0]
                     other_child = other_l1.add_punct(other_node, id_to_other[grandchild.ID])
                     other_child.incoming[0].tag = edge.tag
-                    other_grandchild = other_child.children[0]
-                    _copy_attrib_and_extra(grandchild, other_grandchild, remarks)
                 else:
                     other_child = other_l1.add_fnode(other_node, edge.tag, implicit=child.attrib.get("implicit"))
                     queue.append((child, other_child))
@@ -1969,7 +1967,7 @@ def _copy_attrib_and_extra(node, other, remarks=False):
     for k, v in node.attrib.items():
         if other.attrib.get(k) is None:
             other.attrib[k] = v
-    other.extra = node.extra.copy()
+    other.extra.update(node.extra)
     if remarks:
         other.extra["remarks"] = node.ID
 
