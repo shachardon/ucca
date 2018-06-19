@@ -1446,8 +1446,8 @@ class ConllConverter(DependencyConverter):
             position = i + 1
             assert position == dep_node.position
             if dep_node.parent_multi_word and position == dep_node.parent_multi_word.position[0]:
-                yield ["-".join(map(str, dep_node.parent_multi_word.position)), dep_node.parent_multi_word.text] + \
-                      8 * ["_"]
+                yield ["-".join(map(str, dep_node.parent_multi_word.position)),
+                       dep_node.parent_multi_word.token.text] + 8 * ["_"]
             fields = [position, dep_node.token.text, dep_node.token.lemma, dep_node.token.pos, dep_node.token.tag,
                       dep_node.token.features]
             if test:
