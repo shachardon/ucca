@@ -1229,7 +1229,7 @@ class DependencyConverter(FormatConverter):
                                                lemma=dep_node.token.lemma, features=dep_node.token.features,
                                                enhanced=dep_node.enhanced, frame=dep_node.frame)
                 if dep_node.parent_multi_word:  # part of a multi-word token (e.g. zum = zu + dem)
-                    dep_node.terminal.attrib[self.MULTI_WORD_TEXT_ATTRIB] = dep_node.parent_multi_word.token.text
+                    dep_node.terminal.extra[self.MULTI_WORD_TEXT_ATTRIB] = dep_node.parent_multi_word.token.text
 
     def is_punct(self, dep_node):
         return dep_node.token.tag == layer0.NodeTags.Punct
@@ -1393,7 +1393,7 @@ class DependencyConverter(FormatConverter):
                 not self.omit_edge(e, tree)}  # different implementation for each subclass
 
     def parent_multi_word(self, terminal, multi_words):
-        multi_word_text = terminal.attrib.get(self.MULTI_WORD_TEXT_ATTRIB)
+        multi_word_text = terminal.extra.get(self.MULTI_WORD_TEXT_ATTRIB)
         if multi_word_text is None:
             multi_words[0] = None
         elif multi_words[0] is None or multi_word_text != multi_words[0].token.text:
@@ -1853,7 +1853,7 @@ def split_passage(passage, ends, remarks=False, ids=None):
         paragraphs = set()
         for terminal in l0.all[start:end]:
             other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, 1)
-            _copy_attrib_and_extra(terminal, other_terminal, remarks)
+            _copy_extra(terminal, other_terminal, remarks)
             other_terminal.extra["orig_paragraph"] = terminal.paragraph
             paragraphs.add(terminal.paragraph)
             id_to_other[terminal.ID] = other_terminal
@@ -1902,7 +1902,7 @@ def join_passages(passages, passage_id=None, remarks=False):
                 paragraph = orig_paragraph
             paragraphs.add(paragraph)
             other_terminal = other_l0.add_terminal(terminal.text, terminal.punct, paragraph)
-            _copy_attrib_and_extra(terminal, other_terminal, remarks)
+            _copy_extra(terminal, other_terminal, remarks)
             id_to_other[terminal.ID] = other_terminal
         for paragraph in paragraphs:
             other_l0.doc(paragraph).extend(l0.doc(1))
@@ -1951,22 +1951,19 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
                     other_child = other_l1.add_fnode(other_node, edge.tag, implicit=child.attrib.get("implicit"))
                     queue.append((child, other_child))
                 id_to_other[child.ID] = other_child
-                _copy_attrib_and_extra(child, other_child, remarks)  # Add remotes
+                _copy_extra(child, other_child, remarks)  # Add remotes
     for edge, parent in remotes:
         other_l1.add_remote(parent, edge.tag, id_to_other[edge.child.ID])
     # Add linkages
     for linkage in linkages:
         arguments = [id_to_other[argument.ID] for argument in linkage.arguments]
         other_linkage = other_l1.add_linkage(id_to_other[linkage.relation.ID], *arguments)
-        _copy_attrib_and_extra(linkage, other_linkage, remarks)
+        _copy_extra(linkage, other_linkage, remarks)
     for head, other_head in zip(heads, other_l1.heads):
-        _copy_attrib_and_extra(head, other_head, remarks)
+        _copy_extra(head, other_head, remarks)
 
 
-def _copy_attrib_and_extra(node, other, remarks=False):
-    for k, v in node.attrib.items():
-        if other.attrib.get(k) is None:
-            other.attrib[k] = v
+def _copy_extra(node, other, remarks=False):
     other.extra.update(node.extra)
     if remarks:
         other.extra["remarks"] = node.ID
