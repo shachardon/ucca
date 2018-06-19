@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-import argparse
 import sys
 
-from ucca.convert import from_json, CONVERTERS, TO_FORMAT
+import argparse
+
+from ucca.convert import from_json
 from ucca.ioutil import write_passage
 from uccaapp.api import ServerAccessor
 
@@ -14,11 +15,11 @@ class TaskDownloader(ServerAccessor):
         for task_id in task_ids:
             yield self.download_task(task_id, **kwargs)
 
-    def download_task(self, task_id, write=True, out_format=None, binary=None, out_dir=None, prefix=None, **kwargs):
+    def download_task(self, task_id, write=True, binary=None, out_dir=None, prefix=None, **kwargs):
         del kwargs
         passage = from_json(self.get_user_task(task_id), all_categories=self.layer["categories"])
         if write:
-            write_passage(passage, out_format, binary, out_dir, prefix, TO_FORMAT.get(out_format))
+            write_passage(passage, binary=binary, outdir=out_dir, prefix=prefix)
         return passage
 
     @staticmethod
@@ -29,7 +30,6 @@ class TaskDownloader(ServerAccessor):
 
     @staticmethod
     def add_write_arguments(argparser):
-        argparser.add_argument("-f", "--out-format", choices=CONVERTERS, help="output file format (default: UCCA)")
         argparser.add_argument("-o", "--out-dir", default=".", help="output directory")
         argparser.add_argument("-p", "--prefix", default="", help="output filename prefix")
         argparser.add_argument("-b", "--binary", action="store_true", help="write in binary format (.pickle)")

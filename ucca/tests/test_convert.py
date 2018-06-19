@@ -1,7 +1,6 @@
-import pytest
 import xml.etree.ElementTree as ETree
 
-from ucca import core, layer0, layer1, convert
+from ucca import layer0, layer1, convert
 from .conftest import loaded, load_xml
 
 """Tests convert module correctness and API."""
@@ -181,82 +180,3 @@ def test_to_site():
     root = convert.to_site(passage)
     copy = convert.from_site(root)
     assert passage.equals(copy)
-
-
-def simple():
-    p = core.Passage("120")
-    l0 = layer0.Layer0(p)
-    l1 = layer1.Layer1(p)
-    terms = [l0.add_terminal(text=str(i), punct=False) for i in range(1, 3)]
-    p1 = l1.add_fnode(None, layer1.EdgeTags.Process)
-    a1 = l1.add_fnode(None, layer1.EdgeTags.Participant)
-    p1.add(layer1.EdgeTags.Terminal, terms[0])
-    a1.add(layer1.EdgeTags.Terminal, terms[1])
-    return p
-
-
-simple_conll = ["# sent_id = 120",
-                "1	1	_	Word	Word	_	0	ROOT	_	_",
-                "2	2	_	Word	Word	_	1	A	_	_",
-                ""]
-
-simple_sdp = ["#120",
-              "1	1	_	Word	-	+	_	_",
-              "2	2	_	Word	-	-	_	A",
-              ""]
-
-
-@pytest.mark.parametrize("converter, create_passage, lines", (
-        (convert.from_conll, simple, simple_conll),
-        (convert.from_sdp,   simple, simple_sdp),
-))
-@pytest.mark.parametrize("num_passages", range(3))
-@pytest.mark.parametrize("trailing_newlines", range(3))
-def test_from_dep(converter, create_passage, lines, num_passages, trailing_newlines):
-    p = create_passage()
-    lines = num_passages * lines
-    lines[-1:] = trailing_newlines * [""]
-    passages = list(converter(lines, "test"))
-    assert len(passages) == num_passages
-    for passage in passages:
-        assert passage.equals(p), "%s: %s != %s" % (converter, str(passage), str(p))
-
-
-def test_to_conll():
-    passage = loaded()
-    converted = convert.to_conll(passage)
-    with open("test_files/standard3.conll", encoding="utf-8") as f:
-        # f.write("\n".join(converted))
-        assert converted == f.read().splitlines() + [""]
-    converted_passage = next(convert.from_conll(converted, passage.ID))
-    # ioutil.passage2file(converted_passage, "test_files/standard3.conll.xml")
-    ref = convert.from_standard(load_xml("test_files/standard3.conll.xml"))
-    assert converted_passage.equals(ref)
-    # Put the same sentence twice and try converting again
-    for converted_passage in convert.from_conll(converted * 2, passage.ID):
-        ref = convert.from_standard(load_xml("test_files/standard3.conll.xml"))
-    assert converted_passage.equals(ref), "Passage does not match expected"
-
-
-def test_to_sdp():
-    passage = loaded()
-    converted = convert.to_sdp(passage)
-    with open("test_files/standard3.sdp", encoding="utf-8") as f:
-        # f.write("\n".join(converted))
-        assert converted == f.read().splitlines() + [""]
-    converted_passage = next(convert.from_sdp(converted, passage.ID))
-    # ioutil.passage2file(converted_passage, "test_files/standard3.sdp.xml")
-    ref = convert.from_standard(load_xml("test_files/standard3.sdp.xml"))
-    assert converted_passage.equals(ref), "Passage does not match expected"
-
-
-def test_to_export():
-    passage = loaded()
-    converted = convert.to_export(passage)
-    with open("test_files/standard3.export", encoding="utf-8") as f:
-        # f.write("\n".join(converted))
-        assert converted == f.read().splitlines()
-    converted_passage = next(convert.from_export(converted, passage.ID))
-    # ioutil.passage2file(converted_passage, "test_files/standard3.export.xml")
-    ref = convert.from_standard(load_xml("test_files/standard3.export.xml"))
-    assert converted_passage.equals(ref), "Passage does not match expected"
