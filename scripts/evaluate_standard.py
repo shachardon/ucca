@@ -32,6 +32,8 @@ def main(args):
 
 
 def match_by_id(guessed, ref):
+    if guessed is None:
+        return None
     if len(guessed) != len(ref):
         raise ValueError("Number of passages to compare does not match: %d != %d" % (len(guessed), len(ref)))
     if len(guessed) > 1:
