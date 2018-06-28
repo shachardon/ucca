@@ -161,7 +161,7 @@ def write_passage(passage, output_format=None, binary=False, outdir=".", prefix=
     outfile = os.path.join(outdir, prefix + (basename or passage.ID) + "." + suffix)
     if verbose:
         with tqdm.external_write_mode():
-            print("Writing passage '%s'..." % outfile)
+            print("%s '%s'..." % ("Appending to" if append else "Writing passage", outfile))
     if output_format is None or output_format in ("ucca", "pickle", "xml"):
         passage2file(passage, outfile, binary=binary)
     else:
