@@ -27,4 +27,4 @@ jobs:
         tags: true
   - script:
     - pip install -U --upgrade-strategy=only-if-needed tupa
-    - python -m tupa standard3.xml -t standard3.xml
+    - python -m tupa test_files/standard3.xml -t test_files/standard3.xml
