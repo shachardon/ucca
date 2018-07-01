@@ -12,18 +12,25 @@ from xml.etree.ElementTree import ParseError
 from ucca.convert import file2passage, passage2file, from_text, to_text, split2segments
 from ucca.core import Passage
 
+DEFAULT_LANG = "en"
+DEFAULT_ATTEMPTS = 3
+DEFAULT_DELAY = 5
+
 
 class LazyLoadedPassages:
     """
     Iterable interface to Passage objects that loads files on-the-go and can be iterated more than once
     """
-    def __init__(self, files, sentences=False, paragraphs=False, converters=None, lang="en"):
+    def __init__(self, files, sentences=False, paragraphs=False, converters=None, lang=DEFAULT_LANG,
+                 attempts=DEFAULT_ATTEMPTS, delay=DEFAULT_DELAY):
         self.files = files
         self.sentences = sentences
         self.paragraphs = paragraphs
         self.split = self.sentences or self.paragraphs
         self.converters = defaultdict(lambda: from_text) if converters is None else converters
         self.lang = lang
+        self.attempts = attempts
+        self.delay = delay
         self._files_iter = None
         self._split_iter = None
         self._file_handle = None
@@ -53,14 +60,14 @@ class LazyLoadedPassages:
             if isinstance(file, Passage):  # Not really a file, but a Passage
                 passage = file
             else:  # A file
-                attempts = 3
+                attempts = self.attempts
                 while not os.path.exists(file):
                     with tqdm.external_write_mode(file=sys.stderr):
                         if attempts == 0:
                             print("File not found: %s" % file, file=sys.stderr)
                             return None
                         print("Failed reading %s, trying %d more times..." % (file, attempts), file=sys.stderr)
-                    time.sleep(5)
+                    time.sleep(self.delay)
                     attempts -= 1
                 try:
                     passage = file2passage(file)  # XML or binary format
@@ -103,17 +110,17 @@ class LazyLoadedPassages:
         return bool(self.files)
 
 
-def get_passages_with_progress_bar(filename_patterns, desc=None, converters=None):
-    t = tqdm(get_passages(filename_patterns, converters=converters), desc=desc, unit=" passages")
+def get_passages_with_progress_bar(filename_patterns, desc=None, **kwargs):
+    t = tqdm(get_passages(filename_patterns, **kwargs), desc=desc, unit=" passages")
     for passage in t:
         t.set_postfix(ID=passage.ID)
         yield passage
 
 
-def get_passages(filename_patterns, converters=None):
+def get_passages(filename_patterns, **kwargs):
     for pattern in [filename_patterns] if isinstance(filename_patterns, str) else filename_patterns:
         for filenames in glob(pattern) or [pattern]:
-            yield from read_files_and_dirs(filenames, converters=converters)
+            yield from read_files_and_dirs(filenames, **kwargs)
 
 
 def gen_files(files_and_dirs):
@@ -128,17 +135,20 @@ def gen_files(files_and_dirs):
             yield file_or_dir
 
 
-def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, converters=None, lang="en"):
+def read_files_and_dirs(files_and_dirs, sentences=False, paragraphs=False, converters=None, lang=DEFAULT_LANG,
+                        attempts=DEFAULT_ATTEMPTS, delay=DEFAULT_DELAY):
     """
     :param files_and_dirs: iterable of files and/or directories to look in
     :param sentences: whether to split to sentences
     :param paragraphs: whether to split to paragraphs
     :param converters: dict of input format converters to use based on the file extension
     :param lang: language to use for tokenization model
+    :param attempts: number of times to try reading a file before giving up
+    :param delay: number of seconds to wait before subsequent attempts to read a file
     :return: lazy-loaded passages from all files given, plus any files directly under any directory given
     """
     return LazyLoadedPassages(list(gen_files(files_and_dirs)), sentences=sentences, paragraphs=paragraphs,
-                              converters=converters, lang=lang)
+                              converters=converters, lang=lang, attempts=attempts, delay=delay)
 
 
 def write_passage(passage, output_format=None, binary=False, outdir=".", prefix="", converter=None, verbose=True,
