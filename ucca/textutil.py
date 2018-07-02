@@ -181,6 +181,15 @@ def annotate(passage, *args, **kwargs):
     list(annotate_all([passage], *args, **kwargs))
 
 
+def annotate_as_tuples(passages, replace=False, as_array=False, lang="en", vocab=None, verbose=False):
+    for passage_lang, passages_by_lang in groupby(passages, get_lang):
+        for need_annotation, stream in groupby(to_annotate(passages_by_lang, replace, as_array), lambda x: bool(x[0])):
+            annotated = get_nlp(passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
+            annotated = set_docs(annotated, as_array, passage_lang or lang, vocab, replace, verbose)
+            for passage, passages in groupby(annotated, itemgetter(0)):
+                yield deque(passages, maxlen=1).pop()  # Wait until all paragraphs have been annotated
+
+
 def annotate_all(passages, replace=False, as_array=False, as_tuples=False, lang="en", vocab=None, verbose=False):
     """
     Run spaCy pipeline on the given passages, unless already annotated
@@ -195,12 +204,8 @@ def annotate_all(passages, replace=False, as_array=False, as_tuples=False, lang=
     """
     if not as_tuples:
         passages = ((p,) for p in passages)
-    for passage_lang, passages_by_lang in groupby(passages, get_lang):
-        for need_annotation, stream in groupby(to_annotate(passages_by_lang, replace, as_array), lambda x: bool(x[0])):
-            annotated = get_nlp(passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
-            annotated = set_docs(annotated, as_array, passage_lang or lang, vocab, replace, verbose)
-            for passage, passages in groupby(annotated, itemgetter(0)):
-                yield deque(passages, maxlen=1).pop() if as_tuples else passage
+    for t in annotate_as_tuples(passages, replace=replace, as_array=as_array, lang=lang, vocab=vocab, verbose=verbose):
+        yield t if as_tuples else t[0]
 
 
 def get_lang(passage_context):
