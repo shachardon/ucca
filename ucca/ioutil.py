@@ -34,10 +34,8 @@ class LazyLoadedPassages:
         self._files_iter = None
         self._split_iter = None
         self._file_handle = None
-        self._next_index = None
 
     def __iter__(self):
-        self._next_index = 0
         self._files_iter = iter(self.files)
         self._split_iter = None
         self._file_handle = None
@@ -47,7 +45,6 @@ class LazyLoadedPassages:
         while True:
             passage = self._next_passage()
             if passage is not None:
-                self._next_index += 1
                 return passage
 
     def _next_passage(self):
