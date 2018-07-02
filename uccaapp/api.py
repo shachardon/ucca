@@ -5,6 +5,10 @@ import logging
 import os
 import requests
 
+"""
+API code for accessing v1.0 of the UCCAApp server
+"""
+
 DEFAULT_SERVER = "http://ucca-demo.cs.huji.ac.il"
 API_PREFIX = "/api/v1/"
 SERVER_ADDRESS_ENV_VAR = "UCCA_APP_SERVER_ADDRESS"

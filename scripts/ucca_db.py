@@ -1,9 +1,10 @@
-import re
 import sys
 from collections import Counter
-from xml.etree.ElementTree import fromstring
 
+import datetime
 import psycopg2
+import re
+from xml.etree.ElementTree import fromstring
 
 from ucca import convert, layer1
 from ucca.layer1 import EdgeTags as ET
@@ -120,12 +121,12 @@ def write_to_db(db, host, xml, new_pid, new_prid, username,
     """
     print("warning this function was not tested and better" +
           " API specification (parameters what is written) is needed")
-    con = get_connection()
+    cur = get_cursor(db, host)
     cur_uid = get_uid(db, host, username, operator, graceful)
     now = datetime.datetime.now()
-    con.execute("INSERT INTO xmls VALUES (NULL, " +
+    cur.execute("INSERT INTO xmls VALUES (NULL, " +
                 (PLACE_HOLDER + ', ') * 5 + "0, " +
-                PLACE_HOLDER + ")", (xml, new_pid, prid, cur_uid, '', now))
+                PLACE_HOLDER + ")", (xml, new_pid, new_prid, cur_uid, '', now))
 
 
 def print_most_recent_xids(db, host, username, n=10):
