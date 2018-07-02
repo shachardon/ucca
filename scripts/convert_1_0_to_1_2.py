@@ -23,36 +23,76 @@ def move_node(node, new_parent, tag=None):
         remove(edge.parent, edge)
 
 
-def extract_aux(passage):
-    for terminal in passage.layer(layer0.LAYER_ID).all:
-        if get_annotation(terminal, Attr.LEMMA) in {"have", "be", "will", "to"}:
-            parent = fparent(terminal)
-            grandparent = fparent(parent)
-            if is_main_relation(grandparent) and (
-                    parent.ftag == layer1.EdgeTags.Function or
-                    parent.ftag in {layer1.EdgeTags.Elaborator, layer1.EdgeTags.Relator} and
-                    get_annotation(terminal, Attr.DEP) in {"aux", "auxpass"}):
-                move_node(parent, grandparent, tag=layer1.EdgeTags.Function)
-                yield terminal
+AUX = {"have", "be", "will", "to"}
 
 
-def extract_modal(passage):
-    for terminal in passage.layer(layer0.LAYER_ID).all:
-        if get_annotation(terminal, Attr.LEMMA) in {"can"}:
-            parent = fparent(terminal)
-            grandparent = fparent(parent)
-            if is_main_relation(grandparent) and parent.ftag == layer1.EdgeTags.Elaborator:
-                move_node(parent, grandparent, tag=layer1.EdgeTags.Adverbial)
-                yield terminal
+def extract_aux(terminal):
+    if get_annotation(terminal, Attr.LEMMA) in AUX:
+        parent = fparent(terminal)
+        grandparent = fparent(parent)
+        if is_main_relation(grandparent) and (
+                parent.ftag == layer1.EdgeTags.Function or
+                parent.ftag in {layer1.EdgeTags.Elaborator, layer1.EdgeTags.Relator} and
+                get_annotation(terminal, Attr.DEP) in {"aux", "auxpass"}):
+            move_node(parent, grandparent, tag=layer1.EdgeTags.Function)
+            return True
+    return False
 
 
-RULES = (extract_aux, extract_modal)
+MODALS = {"can", "could", "may", "might", "shall", "should", "would", "must"}
+SEMI_MODALS = {"ought", "have", "able", "want", "go"}
+
+
+def extract_modal(terminal):
+    lemma = get_annotation(terminal, Attr.LEMMA)
+    if lemma in MODALS or lemma in SEMI_MODALS and get_annotation(terminal, Attr.DEP) not in {"aux", "auxpass"}:
+        parent = fparent(terminal)
+        grandparent = fparent(parent)
+        if is_main_relation(grandparent) and parent.ftag == layer1.EdgeTags.Elaborator:
+            move_node(parent, grandparent, tag=layer1.EdgeTags.Adverbial)
+            return True
+    return False
+
+
+def extract_relator(terminal):
+    parent = fparent(terminal)
+    grandparent = fparent(parent)
+    following_uncle = None
+    for node in grandparent.iter():
+        if node.start_position == 1 + terminal.position and \
+                following_uncle.ftag in {layer1.EdgeTags.Participant, layer1.EdgeTags.Adverbial}:
+            following_uncle = node
+    if following_uncle is not None and is_main_relation(grandparent) and parent.ftag == layer1.EdgeTags.Relator and \
+            grandparent.end_position == terminal.position:
+        move_node(parent, following_uncle)
+        return True
+    return False
+
+
+def flag_relator_starts_main_relation(terminal):
+    parent = fparent(terminal)
+    grandparent = fparent(parent)
+    return grandparent.start_position == terminal.position and \
+        is_main_relation(grandparent) and parent.ftag == layer1.EdgeTags.Relator
+
+
+def flag_suspected_semi_modal(terminal):
+    if get_annotation(terminal, Attr.DEP) not in {"det"}:
+        parent = fparent(terminal)
+        grandparent = fparent(parent)
+        if is_main_relation(grandparent) and parent.ftag == layer1.EdgeTags.Elaborator:
+            return True
+    return False
+
+
+RULES = (extract_aux, extract_modal, extract_relator, flag_relator_starts_main_relation, flag_suspected_semi_modal)
 
 
 def convert_passage(passage, report_file):
     for rule in RULES:
-        for node in rule(passage):
-            print(rule.__name__, passage.ID, node.ID, file=report_file)
+        for terminal in passage.layer(layer0.LAYER_ID).all:
+            if rule(terminal):
+                print(rule.__name__, passage.ID, terminal.ID, terminal.text, file=report_file)
 
 
 def main(args):
