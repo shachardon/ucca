@@ -16,6 +16,9 @@ from ucca import layer0, layer1
 MODEL_ENV_VAR = "SPACY_MODEL"  # Determines the default spaCy model to load
 DEFAULT_MODEL = {"en": "en_core_web_md", "fr": "fr_core_news_md", "de": "de_core_news_sm"}
 
+N_THREADS = 4
+BATCH_SIZE = 50
+
 
 class Attr(Enum):
     """Wrapper for spaCy Attr, determining order for saving in layer0.extra per token when as_array=True"""
@@ -184,7 +187,8 @@ def annotate(passage, *args, **kwargs):
 def annotate_as_tuples(passages, replace=False, as_array=False, lang="en", vocab=None, verbose=False):
     for passage_lang, passages_by_lang in groupby(passages, get_lang):
         for need_annotation, stream in groupby(to_annotate(passages_by_lang, replace, as_array), lambda x: bool(x[0])):
-            annotated = get_nlp(passage_lang or lang).pipe(stream, as_tuples=True) if need_annotation else stream
+            annotated = get_nlp(passage_lang or lang).pipe(
+                stream, as_tuples=True, n_threads=N_THREADS, batch_size=BATCH_SIZE) if need_annotation else stream
             annotated = set_docs(annotated, as_array, passage_lang or lang, vocab, replace, verbose)
             for passage, passages in groupby(annotated, itemgetter(0)):
                 yield deque(passages, maxlen=1).pop()  # Wait until all paragraphs have been annotated
@@ -214,7 +218,7 @@ def get_lang(passage_context):
 
 def to_annotate(passage_contexts, replace, as_array):
     """Filter passages to get only those that require annotation; split to paragraphs and return generator of
-    (list of tokens, paragraph index, list of Terminals, Passage) tuples + original context appended"""
+    (list of tokens, (paragraph index, list of Terminals, Passage) + original context appended) tuples"""
     return (([t.text for t in terminals] if replace or not is_annotated(passage, as_array) else (),
              (i, terminals, passage) + tuple(context)) for passage, *context in passage_contexts
             for i, terminals in enumerate(break2paragraphs(passage, return_terminals=True)))
