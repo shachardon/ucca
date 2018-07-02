@@ -1,7 +1,7 @@
 import os
 from argparse import ArgumentParser
 
-from ucca import layer0, layer1
+from ucca import layer0, layer1, textutil
 from ucca.ioutil import get_passages_with_progress_bar, write_passage
 from ucca.normalization import fparent, remove, copy_edge
 from ucca.textutil import annotate_all, Attr
@@ -120,10 +120,11 @@ def convert_passage(passage, report_file):
             grandparent = fparent(parent)
             if rule(terminal, parent, grandparent):
                 print(rule.__name__, passage.ID, terminal.ID, get_annotation(terminal, Attr.POS), grandparent,
-                      file=report_file)
+                      file=report_file, flush=True)
 
 
 def main(args):
+    textutil.BATCH_SIZE = 1
     os.makedirs(args.outdir, exist_ok=True)
     with open(args.outfile, "w", encoding="utf-8") as f:
         for passage in annotate_all(get_passages_with_progress_bar(args.passages, desc="Converting"),
