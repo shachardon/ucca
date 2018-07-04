@@ -194,6 +194,7 @@ def normalize_node(node, l1, extra):
 def normalize(passage, extra=False):
     l0 = passage.layer(layer0.LAYER_ID)
     l1 = passage.layer(layer1.LAYER_ID)
+    attach_punct(l0, l1)
     heads = list(l1.heads)
     stack = [heads]
     visited = set()
