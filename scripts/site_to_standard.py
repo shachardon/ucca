@@ -2,13 +2,11 @@
 
 import argparse
 import os
-import pickle
 import sqlite3
-from xml.etree.ElementTree import ElementTree, tostring, fromstring
+from xml.etree.ElementTree import ElementTree, fromstring
 
 import ucca.convert
-from ioutil import write_passage
-from ucca.textutil import indent_xml
+from ucca.ioutil import write_passage
 
 desc = """Parses an XML in UCCA site format.
 
@@ -54,9 +52,8 @@ def check_illegal_combinations(args):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description=desc)
-    group = argparser.add_mutually_exclusive_group(required=True)
-    group.add_argument("filenames", nargs="*", help="XML file name to convert")
-    group.add_argument("-d", "--db", help="DB file to get input from")
+    argparser.add_argument("filenames", nargs="*", help="XML file name to convert")
+    argparser.add_argument("-d", "--db", help="DB file to get input from")
     argparser.add_argument("-o", "--out-dir", default=".", help="output directory for standard XML")
     argparser.add_argument("-b", "--binary", help="output file for binary pickle")
     argparser.add_argument("-p", "--pids", nargs="*", type=int, help="PassageIDs to query DB")
