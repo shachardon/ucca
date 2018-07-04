@@ -149,15 +149,19 @@ def attach_terminals(l0, l1):
 def flatten_centers(node):
     """
     Whenever there are Cs inside Cs, remove the external C.
+    Whenever there is a C as an only child, remove it.
     """
-    if node.tag == L1Tags.Foundational and node.ftag == ETags.Center and \
-            len(node.centers) == len(fparent(node).centers) == 1:
-        for edge in node.incoming:
-            if edge.attrib.get("remote"):
-                copy_edge(edge, child=node.centers[0])
-        for edge in node:
-            copy_edge(edge, parent=node.fparent)
-        destroy(node)
+    parent = fparent(node)
+    if node.tag == L1Tags.Foundational and node.ftag == ETags.Center:
+        nested_center = (len(node.centers) == len(parent.centers) == 1)  # Center inside center
+        unary_center = (len(parent.children) == 1)  # Center as only child
+        if nested_center or unary_center:
+            for edge in node.incoming:
+                if edge.attrib.get("remote"):
+                    copy_edge(edge, child=node.centers[0] if nested_center else parent)
+            for edge in node:
+                copy_edge(edge, parent=parent)
+            destroy(node)
 
 
 def flatten_functions(node):

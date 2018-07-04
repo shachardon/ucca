@@ -39,37 +39,57 @@ def top_scene():
 
 
 def nested_center():
-    p, l1, terms = create_passage()
+    p, l1, terms = create_passage(5)
     ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
     a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    f1 = l1.add_fnode(a1, layer1.EdgeTags.Function)
     c1 = l1.add_fnode(a1, layer1.EdgeTags.Center)
+    f2 = l1.add_fnode(c1, layer1.EdgeTags.Function)
     c2 = l1.add_fnode(c1, layer1.EdgeTags.Center)
     p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
     a2 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
-    attach_terminals(terms, c2, p1, a2)
+    attach_terminals(terms, f1, f2, c2, p1, a2)
     return p
 
 
 def flat_center():
-    p, l1, terms = create_passage()
+    p, l1, terms = create_passage(5)
     ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
     a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    f1 = l1.add_fnode(a1, layer1.EdgeTags.Function)
+    f2 = l1.add_fnode(a1, layer1.EdgeTags.Function)
     c1 = l1.add_fnode(a1, layer1.EdgeTags.Center)
     p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
     a2 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
-    attach_terminals(terms, c1, p1, a2)
+    attach_terminals(terms, f1, f2, c1, p1, a2)
     return p
 
 
-def unary_function():
-    p, l1, terms = create_passage()
+def unary_center():
+    p, l1, terms = create_passage(5)
     ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
     a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
     c1 = l1.add_fnode(a1, layer1.EdgeTags.Center)
     f1 = l1.add_fnode(c1, layer1.EdgeTags.Function)
+    f2 = l1.add_fnode(c1, layer1.EdgeTags.Function)
+    c2 = l1.add_fnode(c1, layer1.EdgeTags.Center)
     p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
     a2 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
-    attach_terminals(terms, f1, p1, a2)
+    attach_terminals(terms, f1, f2, c2, p1, a2)
+    return p
+
+
+def unary_function():
+    p, l1, terms = create_passage(5)
+    ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    f1 = l1.add_fnode(a1, layer1.EdgeTags.Function)
+    f2 = l1.add_fnode(f1, layer1.EdgeTags.Function)
+    c1 = l1.add_fnode(f1, layer1.EdgeTags.Center)
+    c2 = l1.add_fnode(a1, layer1.EdgeTags.Center)
+    p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
+    a2 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    attach_terminals(terms, f2, c1, c2, p1, a2)
     return p
 
 
@@ -77,10 +97,9 @@ def simple_function():
     p, l1, terms = create_passage()
     ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
     a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
-    c1 = l1.add_fnode(a1, layer1.EdgeTags.Center)
     p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
     f1 = l1.add_fnode(ps1, layer1.EdgeTags.Function)
-    attach_terminals(terms, c1, p1, f1)
+    attach_terminals(terms, a1, p1, f1)
     return p
 
 
@@ -88,11 +107,10 @@ def complex_function():
     p, l1, terms = create_passage()
     ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
     a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
-    c1 = l1.add_fnode(a1, layer1.EdgeTags.Center)
     f1 = l1.add_fnode(ps1, layer1.EdgeTags.Function)
     p1 = l1.add_fnode(f1, layer1.EdgeTags.Process)
     c2 = l1.add_fnode(f1, layer1.EdgeTags.Center)
-    attach_terminals(terms, c1, p1, c2)
+    attach_terminals(terms, a1, p1, c2)
     return p
 
 
@@ -236,6 +254,7 @@ def normalize_and_compare(unnormalized, normalized, extra=False):
 @pytest.mark.parametrize("unnormalized, normalized", (
         (root_scene, top_scene),
         (nested_center, flat_center),
+        (unary_center, flat_center),
         (unary_function, flat_center),
         (complex_function, simple_function),
         (unary_punct, attached_punct),
