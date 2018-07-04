@@ -153,7 +153,7 @@ class SiteUtil:
 
     @staticmethod
     def unescape(x):
-        return xml.sax.saxutils.unescape(x, {'&quot;': '"'})
+        return xml.sax.saxutils.unescape(x, {'&quot;': '"', r"\u2019": "'"})
 
     @staticmethod
     def set_id(e, i):
