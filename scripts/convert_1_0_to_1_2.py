@@ -1,3 +1,4 @@
+import csv
 import os
 from argparse import ArgumentParser
 
@@ -14,13 +15,16 @@ def get_annotation(terminal, attr):
 
 
 def is_main_relation(node):
-    return node.ftag in {layer1.EdgeTags.Process, layer1.EdgeTags.State}
+    while node is not None and node.ftag == layer1.EdgeTags.Center:
+        node = fparent(node)
+    return node is not None and node.ftag in {layer1.EdgeTags.Process, layer1.EdgeTags.State}
 
 
 def move_node(node, new_parent, tag=None):
     for edge in node.incoming:
-        copy_edge(edge, parent=new_parent, tag=tag)
-        remove(edge.parent, edge)
+        if edge.parent == fparent(edge):
+            copy_edge(edge, parent=new_parent, tag=tag)
+            remove(edge.parent, edge)
 
 
 AUX = {"have", "be", "will", "to", "do", "'s", "'ve", "'ll", "'re", "'d", "'m"}
@@ -39,11 +43,13 @@ def extract_aux(terminal, parent, grandparent):
 LIGHT_VERBS = {"take", "make", "give", "have", "pay"}
 
 
-def extract_light_verb(terminal, parent, grandparent):
+def set_light_verb_function(terminal, parent, grandparent):
     if get_annotation(terminal, Attr.LEMMA) in LIGHT_VERBS and \
             is_main_relation(grandparent) and parent.ftag == layer1.EdgeTags.Elaborator:
-        move_node(parent, grandparent, tag=layer1.EdgeTags.Function)
-        return True
+        if len(grandparent.centers) != 1 or len(grandparent.centers[0].get_terminals()) != 1 or \
+                get_annotation(grandparent.centers[0].get_terminals()[0], Attr.DEP) != "ccomp":
+            move_node(parent, grandparent, tag=layer1.EdgeTags.Function)
+            return True
     return False
 
 
@@ -109,28 +115,32 @@ def flag_suspected_secondary(terminal, parent, grandparent):
         is_main_relation(grandparent) and parent.ftag == layer1.EdgeTags.Elaborator
 
 
-RULES = (extract_aux, extract_light_verb, extract_modal, extract_relator, extract_that, extract_ground,
+RULES = (extract_aux, set_light_verb_function, extract_modal, extract_relator, extract_that, extract_ground,
          flag_relator_starts_main_relation, flag_suspected_secondary)
 
 
-def convert_passage(passage, report_file):
+def convert_passage(passage, report_writer):
     for rule in RULES:
         for terminal in passage.layer(layer0.LAYER_ID).all:
             parent = fparent(terminal)
             grandparent = fparent(parent)
-            if rule(terminal, parent, grandparent):
-                print(rule.__name__, passage.ID, terminal.ID, get_annotation(terminal, Attr.POS), grandparent,
-                      file=report_file, flush=True)
+            grandparent_str = str(grandparent)
+            if len(parent.children) == 1 and rule(terminal, parent, grandparent):
+                report_writer.writerow((rule.__name__, passage.ID, terminal.ID, get_annotation(terminal, Attr.POS),
+                                        grandparent_str, fparent(fparent(terminal))))
 
 
 def main(args):
     textutil.BATCH_SIZE = 1
     os.makedirs(args.outdir, exist_ok=True)
-    with open(args.outfile, "w", encoding="utf-8") as f:
+    with open(args.outfile, "w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(("rule", "passage", "terminal", "pos", "before", "after"))
         for passage in annotate_all(get_passages_with_progress_bar(args.passages, desc="Converting"),
                                     verbose=args.verbose):
-            convert_passage(passage, report_file=f)
+            convert_passage(passage, report_writer=writer)
             write_passage(passage, outdir=args.outdir, prefix=args.prefix, verbose=args.verbose)
+            f.flush()
     print("Wrote '%s'" % args.outfile)
 
 
@@ -139,6 +149,6 @@ if __name__ == "__main__":
     argparser.add_argument("passages", nargs="+", help="the corpus, given as xml/pickle file names")
     argparser.add_argument("-o", "--outdir", default=".", help="output directory")
     argparser.add_argument("-p", "--prefix", default="", help="output filename prefix")
-    argparser.add_argument("-O", "--outfile", default=os.path.splitext(argparser.prog)[0] + ".log", help="log file")
+    argparser.add_argument("-O", "--outfile", default=os.path.splitext(argparser.prog)[0] + ".csv", help="log file")
     argparser.add_argument("-v", "--verbose", action="store_true", help="print tagged text for each passage")
     main(argparser.parse_args())
