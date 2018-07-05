@@ -115,7 +115,7 @@ def flag_suspected_secondary(terminal, parent, grandparent):
         is_main_relation(grandparent) and parent.ftag == layer1.EdgeTags.Elaborator
 
 
-RULES = (extract_aux, set_light_verb_function, extract_modal, extract_relator, extract_that, extract_ground,
+RULES = (extract_ground, extract_aux, set_light_verb_function, extract_modal, extract_relator, extract_that,
          flag_relator_starts_main_relation, flag_suspected_secondary)
 
 
