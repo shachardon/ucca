@@ -75,13 +75,12 @@ def _single_child_by_tag(node, tag, must=True):
         MissingRelationError if Node not found and must is set to True
 
     """
-    for edge in list(node):
+    for edge in node:
         if edge.tag == tag:
             return edge.child
     if must:
         raise MissingRelationError(node.ID, tag)
-    else:
-        return None
+    return None
 
 
 def _multiple_children_by_tag(node, tag):
@@ -95,7 +94,7 @@ def _multiple_children_by_tag(node, tag):
         A list of connected Nodes, can be empty
 
     """
-    return [edge.child for edge in list(node) if edge.tag == tag]
+    return [edge.child for edge in node if edge.tag == tag]
 
 
 class Linkage(core.Node):
@@ -250,7 +249,7 @@ class FoundationalNode(core.Node):
         """Returns the Edge of the fparent, or None."""
         for edge in self.incoming:
             if (edge.parent.layer.ID == LAYER_ID and
-                        edge.parent.tag == NodeTags.Foundational and
+                edge.parent.tag == NodeTags.Foundational and
                     not edge.attrib.get('remote')):
                 return edge
         return None
