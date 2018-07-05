@@ -1142,9 +1142,12 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
         other_l1.add_remote(parent, edge.tag, id_to_other[edge.child.ID])
     # Add linkages
     for linkage in linkages:
-        arguments = [id_to_other[argument.ID] for argument in linkage.arguments]
-        other_linkage = other_l1.add_linkage(id_to_other[linkage.relation.ID], *arguments)
-        _copy_extra(linkage, other_linkage, remarks)
+        try:
+            arguments = [id_to_other[argument.ID] for argument in linkage.arguments]
+            other_linkage = other_l1.add_linkage(id_to_other[linkage.relation.ID], *arguments)
+            _copy_extra(linkage, other_linkage, remarks)
+        except layer1.MissingRelationError:
+            pass
     for head, other_head in zip(heads, other_l1.heads):
         _copy_extra(head, other_head, remarks)
 
