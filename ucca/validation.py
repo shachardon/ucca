@@ -74,7 +74,10 @@ class NodeValidator:
         for edge in self.node:
             if (edge.tag == ETags.Punctuation) != (edge.child.tag == L1Tags.Punctuation):
                 yield "%s edge (%s) with %s child" % (edge.tag, edge, edge.child.tag)
-            if (self.node.tag == L1Tags.Punctuation) != (edge.child.tag == L0Tags.Punct):
+            # FN parent of Punctuation is disallowed unless the FN is unanalyzable
+            if (self.node.tag == L1Tags.Foundational) and (edge.child.tag == L0Tags.Punct) and \
+                    not len(self.node.terminals) == len(self.node.children) > 1 or \
+                    (self.node.tag == L1Tags.Punctuation) and not (edge.child.tag == L0Tags.Punct):
                 yield "%s node (%s) with %s child (%s)" % (self.node.tag, self.node.ID, edge.child.tag, edge.child.ID)
         if self.node.attrib.get("implicit") and self.node.outgoing:
             yield "Implicit node (%s) with outgoing edges (%s)" % (self.node.ID, join(self.node))

@@ -37,6 +37,14 @@ def unary_punct_under_fn():
     return p
 
 
+def punct_under_unanalyzable_fn():
+    p, l1, terms = create_passage(3, 2)
+    h1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    p1 = l1.add_fnode(h1, layer1.EdgeTags.Process)
+    attach_terminals(terms, p1, p1, p1)
+    return p
+
+
 @pytest.mark.parametrize("create, valid", (
         (loaded, False),
         (loaded_valid, True),
@@ -48,6 +56,7 @@ def unary_punct_under_fn():
         (unary_punct, True),
         (binary_punct, True),
         (unary_punct_under_fn, False),
+        (punct_under_unanalyzable_fn, True),
 ))
 def test_evaluate_self(create, valid):
     p = create()
