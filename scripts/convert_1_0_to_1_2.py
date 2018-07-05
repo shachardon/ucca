@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 
 from ucca import layer0, layer1, textutil
 from ucca.ioutil import get_passages_with_progress_bar, write_passage
-from ucca.normalization import fparent, remove, copy_edge
+from ucca.normalization import fparent, remove, copy_edge, destroy
 from ucca.textutil import annotate_all, Attr
 
 desc = """Convert the English Wiki corpus from version 1.0 to 1.2"""
@@ -25,6 +25,10 @@ def move_node(node, new_parent, tag=None):
         if edge.parent == fparent(edge):
             copy_edge(edge, parent=new_parent, tag=tag)
             remove(edge.parent, edge)
+            break
+    # for (parent_id, child_id), count in Counter((edge.parent.ID, edge.child.ID) for edge in new_parent).items():
+    #     if count > 1:
+    #         raise ValueError("There are %d edges from %s to %s" % (count, parent_id, child_id))
 
 
 AUX = {"have", "be", "will", "to", "do", "'s", "'ve", "'ll", "'re", "'d", "'m"}
@@ -80,7 +84,7 @@ def extract_relator(terminal, parent, grandparent):
 
 
 def extract_that(terminal, parent, grandparent):
-    del parent, grandparent
+    del grandparent
     if get_annotation(terminal, Attr.LEMMA) == "that":
         following_scene = None
         for node in terminal.root.layer(layer1.LAYER_ID).heads[0].iter():
@@ -88,7 +92,6 @@ def extract_that(terminal, parent, grandparent):
                     node.ftag == layer1.EdgeTags.ParallelScene:
                 following_scene = node
         if following_scene is not None:
-            parent = fparent(terminal)
             move_node(parent, following_scene, tag=layer1.EdgeTags.Relator)
             return True
     return False
@@ -105,6 +108,36 @@ def extract_ground(terminal, parent, grandparent):
     return False
 
 
+def fix_punct(terminal, parent, grandparent):
+    del grandparent
+    if parent.tag == layer1.FoundationalNode and terminal.tag == layer0.NodeTags.Punct and len(parent.children) == 1:
+        parent.remove(terminal)
+        parent.root.layer(layer1.LAYER_ID).add_punct(parent, terminal)
+        return True
+    return False
+
+
+def fix_root_terminal_child(terminal, parent, grandparent):
+    del grandparent
+    if not parent.incoming:
+        f1 = parent.root.layer(layer1.LAYER_ID).add_fnode(parent, layer1.EdgeTags.Function)
+        move_node(terminal, f1)
+        return True
+    return False
+
+
+def fix_unary_participant(terminal, parent, grandparent):
+    del terminal, parent
+    while grandparent.incoming:
+        if len(grandparent.outgoing) == 1 and grandparent.outgoing[0].tag == layer1.EdgeTags.Participant:
+            for edge in grandparent.incoming:
+                copy_edge(edge, child=grandparent.children[0])
+            destroy(grandparent)
+            return True
+        grandparent = grandparent.parents[0]
+    return False
+
+
 def flag_relator_starts_main_relation(terminal, parent, grandparent):
     return grandparent.start_position == terminal.position and \
         is_main_relation(grandparent) and parent.ftag == layer1.EdgeTags.Relator
@@ -116,6 +149,7 @@ def flag_suspected_secondary(terminal, parent, grandparent):
 
 
 RULES = (extract_ground, extract_aux, set_light_verb_function, extract_modal, extract_relator, extract_that,
+         fix_punct, fix_root_terminal_child, fix_unary_participant,
          flag_relator_starts_main_relation, flag_suspected_secondary)
 
 
