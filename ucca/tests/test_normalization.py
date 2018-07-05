@@ -1,22 +1,10 @@
 import pytest
 
-from ucca import core, layer0, layer1
+from ucca import layer1
 from ucca.normalization import normalize
+from .conftest import create_passage, attach_terminals
 
 """Tests normalization module correctness and API."""
-
-
-def create_passage(num_terms=3, *punct):
-    p = core.Passage("1")
-    l0 = layer0.Layer0(p)
-    l1 = layer1.Layer1(p)
-    terms = [l0.add_terminal(text=str(i), punct=(i in punct)) for i in range(1, num_terms + 1)]
-    return p, l1, terms
-
-
-def attach_terminals(terms, *nodes):
-    for term, node in zip(terms, nodes):
-        node.add(layer1.EdgeTags.Terminal, term)
 
 
 def root_scene():

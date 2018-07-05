@@ -286,3 +286,16 @@ def load_xml(path):
 
 
 PASSAGES = (loaded, loaded_valid, multi_sent, crossing, discontiguous, l1_passage, empty)
+
+
+def create_passage(num_terms=3, *punct):
+    p = core.Passage("1")
+    l0 = layer0.Layer0(p)
+    l1 = layer1.Layer1(p)
+    terms = [l0.add_terminal(text=str(i), punct=(i in punct)) for i in range(1, num_terms + 1)]
+    return p, l1, terms
+
+
+def attach_terminals(terms, *nodes):
+    for term, node in zip(terms, nodes):
+        node.add(layer1.EdgeTags.Terminal, term)
