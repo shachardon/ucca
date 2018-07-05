@@ -276,9 +276,10 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
             _fill_attributes(work_elem, node)
             # For iterating the subelements, we don't use work_elem, as it may
             # out of the current XML hierarchy we are processing (discont...)
-            for subelem in elem:
-                tbd += _parse_site_units(subelem, node, passage,
-                                         groups, elem2node)
+            for parent_elem in [elem] if elem is work_elem else [elem, work_elem]:
+                for subelem in parent_elem:
+                    tbd += _parse_site_units(subelem, node, passage,
+                                             groups, elem2node)
     # Implicit units have their own tag, and aren't recursive, but nonetheless
     # are treated the same as regular units
     elif elem.tag == SiteCfg.Tags.Implicit:
