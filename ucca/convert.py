@@ -333,7 +333,7 @@ def _from_site_annotation(elem, passage, elem2node):
                     elem.get(SiteCfg.Attr.LinkageArgs).split(',')]
             l1.add_linkage(parent, *args)
         else:
-            raise SiteXMLUnknownElement
+            raise SiteXMLUnknownElement(elem.tag)
 
 
 def from_site(elem):

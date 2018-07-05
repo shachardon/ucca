@@ -79,7 +79,7 @@ def _single_child_by_tag(node, tag, must=True):
         if edge.tag == tag:
             return edge.child
     if must:
-        raise MissingRelationError()
+        raise MissingRelationError(node.ID, tag)
     else:
         return None
 

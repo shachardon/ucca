@@ -126,7 +126,7 @@ class ModifyPassage:
         @functools.wraps(self.fn)
         def decorated(*args, **kwargs):
             if args[0].root.frozen:
-                raise FrozenPassageError()
+                raise FrozenPassageError(args[0].root.ID)
             return self.fn(*args, **kwargs)
         return decorated(*args, **kwargs)
 
@@ -226,7 +226,7 @@ class Edge:
 
         """
         if root.frozen:
-            raise FrozenPassageError()
+            raise FrozenPassageError(root.ID)
         self._tag = tag
         self._root = root
         self._parent = parent
@@ -335,7 +335,7 @@ class Node:
 
         """
         if root.frozen:
-            raise FrozenPassageError()
+            raise FrozenPassageError(root.ID)
         self._tag = tag
         self._root = root
         self._ID = ID
@@ -448,7 +448,7 @@ class Node:
                 edge = [edge for edge in self._outgoing
                         if edge.child == edge_or_node][0]
             except IndexError:
-                raise MissingNodeError()
+                raise MissingNodeError(edge_or_node)
         else:  # an Edge object
             edge = edge_or_node
 
@@ -457,7 +457,7 @@ class Node:
             edge.child._incoming.remove(edge)
             self.root._remove_edge(edge)
         except ValueError:
-            raise MissingNodeError()
+            raise MissingNodeError(edge_or_node)
 
     @property
     def orderkey(self):
@@ -629,7 +629,7 @@ class Layer:
 
         """
         if root.frozen:
-            raise FrozenPassageError()
+            raise FrozenPassageError(root.ID)
         self._ID = ID
         self._root = root
         self._attrib = _AttributeDict(root, attrib)
@@ -939,7 +939,7 @@ class Passage:
 
         """
         if layer.ID in self._layers:
-            raise DuplicateIdError()
+            raise DuplicateIdError(layer.ID)
         self._layers[layer.ID] = layer
 
     @ModifyPassage
@@ -955,7 +955,7 @@ class Passage:
 
         """
         if node.ID in self._nodes:
-            raise DuplicateIdError()
+            raise DuplicateIdError(node.ID)
         self._nodes[node.ID] = node
 
     def _remove_node(self, node):
