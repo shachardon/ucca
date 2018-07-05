@@ -131,6 +131,25 @@ def test_site_advanced():
     assert lkg.arguments == [ps2, ps3, ps4]
 
 
+def test_site_discontiguous_with_remote():
+    elem = load_xml("test_files/site4.xml")
+    passage = convert.from_site(elem)
+    s1 = passage.layer(layer1.LAYER_ID).heads[0].state
+    remote_a1 = [e.child for e in s1 if e.attrib.get("remote") and e.tag == layer1.EdgeTags.Participant]
+    assert len(remote_a1) == 1
+    a1 = remote_a1[0]
+    remote_a2 = [e.child for e in a1 if e.attrib.get("remote") and e.tag == layer1.EdgeTags.Participant]
+    assert len(remote_a2) == 1
+
+
+def test_site_discontiguous_with_implicit():
+    elem = load_xml("test_files/site5.xml")
+    passage = convert.from_site(elem)
+    s1 = passage.layer(layer1.LAYER_ID).heads[0].state
+    remote_t1 = [e.child for e in s1 if e.child.attrib.get("implicit") and e.tag == layer1.EdgeTags.Time]
+    assert len(remote_t1) == 1
+
+
 def test_to_standard():
     passage = convert.from_site(load_xml("test_files/site3.xml"))
     ref = load_xml("test_files/standard3.xml")

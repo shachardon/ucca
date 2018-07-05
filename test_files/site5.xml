@@ -1,0 +1,1005 @@
+<root schemeVersion="1.0.6" direction="ltr">
+    <unitGroups>
+        <unit type="State" id="653" unanalyzable="false" uncertain="false">
+            <implicitUnit id="656" type="Time"></implicitUnit>
+        </unit>
+    </unitGroups>
+    <units passageID="4">
+        <unit type="To Be Defined" id="0" unanalyzable="false" uncertain="false">
+            <unit type="To Be Defined" id="1" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="652" unitGroupID="653" unanalyzable="false" uncertain="false">
+                    <unit type="To Be Defined" id="3" unanalyzable="false" uncertain="false">
+                        <word id="2">John</word>
+                    </unit>
+                </unit>
+                <unit type="Participant" id="655" unanalyzable="false" uncertain="false">
+                    <unit type="To Be Defined" id="5" unanalyzable="false" uncertain="false">
+                        <word id="4">is</word>
+                    </unit>
+                </unit>
+                <unit type="To Be Defined" id="654" unitGroupID="653" unanalyzable="false" uncertain="false">
+                    <unit type="To Be Defined" id="7" unanalyzable="false" uncertain="false">
+                        <word id="6">tall</word>
+                    </unit>
+                </unit>
+                <unit type="Punctuation" id="9" unanalyzable="false" uncertain="false">
+                    <word id="8">.</word>
+                </unit>
+                <unit type="To Be Defined" id="11" unanalyzable="false" uncertain="false">
+                    <word id="10">The</word>
+                </unit>
+                <unit type="To Be Defined" id="13" unanalyzable="false" uncertain="false">
+                    <word id="12">apple</word>
+                </unit>
+                <unit type="To Be Defined" id="15" unanalyzable="false" uncertain="false">
+                    <word id="14">tree</word>
+                </unit>
+                <unit type="To Be Defined" id="17" unanalyzable="false" uncertain="false">
+                    <word id="16">is</word>
+                </unit>
+                <unit type="To Be Defined" id="19" unanalyzable="false" uncertain="false">
+                    <word id="18">in</word>
+                </unit>
+                <unit type="To Be Defined" id="21" unanalyzable="false" uncertain="false">
+                    <word id="20">the</word>
+                </unit>
+                <unit type="To Be Defined" id="23" unanalyzable="false" uncertain="false">
+                    <word id="22">garden</word>
+                </unit>
+                <unit type="Punctuation" id="25" unanalyzable="false" uncertain="false">
+                    <word id="24">.</word>
+                </unit>
+                <unit type="To Be Defined" id="27" unanalyzable="false" uncertain="false">
+                    <word id="26">An</word>
+                </unit>
+                <unit type="To Be Defined" id="29" unanalyzable="false" uncertain="false">
+                    <word id="28">apple</word>
+                </unit>
+                <unit type="To Be Defined" id="31" unanalyzable="false" uncertain="false">
+                    <word id="30">weighs</word>
+                </unit>
+                <unit type="To Be Defined" id="33" unanalyzable="false" uncertain="false">
+                    <word id="32">200g</word>
+                </unit>
+                <unit type="Punctuation" id="35" unanalyzable="false" uncertain="false">
+                    <word id="34">.</word>
+                </unit>
+                <unit type="To Be Defined" id="37" unanalyzable="false" uncertain="false">
+                    <word id="36">John</word>
+                </unit>
+                <unit type="To Be Defined" id="39" unanalyzable="false" uncertain="false">
+                    <word id="38">could</word>
+                </unit>
+                <unit type="To Be Defined" id="41" unanalyzable="false" uncertain="false">
+                    <word id="40">have</word>
+                </unit>
+                <unit type="To Be Defined" id="43" unanalyzable="false" uncertain="false">
+                    <word id="42">been</word>
+                </unit>
+                <unit type="To Be Defined" id="45" unanalyzable="false" uncertain="false">
+                    <word id="44">tall</word>
+                </unit>
+                <unit type="Punctuation" id="47" unanalyzable="false" uncertain="false">
+                    <word id="46">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="48" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="50" unanalyzable="false" uncertain="false">
+                    <word id="49">John</word>
+                </unit>
+                <unit type="To Be Defined" id="52" unanalyzable="false" uncertain="false">
+                    <word id="51">knitted</word>
+                </unit>
+                <unit type="To Be Defined" id="54" unanalyzable="false" uncertain="false">
+                    <word id="53">a</word>
+                </unit>
+                <unit type="To Be Defined" id="56" unanalyzable="false" uncertain="false">
+                    <word id="55">sweater</word>
+                </unit>
+                <unit type="Punctuation" id="58" unanalyzable="false" uncertain="false">
+                    <word id="57">.</word>
+                </unit>
+                <unit type="To Be Defined" id="60" unanalyzable="false" uncertain="false">
+                    <word id="59">John</word>
+                </unit>
+                <unit type="To Be Defined" id="62" unanalyzable="false" uncertain="false">
+                    <word id="61">kicked</word>
+                </unit>
+                <unit type="To Be Defined" id="64" unanalyzable="false" uncertain="false">
+                    <word id="63">the</word>
+                </unit>
+                <unit type="To Be Defined" id="66" unanalyzable="false" uncertain="false">
+                    <word id="65">ball</word>
+                </unit>
+                <unit type="Punctuation" id="68" unanalyzable="false" uncertain="false">
+                    <word id="67">.</word>
+                </unit>
+                <unit type="To Be Defined" id="70" unanalyzable="false" uncertain="false">
+                    <word id="69">Woody</word>
+                </unit>
+                <unit type="To Be Defined" id="72" unanalyzable="false" uncertain="false">
+                    <word id="71">walked</word>
+                </unit>
+                <unit type="To Be Defined" id="74" unanalyzable="false" uncertain="false">
+                    <word id="73">with</word>
+                </unit>
+                <unit type="To Be Defined" id="76" unanalyzable="false" uncertain="false">
+                    <word id="75">Mary</word>
+                </unit>
+                <unit type="To Be Defined" id="78" unanalyzable="false" uncertain="false">
+                    <word id="77">in</word>
+                </unit>
+                <unit type="To Be Defined" id="80" unanalyzable="false" uncertain="false">
+                    <word id="79">the</word>
+                </unit>
+                <unit type="To Be Defined" id="82" unanalyzable="false" uncertain="false">
+                    <word id="81">park</word>
+                </unit>
+                <unit type="Punctuation" id="84" unanalyzable="false" uncertain="false">
+                    <word id="83">.</word>
+                </unit>
+                <unit type="To Be Defined" id="86" unanalyzable="false" uncertain="false">
+                    <word id="85">John</word>
+                </unit>
+                <unit type="To Be Defined" id="88" unanalyzable="false" uncertain="false">
+                    <word id="87">should</word>
+                </unit>
+                <unit type="To Be Defined" id="90" unanalyzable="false" uncertain="false">
+                    <word id="89">kick</word>
+                </unit>
+                <unit type="To Be Defined" id="92" unanalyzable="false" uncertain="false">
+                    <word id="91">the</word>
+                </unit>
+                <unit type="To Be Defined" id="94" unanalyzable="false" uncertain="false">
+                    <word id="93">ball</word>
+                </unit>
+                <unit type="Punctuation" id="96" unanalyzable="false" uncertain="false">
+                    <word id="95">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="97" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="99" unanalyzable="false" uncertain="false">
+                    <word id="98">John</word>
+                </unit>
+                <unit type="To Be Defined" id="101" unanalyzable="false" uncertain="false">
+                    <word id="100">seems</word>
+                </unit>
+                <unit type="To Be Defined" id="103" unanalyzable="false" uncertain="false">
+                    <word id="102">to</word>
+                </unit>
+                <unit type="To Be Defined" id="105" unanalyzable="false" uncertain="false">
+                    <word id="104">be</word>
+                </unit>
+                <unit type="To Be Defined" id="107" unanalyzable="false" uncertain="false">
+                    <word id="106">tall</word>
+                </unit>
+                <unit type="Punctuation" id="109" unanalyzable="false" uncertain="false">
+                    <word id="108">.</word>
+                </unit>
+                <unit type="To Be Defined" id="111" unanalyzable="false" uncertain="false">
+                    <word id="110">John</word>
+                </unit>
+                <unit type="To Be Defined" id="113" unanalyzable="false" uncertain="false">
+                    <word id="112">wants</word>
+                </unit>
+                <unit type="To Be Defined" id="115" unanalyzable="false" uncertain="false">
+                    <word id="114">to</word>
+                </unit>
+                <unit type="To Be Defined" id="117" unanalyzable="false" uncertain="false">
+                    <word id="116">kick</word>
+                </unit>
+                <unit type="To Be Defined" id="119" unanalyzable="false" uncertain="false">
+                    <word id="118">the</word>
+                </unit>
+                <unit type="To Be Defined" id="121" unanalyzable="false" uncertain="false">
+                    <word id="120">ball</word>
+                </unit>
+                <unit type="Punctuation" id="123" unanalyzable="false" uncertain="false">
+                    <word id="122">.</word>
+                </unit>
+                <unit type="To Be Defined" id="125" unanalyzable="false" uncertain="false">
+                    <word id="124">John</word>
+                </unit>
+                <unit type="To Be Defined" id="127" unanalyzable="false" uncertain="false">
+                    <word id="126">finished</word>
+                </unit>
+                <unit type="To Be Defined" id="129" unanalyzable="false" uncertain="false">
+                    <word id="128">kicking</word>
+                </unit>
+                <unit type="To Be Defined" id="131" unanalyzable="false" uncertain="false">
+                    <word id="130">the</word>
+                </unit>
+                <unit type="To Be Defined" id="133" unanalyzable="false" uncertain="false">
+                    <word id="132">ball</word>
+                </unit>
+                <unit type="Punctuation" id="135" unanalyzable="false" uncertain="false">
+                    <word id="134">.</word>
+                </unit>
+                <unit type="To Be Defined" id="137" unanalyzable="false" uncertain="false">
+                    <word id="136">John</word>
+                </unit>
+                <unit type="To Be Defined" id="139" unanalyzable="false" uncertain="false">
+                    <word id="138">seems</word>
+                </unit>
+                <unit type="To Be Defined" id="141" unanalyzable="false" uncertain="false">
+                    <word id="140">to</word>
+                </unit>
+                <unit type="To Be Defined" id="143" unanalyzable="false" uncertain="false">
+                    <word id="142">have</word>
+                </unit>
+                <unit type="To Be Defined" id="145" unanalyzable="false" uncertain="false">
+                    <word id="144">kicked</word>
+                </unit>
+                <unit type="To Be Defined" id="147" unanalyzable="false" uncertain="false">
+                    <word id="146">the</word>
+                </unit>
+                <unit type="To Be Defined" id="149" unanalyzable="false" uncertain="false">
+                    <word id="148">ball</word>
+                </unit>
+                <unit type="Punctuation" id="151" unanalyzable="false" uncertain="false">
+                    <word id="150">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="152" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="154" unanalyzable="false" uncertain="false">
+                    <word id="153">His</word>
+                </unit>
+                <unit type="To Be Defined" id="156" unanalyzable="false" uncertain="false">
+                    <word id="155">workers</word>
+                </unit>
+                <unit type="To Be Defined" id="158" unanalyzable="false" uncertain="false">
+                    <word id="157">treat</word>
+                </unit>
+                <unit type="To Be Defined" id="160" unanalyzable="false" uncertain="false">
+                    <word id="159">him</word>
+                </unit>
+                <unit type="To Be Defined" id="162" unanalyzable="false" uncertain="false">
+                    <word id="161">with</word>
+                </unit>
+                <unit type="To Be Defined" id="164" unanalyzable="false" uncertain="false">
+                    <word id="163">disrespect</word>
+                </unit>
+                <unit type="Punctuation" id="166" unanalyzable="false" uncertain="false">
+                    <word id="165">.</word>
+                </unit>
+                <unit type="To Be Defined" id="168" unanalyzable="false" uncertain="false">
+                    <word id="167">John</word>
+                </unit>
+                <unit type="To Be Defined" id="170" unanalyzable="false" uncertain="false">
+                    <word id="169">cleverly</word>
+                </unit>
+                <unit type="To Be Defined" id="172" unanalyzable="false" uncertain="false">
+                    <word id="171">answered</word>
+                </unit>
+                <unit type="To Be Defined" id="174" unanalyzable="false" uncertain="false">
+                    <word id="173">the</word>
+                </unit>
+                <unit type="To Be Defined" id="176" unanalyzable="false" uncertain="false">
+                    <word id="175">manager</word>
+                </unit>
+                <unit type="To Be Defined" id="178" unanalyzable="false" uncertain="false">
+                    <word id="177">'s</word>
+                </unit>
+                <unit type="To Be Defined" id="180" unanalyzable="false" uncertain="false">
+                    <word id="179">question</word>
+                </unit>
+                <unit type="Punctuation" id="182" unanalyzable="false" uncertain="false">
+                    <word id="181">.</word>
+                </unit>
+                <unit type="To Be Defined" id="184" unanalyzable="false" uncertain="false">
+                    <word id="183">I</word>
+                </unit>
+                <unit type="To Be Defined" id="186" unanalyzable="false" uncertain="false">
+                    <word id="185">saw</word>
+                </unit>
+                <unit type="To Be Defined" id="188" unanalyzable="false" uncertain="false">
+                    <word id="187">you</word>
+                </unit>
+                <unit type="To Be Defined" id="190" unanalyzable="false" uncertain="false">
+                    <word id="189">in</word>
+                </unit>
+                <unit type="To Be Defined" id="192" unanalyzable="false" uncertain="false">
+                    <word id="191">the</word>
+                </unit>
+                <unit type="To Be Defined" id="194" unanalyzable="false" uncertain="false">
+                    <word id="193">park</word>
+                </unit>
+                <unit type="To Be Defined" id="196" unanalyzable="false" uncertain="false">
+                    <word id="195">yesterday</word>
+                </unit>
+                <unit type="Punctuation" id="198" unanalyzable="false" uncertain="false">
+                    <word id="197">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="199" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="201" unanalyzable="false" uncertain="false">
+                    <word id="200">Big</word>
+                </unit>
+                <unit type="To Be Defined" id="203" unanalyzable="false" uncertain="false">
+                    <word id="202">brown</word>
+                </unit>
+                <unit type="To Be Defined" id="205" unanalyzable="false" uncertain="false">
+                    <word id="204">dogs</word>
+                </unit>
+                <unit type="Punctuation" id="207" unanalyzable="false" uncertain="false">
+                    <word id="206">.</word>
+                </unit>
+                <unit type="To Be Defined" id="209" unanalyzable="false" uncertain="false">
+                    <word id="208">Chocolate</word>
+                </unit>
+                <unit type="To Be Defined" id="211" unanalyzable="false" uncertain="false">
+                    <word id="210">cookies</word>
+                </unit>
+                <unit type="Punctuation" id="213" unanalyzable="false" uncertain="false">
+                    <word id="212">.</word>
+                </unit>
+                <unit type="To Be Defined" id="215" unanalyzable="false" uncertain="false">
+                    <word id="214">John</word>
+                </unit>
+                <unit type="To Be Defined" id="217" unanalyzable="false" uncertain="false">
+                    <word id="216">and</word>
+                </unit>
+                <unit type="To Be Defined" id="219" unanalyzable="false" uncertain="false">
+                    <word id="218">Mary</word>
+                </unit>
+                <unit type="To Be Defined" id="221" unanalyzable="false" uncertain="false">
+                    <word id="220">went</word>
+                </unit>
+                <unit type="To Be Defined" id="223" unanalyzable="false" uncertain="false">
+                    <word id="222">to</word>
+                </unit>
+                <unit type="To Be Defined" id="225" unanalyzable="false" uncertain="false">
+                    <word id="224">school</word>
+                </unit>
+                <unit type="To Be Defined" id="227" unanalyzable="false" uncertain="false">
+                    <word id="226">together</word>
+                </unit>
+                <unit type="Punctuation" id="229" unanalyzable="false" uncertain="false">
+                    <word id="228">.</word>
+                </unit>
+                <unit type="To Be Defined" id="231" unanalyzable="false" uncertain="false">
+                    <word id="230">I</word>
+                </unit>
+                <unit type="To Be Defined" id="233" unanalyzable="false" uncertain="false">
+                    <word id="232">eat</word>
+                </unit>
+                <unit type="To Be Defined" id="235" unanalyzable="false" uncertain="false">
+                    <word id="234">fresh</word>
+                </unit>
+                <unit type="To Be Defined" id="237" unanalyzable="false" uncertain="false">
+                    <word id="236">fruits</word>
+                </unit>
+                <unit type="To Be Defined" id="239" unanalyzable="false" uncertain="false">
+                    <word id="238">and</word>
+                </unit>
+                <unit type="To Be Defined" id="241" unanalyzable="false" uncertain="false">
+                    <word id="240">vegetables</word>
+                </unit>
+                <unit type="Punctuation" id="243" unanalyzable="false" uncertain="false">
+                    <word id="242">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="244" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="246" unanalyzable="false" uncertain="false">
+                    <word id="245">There</word>
+                </unit>
+                <unit type="To Be Defined" id="248" unanalyzable="false" uncertain="false">
+                    <word id="247">are</word>
+                </unit>
+                <unit type="To Be Defined" id="250" unanalyzable="false" uncertain="false">
+                    <word id="249">cookies</word>
+                </unit>
+                <unit type="To Be Defined" id="252" unanalyzable="false" uncertain="false">
+                    <word id="251">in</word>
+                </unit>
+                <unit type="To Be Defined" id="254" unanalyzable="false" uncertain="false">
+                    <word id="253">the</word>
+                </unit>
+                <unit type="To Be Defined" id="256" unanalyzable="false" uncertain="false">
+                    <word id="255">jar</word>
+                </unit>
+                <unit type="Punctuation" id="258" unanalyzable="false" uncertain="false">
+                    <word id="257">.</word>
+                </unit>
+                <unit type="To Be Defined" id="260" unanalyzable="false" uncertain="false">
+                    <word id="259">They</word>
+                </unit>
+                <unit type="To Be Defined" id="262" unanalyzable="false" uncertain="false">
+                    <word id="261">arrived</word>
+                </unit>
+                <unit type="To Be Defined" id="264" unanalyzable="false" uncertain="false">
+                    <word id="263">after</word>
+                </unit>
+                <unit type="To Be Defined" id="266" unanalyzable="false" uncertain="false">
+                    <word id="265">dinner</word>
+                </unit>
+                <unit type="Punctuation" id="268" unanalyzable="false" uncertain="false">
+                    <word id="267">.</word>
+                </unit>
+                <unit type="To Be Defined" id="270" unanalyzable="false" uncertain="false">
+                    <word id="269">He</word>
+                </unit>
+                <unit type="To Be Defined" id="272" unanalyzable="false" uncertain="false">
+                    <word id="271">put</word>
+                </unit>
+                <unit type="To Be Defined" id="274" unanalyzable="false" uncertain="false">
+                    <word id="273">the</word>
+                </unit>
+                <unit type="To Be Defined" id="276" unanalyzable="false" uncertain="false">
+                    <word id="275">hat</word>
+                </unit>
+                <unit type="To Be Defined" id="278" unanalyzable="false" uncertain="false">
+                    <word id="277">on</word>
+                </unit>
+                <unit type="To Be Defined" id="280" unanalyzable="false" uncertain="false">
+                    <word id="279">the</word>
+                </unit>
+                <unit type="To Be Defined" id="282" unanalyzable="false" uncertain="false">
+                    <word id="281">table</word>
+                </unit>
+                <unit type="Punctuation" id="284" unanalyzable="false" uncertain="false">
+                    <word id="283">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="285" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="287" unanalyzable="false" uncertain="false">
+                    <word id="286">Children</word>
+                </unit>
+                <unit type="To Be Defined" id="289" unanalyzable="false" uncertain="false">
+                    <word id="288">often</word>
+                </unit>
+                <unit type="To Be Defined" id="291" unanalyzable="false" uncertain="false">
+                    <word id="290">rely</word>
+                </unit>
+                <unit type="To Be Defined" id="293" unanalyzable="false" uncertain="false">
+                    <word id="292">on</word>
+                </unit>
+                <unit type="To Be Defined" id="295" unanalyzable="false" uncertain="false">
+                    <word id="294">their</word>
+                </unit>
+                <unit type="To Be Defined" id="297" unanalyzable="false" uncertain="false">
+                    <word id="296">parents</word>
+                </unit>
+                <unit type="Punctuation" id="299" unanalyzable="false" uncertain="false">
+                    <word id="298">.</word>
+                </unit>
+                <unit type="To Be Defined" id="301" unanalyzable="false" uncertain="false">
+                    <word id="300">Would</word>
+                </unit>
+                <unit type="To Be Defined" id="303" unanalyzable="false" uncertain="false">
+                    <word id="302">you</word>
+                </unit>
+                <unit type="To Be Defined" id="305" unanalyzable="false" uncertain="false">
+                    <word id="304">like</word>
+                </unit>
+                <unit type="To Be Defined" id="307" unanalyzable="false" uncertain="false">
+                    <word id="306">a</word>
+                </unit>
+                <unit type="To Be Defined" id="309" unanalyzable="false" uncertain="false">
+                    <word id="308">piece</word>
+                </unit>
+                <unit type="To Be Defined" id="311" unanalyzable="false" uncertain="false">
+                    <word id="310">of</word>
+                </unit>
+                <unit type="To Be Defined" id="313" unanalyzable="false" uncertain="false">
+                    <word id="312">cake</word>
+                </unit>
+                <unit type="Punctuation" id="315" unanalyzable="false" uncertain="false">
+                    <word id="314">?</word>
+                </unit>
+                <unit type="To Be Defined" id="317" unanalyzable="false" uncertain="false">
+                    <word id="316">John</word>
+                </unit>
+                <unit type="To Be Defined" id="319" unanalyzable="false" uncertain="false">
+                    <word id="318">is</word>
+                </unit>
+                <unit type="To Be Defined" id="321" unanalyzable="false" uncertain="false">
+                    <word id="320">taller</word>
+                </unit>
+                <unit type="To Be Defined" id="323" unanalyzable="false" uncertain="false">
+                    <word id="322">than</word>
+                </unit>
+                <unit type="To Be Defined" id="325" unanalyzable="false" uncertain="false">
+                    <word id="324">Mary</word>
+                </unit>
+                <unit type="Punctuation" id="327" unanalyzable="false" uncertain="false">
+                    <word id="326">.</word>
+                </unit>
+                <unit type="To Be Defined" id="329" unanalyzable="false" uncertain="false">
+                    <word id="328">John</word>
+                </unit>
+                <unit type="To Be Defined" id="331" unanalyzable="false" uncertain="false">
+                    <word id="330">told</word>
+                </unit>
+                <unit type="To Be Defined" id="333" unanalyzable="false" uncertain="false">
+                    <word id="332">Mary</word>
+                </unit>
+                <unit type="To Be Defined" id="335" unanalyzable="false" uncertain="false">
+                    <word id="334">that</word>
+                </unit>
+                <unit type="To Be Defined" id="337" unanalyzable="false" uncertain="false">
+                    <word id="336">he</word>
+                </unit>
+                <unit type="To Be Defined" id="339" unanalyzable="false" uncertain="false">
+                    <word id="338">wo</word>
+                </unit>
+                <unit type="To Be Defined" id="341" unanalyzable="false" uncertain="false">
+                    <word id="340">n't</word>
+                </unit>
+                <unit type="To Be Defined" id="343" unanalyzable="false" uncertain="false">
+                    <word id="342">make</word>
+                </unit>
+                <unit type="To Be Defined" id="345" unanalyzable="false" uncertain="false">
+                    <word id="344">it</word>
+                </unit>
+                <unit type="Punctuation" id="347" unanalyzable="false" uncertain="false">
+                    <word id="346">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="348" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="350" unanalyzable="false" uncertain="false">
+                    <word id="349">John</word>
+                </unit>
+                <unit type="To Be Defined" id="352" unanalyzable="false" uncertain="false">
+                    <word id="351">got</word>
+                </unit>
+                <unit type="To Be Defined" id="354" unanalyzable="false" uncertain="false">
+                    <word id="353">home</word>
+                </unit>
+                <unit type="To Be Defined" id="356" unanalyzable="false" uncertain="false">
+                    <word id="355">and</word>
+                </unit>
+                <unit type="To Be Defined" id="358" unanalyzable="false" uncertain="false">
+                    <word id="357">took</word>
+                </unit>
+                <unit type="To Be Defined" id="360" unanalyzable="false" uncertain="false">
+                    <word id="359">a</word>
+                </unit>
+                <unit type="To Be Defined" id="362" unanalyzable="false" uncertain="false">
+                    <word id="361">shower</word>
+                </unit>
+                <unit type="Punctuation" id="364" unanalyzable="false" uncertain="false">
+                    <word id="363">.</word>
+                </unit>
+                <unit type="To Be Defined" id="366" unanalyzable="false" uncertain="false">
+                    <word id="365">We</word>
+                </unit>
+                <unit type="To Be Defined" id="368" unanalyzable="false" uncertain="false">
+                    <word id="367">just</word>
+                </unit>
+                <unit type="To Be Defined" id="370" unanalyzable="false" uncertain="false">
+                    <word id="369">opened</word>
+                </unit>
+                <unit type="Punctuation" id="372" unanalyzable="false" uncertain="false">
+                    <word id="371">.</word>
+                </unit>
+                <unit type="To Be Defined" id="374" unanalyzable="false" uncertain="false">
+                    <word id="373">Mary</word>
+                </unit>
+                <unit type="To Be Defined" id="376" unanalyzable="false" uncertain="false">
+                    <word id="375">is</word>
+                </unit>
+                <unit type="To Be Defined" id="378" unanalyzable="false" uncertain="false">
+                    <word id="377">tall</word>
+                </unit>
+                <unit type="Punctuation" id="380" unanalyzable="false" uncertain="false">
+                    <word id="379">,</word>
+                </unit>
+                <unit type="To Be Defined" id="382" unanalyzable="false" uncertain="false">
+                    <word id="381">John</word>
+                </unit>
+                <unit type="To Be Defined" id="384" unanalyzable="false" uncertain="false">
+                    <word id="383">is</word>
+                </unit>
+                <unit type="To Be Defined" id="386" unanalyzable="false" uncertain="false">
+                    <word id="385">n't</word>
+                </unit>
+                <unit type="Punctuation" id="388" unanalyzable="false" uncertain="false">
+                    <word id="387">.</word>
+                </unit>
+                <unit type="To Be Defined" id="390" unanalyzable="false" uncertain="false">
+                    <word id="389">If</word>
+                </unit>
+                <unit type="To Be Defined" id="392" unanalyzable="false" uncertain="false">
+                    <word id="391">you</word>
+                </unit>
+                <unit type="To Be Defined" id="394" unanalyzable="false" uncertain="false">
+                    <word id="393">'re</word>
+                </unit>
+                <unit type="To Be Defined" id="396" unanalyzable="false" uncertain="false">
+                    <word id="395">bringing</word>
+                </unit>
+                <unit type="To Be Defined" id="398" unanalyzable="false" uncertain="false">
+                    <word id="397">drinks</word>
+                </unit>
+                <unit type="Punctuation" id="400" unanalyzable="false" uncertain="false">
+                    <word id="399">,</word>
+                </unit>
+                <unit type="To Be Defined" id="402" unanalyzable="false" uncertain="false">
+                    <word id="401">bring</word>
+                </unit>
+                <unit type="To Be Defined" id="404" unanalyzable="false" uncertain="false">
+                    <word id="403">two</word>
+                </unit>
+                <unit type="To Be Defined" id="406" unanalyzable="false" uncertain="false">
+                    <word id="405">for</word>
+                </unit>
+                <unit type="To Be Defined" id="408" unanalyzable="false" uncertain="false">
+                    <word id="407">me</word>
+                </unit>
+                <unit type="Punctuation" id="410" unanalyzable="false" uncertain="false">
+                    <word id="409">.</word>
+                </unit>
+                <unit type="To Be Defined" id="412" unanalyzable="false" uncertain="false">
+                    <word id="411">John</word>
+                </unit>
+                <unit type="To Be Defined" id="414" unanalyzable="false" uncertain="false">
+                    <word id="413">wants</word>
+                </unit>
+                <unit type="To Be Defined" id="416" unanalyzable="false" uncertain="false">
+                    <word id="415">food</word>
+                </unit>
+                <unit type="Punctuation" id="418" unanalyzable="false" uncertain="false">
+                    <word id="417">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="419" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="421" unanalyzable="false" uncertain="false">
+                    <word id="420">Talking</word>
+                </unit>
+                <unit type="To Be Defined" id="423" unanalyzable="false" uncertain="false">
+                    <word id="422">to</word>
+                </unit>
+                <unit type="To Be Defined" id="425" unanalyzable="false" uncertain="false">
+                    <word id="424">strangers</word>
+                </unit>
+                <unit type="To Be Defined" id="427" unanalyzable="false" uncertain="false">
+                    <word id="426">is</word>
+                </unit>
+                <unit type="To Be Defined" id="429" unanalyzable="false" uncertain="false">
+                    <word id="428">ill-advised</word>
+                </unit>
+                <unit type="Punctuation" id="431" unanalyzable="false" uncertain="false">
+                    <word id="430">.</word>
+                </unit>
+                <unit type="To Be Defined" id="433" unanalyzable="false" uncertain="false">
+                    <word id="432">John</word>
+                </unit>
+                <unit type="To Be Defined" id="435" unanalyzable="false" uncertain="false">
+                    <word id="434">'s</word>
+                </unit>
+                <unit type="To Be Defined" id="437" unanalyzable="false" uncertain="false">
+                    <word id="436">accurate</word>
+                </unit>
+                <unit type="To Be Defined" id="439" unanalyzable="false" uncertain="false">
+                    <word id="438">kick</word>
+                </unit>
+                <unit type="To Be Defined" id="441" unanalyzable="false" uncertain="false">
+                    <word id="440">saved</word>
+                </unit>
+                <unit type="To Be Defined" id="443" unanalyzable="false" uncertain="false">
+                    <word id="442">the</word>
+                </unit>
+                <unit type="To Be Defined" id="445" unanalyzable="false" uncertain="false">
+                    <word id="444">game</word>
+                </unit>
+                <unit type="Punctuation" id="447" unanalyzable="false" uncertain="false">
+                    <word id="446">.</word>
+                </unit>
+                <unit type="To Be Defined" id="449" unanalyzable="false" uncertain="false">
+                    <word id="448">John</word>
+                </unit>
+                <unit type="To Be Defined" id="451" unanalyzable="false" uncertain="false">
+                    <word id="450">said</word>
+                </unit>
+                <unit type="To Be Defined" id="453" unanalyzable="false" uncertain="false">
+                    <word id="452">he</word>
+                </unit>
+                <unit type="To Be Defined" id="455" unanalyzable="false" uncertain="false">
+                    <word id="454">'s</word>
+                </unit>
+                <unit type="To Be Defined" id="457" unanalyzable="false" uncertain="false">
+                    <word id="456">coming</word>
+                </unit>
+                <unit type="To Be Defined" id="459" unanalyzable="false" uncertain="false">
+                    <word id="458">home</word>
+                </unit>
+                <unit type="Punctuation" id="461" unanalyzable="false" uncertain="false">
+                    <word id="460">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="462" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="464" unanalyzable="false" uncertain="false">
+                    <word id="463">The</word>
+                </unit>
+                <unit type="To Be Defined" id="466" unanalyzable="false" uncertain="false">
+                    <word id="465">dog</word>
+                </unit>
+                <unit type="To Be Defined" id="468" unanalyzable="false" uncertain="false">
+                    <word id="467">I</word>
+                </unit>
+                <unit type="To Be Defined" id="470" unanalyzable="false" uncertain="false">
+                    <word id="469">saw</word>
+                </unit>
+                <unit type="To Be Defined" id="472" unanalyzable="false" uncertain="false">
+                    <word id="471">last</word>
+                </unit>
+                <unit type="To Be Defined" id="474" unanalyzable="false" uncertain="false">
+                    <word id="473">night</word>
+                </unit>
+                <unit type="Punctuation" id="476" unanalyzable="false" uncertain="false">
+                    <word id="475">.</word>
+                </unit>
+                <unit type="To Be Defined" id="478" unanalyzable="false" uncertain="false">
+                    <word id="477">The</word>
+                </unit>
+                <unit type="To Be Defined" id="480" unanalyzable="false" uncertain="false">
+                    <word id="479">person</word>
+                </unit>
+                <unit type="To Be Defined" id="482" unanalyzable="false" uncertain="false">
+                    <word id="481">whom</word>
+                </unit>
+                <unit type="To Be Defined" id="484" unanalyzable="false" uncertain="false">
+                    <word id="483">I</word>
+                </unit>
+                <unit type="To Be Defined" id="486" unanalyzable="false" uncertain="false">
+                    <word id="485">gave</word>
+                </unit>
+                <unit type="To Be Defined" id="488" unanalyzable="false" uncertain="false">
+                    <word id="487">the</word>
+                </unit>
+                <unit type="To Be Defined" id="490" unanalyzable="false" uncertain="false">
+                    <word id="489">present</word>
+                </unit>
+                <unit type="To Be Defined" id="492" unanalyzable="false" uncertain="false">
+                    <word id="491">to</word>
+                </unit>
+                <unit type="Punctuation" id="494" unanalyzable="false" uncertain="false">
+                    <word id="493">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="495" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="497" unanalyzable="false" uncertain="false">
+                    <word id="496">You</word>
+                </unit>
+                <unit type="To Be Defined" id="499" unanalyzable="false" uncertain="false">
+                    <word id="498">'re</word>
+                </unit>
+                <unit type="To Be Defined" id="501" unanalyzable="false" uncertain="false">
+                    <word id="500">only</word>
+                </unit>
+                <unit type="To Be Defined" id="503" unanalyzable="false" uncertain="false">
+                    <word id="502">saying</word>
+                </unit>
+                <unit type="To Be Defined" id="505" unanalyzable="false" uncertain="false">
+                    <word id="504">this</word>
+                </unit>
+                <unit type="To Be Defined" id="507" unanalyzable="false" uncertain="false">
+                    <word id="506">because</word>
+                </unit>
+                <unit type="To Be Defined" id="509" unanalyzable="false" uncertain="false">
+                    <word id="508">John</word>
+                </unit>
+                <unit type="To Be Defined" id="511" unanalyzable="false" uncertain="false">
+                    <word id="510">told</word>
+                </unit>
+                <unit type="To Be Defined" id="513" unanalyzable="false" uncertain="false">
+                    <word id="512">you</word>
+                </unit>
+                <unit type="To Be Defined" id="515" unanalyzable="false" uncertain="false">
+                    <word id="514">to</word>
+                </unit>
+                <unit type="Punctuation" id="517" unanalyzable="false" uncertain="false">
+                    <word id="516">.</word>
+                </unit>
+                <unit type="To Be Defined" id="519" unanalyzable="false" uncertain="false">
+                    <word id="518">The</word>
+                </unit>
+                <unit type="To Be Defined" id="521" unanalyzable="false" uncertain="false">
+                    <word id="520">minute</word>
+                </unit>
+                <unit type="To Be Defined" id="523" unanalyzable="false" uncertain="false">
+                    <word id="522">I</word>
+                </unit>
+                <unit type="To Be Defined" id="525" unanalyzable="false" uncertain="false">
+                    <word id="524">got</word>
+                </unit>
+                <unit type="To Be Defined" id="527" unanalyzable="false" uncertain="false">
+                    <word id="526">home</word>
+                </unit>
+                <unit type="Punctuation" id="529" unanalyzable="false" uncertain="false">
+                    <word id="528">,</word>
+                </unit>
+                <unit type="To Be Defined" id="531" unanalyzable="false" uncertain="false">
+                    <word id="530">I</word>
+                </unit>
+                <unit type="To Be Defined" id="533" unanalyzable="false" uncertain="false">
+                    <word id="532">noticed</word>
+                </unit>
+                <unit type="To Be Defined" id="535" unanalyzable="false" uncertain="false">
+                    <word id="534">the</word>
+                </unit>
+                <unit type="To Be Defined" id="537" unanalyzable="false" uncertain="false">
+                    <word id="536">new</word>
+                </unit>
+                <unit type="To Be Defined" id="539" unanalyzable="false" uncertain="false">
+                    <word id="538">painting</word>
+                </unit>
+                <unit type="Punctuation" id="541" unanalyzable="false" uncertain="false">
+                    <word id="540">.</word>
+                </unit>
+                <unit type="To Be Defined" id="543" unanalyzable="false" uncertain="false">
+                    <word id="542">John</word>
+                </unit>
+                <unit type="To Be Defined" id="545" unanalyzable="false" uncertain="false">
+                    <word id="544">got</word>
+                </unit>
+                <unit type="To Be Defined" id="547" unanalyzable="false" uncertain="false">
+                    <word id="546">home</word>
+                </unit>
+                <unit type="To Be Defined" id="549" unanalyzable="false" uncertain="false">
+                    <word id="548">and</word>
+                </unit>
+                <unit type="To Be Defined" id="551" unanalyzable="false" uncertain="false">
+                    <word id="550">took</word>
+                </unit>
+                <unit type="To Be Defined" id="553" unanalyzable="false" uncertain="false">
+                    <word id="552">a</word>
+                </unit>
+                <unit type="To Be Defined" id="555" unanalyzable="false" uncertain="false">
+                    <word id="554">shower</word>
+                </unit>
+                <unit type="Punctuation" id="557" unanalyzable="false" uncertain="false">
+                    <word id="556">.</word>
+                </unit>
+                <unit type="To Be Defined" id="559" unanalyzable="false" uncertain="false">
+                    <word id="558">John</word>
+                </unit>
+                <unit type="To Be Defined" id="561" unanalyzable="false" uncertain="false">
+                    <word id="560">went</word>
+                </unit>
+                <unit type="To Be Defined" id="563" unanalyzable="false" uncertain="false">
+                    <word id="562">home</word>
+                </unit>
+                <unit type="To Be Defined" id="565" unanalyzable="false" uncertain="false">
+                    <word id="564">to</word>
+                </unit>
+                <unit type="To Be Defined" id="567" unanalyzable="false" uncertain="false">
+                    <word id="566">take</word>
+                </unit>
+                <unit type="To Be Defined" id="569" unanalyzable="false" uncertain="false">
+                    <word id="568">a</word>
+                </unit>
+                <unit type="To Be Defined" id="571" unanalyzable="false" uncertain="false">
+                    <word id="570">shower</word>
+                </unit>
+                <unit type="Punctuation" id="573" unanalyzable="false" uncertain="false">
+                    <word id="572">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="574" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="576" unanalyzable="false" uncertain="false">
+                    <word id="575">Surprisingly</word>
+                </unit>
+                <unit type="Punctuation" id="578" unanalyzable="false" uncertain="false">
+                    <word id="577">,</word>
+                </unit>
+                <unit type="To Be Defined" id="580" unanalyzable="false" uncertain="false">
+                    <word id="579">our</word>
+                </unit>
+                <unit type="To Be Defined" id="582" unanalyzable="false" uncertain="false">
+                    <word id="581">flight</word>
+                </unit>
+                <unit type="To Be Defined" id="584" unanalyzable="false" uncertain="false">
+                    <word id="583">arrived</word>
+                </unit>
+                <unit type="To Be Defined" id="586" unanalyzable="false" uncertain="false">
+                    <word id="585">on</word>
+                </unit>
+                <unit type="To Be Defined" id="588" unanalyzable="false" uncertain="false">
+                    <word id="587">time</word>
+                </unit>
+                <unit type="Punctuation" id="590" unanalyzable="false" uncertain="false">
+                    <word id="589">.</word>
+                </unit>
+                <unit type="To Be Defined" id="592" unanalyzable="false" uncertain="false">
+                    <word id="591">I</word>
+                </unit>
+                <unit type="To Be Defined" id="594" unanalyzable="false" uncertain="false">
+                    <word id="593">was</word>
+                </unit>
+                <unit type="To Be Defined" id="596" unanalyzable="false" uncertain="false">
+                    <word id="595">surprised</word>
+                </unit>
+                <unit type="To Be Defined" id="598" unanalyzable="false" uncertain="false">
+                    <word id="597">when</word>
+                </unit>
+                <unit type="To Be Defined" id="600" unanalyzable="false" uncertain="false">
+                    <word id="599">our</word>
+                </unit>
+                <unit type="To Be Defined" id="602" unanalyzable="false" uncertain="false">
+                    <word id="601">flight</word>
+                </unit>
+                <unit type="To Be Defined" id="604" unanalyzable="false" uncertain="false">
+                    <word id="603">arrived</word>
+                </unit>
+                <unit type="To Be Defined" id="606" unanalyzable="false" uncertain="false">
+                    <word id="605">on</word>
+                </unit>
+                <unit type="To Be Defined" id="608" unanalyzable="false" uncertain="false">
+                    <word id="607">time</word>
+                </unit>
+                <unit type="Punctuation" id="610" unanalyzable="false" uncertain="false">
+                    <word id="609">.</word>
+                </unit>
+            </unit>
+            <unit type="To Be Defined" id="611" unanalyzable="false" uncertain="false">
+                <unit type="To Be Defined" id="613" unanalyzable="false" uncertain="false">
+                    <word id="612">It</word>
+                </unit>
+                <unit type="To Be Defined" id="615" unanalyzable="false" uncertain="false">
+                    <word id="614">is</word>
+                </unit>
+                <unit type="To Be Defined" id="617" unanalyzable="false" uncertain="false">
+                    <word id="616">true</word>
+                </unit>
+                <unit type="To Be Defined" id="619" unanalyzable="false" uncertain="false">
+                    <word id="618">that</word>
+                </unit>
+                <unit type="To Be Defined" id="621" unanalyzable="false" uncertain="false">
+                    <word id="620">John</word>
+                </unit>
+                <unit type="To Be Defined" id="623" unanalyzable="false" uncertain="false">
+                    <word id="622">is</word>
+                </unit>
+                <unit type="To Be Defined" id="625" unanalyzable="false" uncertain="false">
+                    <word id="624">coming</word>
+                </unit>
+                <unit type="To Be Defined" id="627" unanalyzable="false" uncertain="false">
+                    <word id="626">home</word>
+                </unit>
+                <unit type="Punctuation" id="629" unanalyzable="false" uncertain="false">
+                    <word id="628">.</word>
+                </unit>
+                <unit type="To Be Defined" id="631" unanalyzable="false" uncertain="false">
+                    <word id="630">I</word>
+                </unit>
+                <unit type="To Be Defined" id="633" unanalyzable="false" uncertain="false">
+                    <word id="632">told</word>
+                </unit>
+                <unit type="To Be Defined" id="635" unanalyzable="false" uncertain="false">
+                    <word id="634">you</word>
+                </unit>
+                <unit type="To Be Defined" id="637" unanalyzable="false" uncertain="false">
+                    <word id="636">already</word>
+                </unit>
+                <unit type="To Be Defined" id="639" unanalyzable="false" uncertain="false">
+                    <word id="638">that</word>
+                </unit>
+                <unit type="To Be Defined" id="641" unanalyzable="false" uncertain="false">
+                    <word id="640">John</word>
+                </unit>
+                <unit type="To Be Defined" id="643" unanalyzable="false" uncertain="false">
+                    <word id="642">ca</word>
+                </unit>
+                <unit type="To Be Defined" id="645" unanalyzable="false" uncertain="false">
+                    <word id="644">n't</word>
+                </unit>
+                <unit type="To Be Defined" id="647" unanalyzable="false" uncertain="false">
+                    <word id="646">make</word>
+                </unit>
+                <unit type="To Be Defined" id="649" unanalyzable="false" uncertain="false">
+                    <word id="648">it</word>
+                </unit>
+                <unit type="Punctuation" id="651" unanalyzable="false" uncertain="false">
+                    <word id="650">.</word>
+                </unit>
+            </unit>
+        </unit>
+    </units>
+    <LRUunits>
+        <LRUunit id="655"></LRUunit>
+        <LRUunit id="653"></LRUunit>
+    </LRUunits>
+    <hiddenUnits></hiddenUnits>
+</root>
