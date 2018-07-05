@@ -5,14 +5,14 @@ from ucca.layer1 import EdgeTags as ETags, NodeTags as L1Tags
 LINKAGE = (ETags.LinkArgument, ETags.LinkRelation)
 
 
-def validate(passage):
+def validate(passage, linkage=True):
     for node in passage.layer(layer0.LAYER_ID).all:
         yield from NodeValidator(node).validate_terminal()
     heads = list(passage.layer(layer1.LAYER_ID).heads)
-    linkage = False
+    found_linkage = False
     for node in heads:
         if node.tag == L1Tags.Linkage:
-            linkage = True
+            found_linkage = True
         yield from NodeValidator(node).validate_top_level()
     stack = [heads]
     visited = set()
@@ -27,7 +27,7 @@ def validate(passage):
                 path.append(node)
                 path_set.add(node)
                 stack.append(node.children)
-                yield from NodeValidator(node).validate_non_terminal(linkage)
+                yield from NodeValidator(node).validate_non_terminal(linkage=linkage and found_linkage)
                 break
         else:
             if path:
@@ -61,7 +61,7 @@ class NodeValidator:
             yield "Top-level node (%s) with %s edge" % (self.node.ID, join(s))
 
     def validate_non_terminal(self, linkage=False):
-        if self.node.tag == L1Tags.Linkage:
+        if linkage and self.node.tag == L1Tags.Linkage:
             yield from self.validate_linkage()
         elif self.node.tag == L1Tags.Foundational:
             yield from self.validate_foundational()

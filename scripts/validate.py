@@ -8,14 +8,14 @@ from ucca.normalization import normalize
 from ucca.validation import validate
 
 
-def validate_passage(passage, normalization=False, extra=False):
+def validate_passage(passage, normalization=False, extra=False, linkage=True):
     if normalization:
         normalize(passage, extra=extra)
-    return list(validate(passage))
+    return list(validate(passage, linkage=linkage))
 
 
 def main(args):
-    errors = ((p.ID, validate_passage(p, args.normalize, args.extra))
+    errors = ((p.ID, validate_passage(p, args.normalize, args.extra, linkage=args.linkage))
               for p in get_passages_with_progress_bar(args.filenames, desc="Validating", converters={}))
     errors = dict(islice(((k, v) for k, v in errors if v), 1 if args.strict else None))
     if errors:
@@ -40,4 +40,5 @@ if __name__ == "__main__":
     argparser.add_argument("-S", "--strict", action="store_true", help="fail as soon as a violation is found")
     argparser.add_argument("-n", "--normalize", action="store_true", help="normalize before validation")
     argparser.add_argument("-e", "--extra", action="store_true", help="extra normalization rules")
+    argparser.add_argument("--no-linkage", dest="linkage", action="store_false", help="skip linkage validations")
     main(check_args(argparser, argparser.parse_args()))
