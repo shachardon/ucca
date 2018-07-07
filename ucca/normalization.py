@@ -159,9 +159,14 @@ def flatten_centers(node):
             for edge in node.incoming:
                 if edge.attrib.get("remote"):
                     copy_edge(edge, child=node.centers[0] if nested_center else parent)
-            for edge in node:
-                copy_edge(edge, parent=parent)
-            destroy(node)
+            if node.attrib.get("implicit"):
+                for edge in parent.incoming:
+                    copy_edge(edge, child=node)
+                destroy(node)
+            else:
+                for edge in node:
+                    copy_edge(edge, parent=parent)
+                destroy(node)
 
 
 def flatten_functions(node):
