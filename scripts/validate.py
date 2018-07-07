@@ -2,21 +2,29 @@ import sys
 from itertools import islice
 
 import argparse
+from multiprocessing import Pool
 
 from ucca.ioutil import get_passages_with_progress_bar
 from ucca.normalization import normalize
 from ucca.validation import validate
 
 
-def validate_passage(passage, normalization=False, extra=False, linkage=True):
-    if normalization:
-        normalize(passage, extra=extra)
-    return list(validate(passage, linkage=linkage))
+class Validator:
+    def __init__(self, normalization=False, extra=False, linkage=True):
+        self.normalization = normalization
+        self.extra = extra
+        self.linkage = linkage
+
+    def validate_passage(self, passage):
+        if self.normalization:
+            normalize(passage, extra=self.extra)
+        return passage.ID, list(validate(passage, linkage=self.linkage))
 
 
 def main(args):
-    errors = ((p.ID, validate_passage(p, args.normalize, args.extra, linkage=args.linkage))
-              for p in get_passages_with_progress_bar(args.filenames, desc="Validating", converters={}))
+    with Pool(10) as pool:
+        errors = pool.map(Validator(args.normalize, args.extra, linkage=args.linkage).validate_passage,
+                          get_passages_with_progress_bar(args.filenames, desc="Validating", converters={}))
     errors = dict(islice(((k, v) for k, v in errors if v), 1 if args.strict else None))
     if errors:
         id_len = max(map(len, errors))
