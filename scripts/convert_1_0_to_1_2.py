@@ -110,8 +110,10 @@ def extract_ground(terminal, parent, grandparent):
 
 def fix_punct(terminal, parent, grandparent):
     del grandparent
-    if parent.tag == layer1.FoundationalNode and terminal.tag == layer0.NodeTags.Punct and len(parent.children) == 1:
-        parent.remove(terminal)
+    if parent.tag == layer1.NodeTags.Foundational and terminal.tag == layer0.NodeTags.Punct and not \
+            (len(parent.terminals) + len(parent.punctuation) == len(parent.children) > 1):  # Unanalyzable
+        for edge in parent:
+            parent.remove(edge)
         parent.root.layer(layer1.LAYER_ID).add_punct(parent, terminal)
         return True
     return False
