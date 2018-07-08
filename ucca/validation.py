@@ -79,8 +79,12 @@ class NodeValidator:
                     not len(self.node.terminals) + len(self.node.punctuation) == len(self.node.children) > 1 or \
                     (self.node.tag == L1Tags.Punctuation) and not (edge.child.tag == L0Tags.Punct):
                 yield "%s node (%s) with %s child (%s)" % (self.node.tag, self.node.ID, edge.child.tag, edge.child.ID)
-        if self.node.attrib.get("implicit") and self.node.outgoing:
-            yield "Implicit node (%s) with outgoing edges (%s)" % (self.node.ID, join(self.node))
+        if self.node.attrib.get("implicit"):
+            if self.node.outgoing:
+                yield "Implicit node (%s) with outgoing edges (%s)" % (self.node.ID, join(self.node))
+        elif self.node.tag in (L1Tags.Foundational, L1Tags.Linkage, L1Tags.Punctuation) and \
+                all(e.attrib.get("remote") for e in self.node):
+            yield "Non-implicit node (%s) with no primary children" % (self.node.ID)
         for tag in (ETags.Function, ETags.Ground, ETags.ParallelScene, ETags.Linker, ETags.LinkRelation,
                     ETags.Connector, ETags.Punctuation, ETags.Terminal):
             s = self.incoming.get(tag, ())
