@@ -1160,4 +1160,11 @@ def _copy_extra(node, other, remarks=False):
 
 
 def _unanchored(n):
-    return n.attrib.get("implicit") or len(n) and all(e.attrib.get("remote") or _unanchored(e.child) for e in n)
+    unanchored_children = False
+    for e in n:
+        if not e.attrib.get("remote"):
+            if _unanchored(e.child):
+                unanchored_children = True
+            else:
+                return False
+    return n.attrib.get("implicit") or unanchored_children
