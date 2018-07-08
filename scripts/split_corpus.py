@@ -26,12 +26,12 @@ def copy(src, dest, link=False):
 def numeric(s):
     try:
         return int(re.findall("([0-9]+)", s)[-1])
-    except (ValueError, IndexError):
-        return s
+    except (ValueError, IndexError) as e:
+        raise ValueError("Cannot find numeric ID in '%s'" % s) from e
 
 
 def not_split_dir(filename):
-    return filename not in ("train", "dev", "test")
+    return filename not in ("train", "dev", "test") and not filename.startswith(".")
 
 
 def split_passages(directory, train, dev, link, quiet=False):
