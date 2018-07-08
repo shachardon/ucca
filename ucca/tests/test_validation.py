@@ -52,7 +52,7 @@ def punct_under_unanalyzable_fn():
         (crossing, True),
         (discontiguous, True),
         (l1_passage, True),
-        (empty, True),
+        (empty, False),
         (unary_punct, True),
         (binary_punct, True),
         (unary_punct_under_fn, False),
