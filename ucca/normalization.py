@@ -38,14 +38,16 @@ def destroy(node_or_edge):
         remove_unmarked_implicits(parent)
 
 
-def copy_edge(edge, parent=None, child=None, tag=None):
+def copy_edge(edge, parent=None, child=None, tag=None, attrib=None):
     if parent is None:
         parent = edge.parent
     if child is None:
         child = edge.child
     if tag is None:
         tag = edge.tag
-    parent.add(tag, child, edge_attrib=edge.attrib)
+    if attrib is None:
+        attrib = edge.attrib
+    parent.add(tag, child, edge_attrib=attrib)
 
 
 def replace_center(edge):
@@ -151,22 +153,21 @@ def flatten_centers(node):
     Whenever there are Cs inside Cs, remove the external C.
     Whenever there is a C as an only child, remove it.
     """
-    parent = fparent(node)
-    if node.tag == L1Tags.Foundational and node.ftag == ETags.Center:
-        nested_center = (len(node.centers) == len(parent.centers) == 1)  # Center inside center
-        unary_center = (len(parent.children) == 1)  # Center as only child
-        if nested_center or unary_center:
+    if node.tag == L1Tags.Foundational and len(node.centers) == 1:
+        if node.ftag == ETags.Center and len(fparent(node).centers) == 1:  # Center inside center
             for edge in node.incoming:
                 if edge.attrib.get("remote"):
-                    copy_edge(edge, child=node.centers[0] if nested_center else parent)
-            if node.attrib.get("implicit"):
-                for edge in parent.incoming:
-                    copy_edge(edge, child=node)
-                destroy(node)
-            else:
-                for edge in node:
-                    copy_edge(edge, parent=parent)
-                destroy(node)
+                    copy_edge(edge, child=node.centers[0])
+            for edge in node:
+                copy_edge(edge, parent=fparent(node))
+            node.destroy()
+        elif len(node.children) == 1:  # Center as only child
+            for edge in node.incoming:
+                attrib = edge.attrib
+                if node.outgoing[0].attrib.get("remote"):
+                    attrib["remote"] = True
+                copy_edge(edge, child=node.centers[0], attrib=attrib)
+            node.destroy()
 
 
 def flatten_functions(node):
