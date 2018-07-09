@@ -1121,7 +1121,7 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
         if other_node is None:
             heads.append(node)
             other_node = other_l1.heads[0]
-        for edge in node.outgoing:
+        for edge in node:
             child = edge.child
             if include is None or child in include or _unanchored(child):
                 if edge.attrib.get("remote"):
@@ -1139,6 +1139,8 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
                     queue.append((child, other_child))
                 id_to_other[child.ID] = other_child
                 _copy_extra(child, other_child, remarks)  # Add remotes
+            elif edge.attrib.get("remote"):  # Cross-paragraph remote edge -> create implicit child instead
+                other_l1.add_fnode(other_node, edge.tag, implicit=True)
     for edge, parent in remotes:
         other_l1.add_remote(parent, edge.tag, id_to_other[edge.child.ID])
     # Add linkages
