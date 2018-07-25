@@ -126,13 +126,21 @@ def nearest_parent(l0, *terminals):
                                                  nearest_word(l0, terminals[-1].position, 1))))
 
 
+def reattach_punct(l0, l1):
+    detach_punct(l1)
+    attach_punct(l0, l1)
+
+
 def attach_punct(l0, l1):
-    for node in l1.all:
-        if node.tag == L1Tags.Punctuation:
-            destroy(node)
     for terminal in l0.all:
         if layer0.is_punct(terminal) and not terminal.incoming:
             l1.add_punct(nearest_parent(l0, terminal), terminal)
+
+
+def detach_punct(l1):
+    for node in l1.all:
+        if node.tag == L1Tags.Punctuation:
+            destroy(node)
 
 
 def attach_terminals(l0, l1):
@@ -200,7 +208,7 @@ def normalize_node(node, l1, extra):
 def normalize(passage, extra=False):
     l0 = passage.layer(layer0.LAYER_ID)
     l1 = passage.layer(layer1.LAYER_ID)
-    attach_punct(l0, l1)
+    reattach_punct(l0, l1)
     heads = list(l1.heads)
     stack = [heads]
     visited = set()
@@ -225,6 +233,6 @@ def normalize(passage, extra=False):
             if path:
                 path_set.remove(path.pop())
             stack.pop()
-    attach_punct(l0, l1)
+    reattach_punct(l0, l1)
     if extra:
         attach_terminals(l0, l1)

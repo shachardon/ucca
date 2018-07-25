@@ -11,20 +11,20 @@ The possible other formats are:
     sdp (SemEval 2015 semantic dependency parsing shared task)
 """
 
-import sys
-from collections import defaultdict
-from itertools import repeat
-
 import json
 import os
 import pickle
 import re
+import sys
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
+from collections import defaultdict
+from itertools import repeat
 from operator import attrgetter, itemgetter
 
 from ucca import textutil, core, layer0, layer1
 from ucca.layer1 import EdgeTags
+from ucca.normalization import attach_punct
 
 try:
     from simplejson.scanner import JSONDecodeError
@@ -1048,11 +1048,12 @@ def split_passage(passage, ends, remarks=False, ids=None):
             nodes.add(terminal)
         while level:
             nodes.update(level)
-            level = set(e.parent for n in level for e in n.incoming
-                        if not e.attrib.get("remote") and e.parent not in nodes)
+            level = set(e.parent for n in level for e in n.incoming if not e.attrib.get("remote") and
+                        e.tag != layer1.EdgeTags.Punctuation and e.parent not in nodes)
 
-        layer1.Layer1(root=other, attrib=passage.layer(layer1.LAYER_ID).attrib.copy())
+        other_l1 = layer1.Layer1(root=other, attrib=passage.layer(layer1.LAYER_ID).attrib.copy())
         _copy_l1_nodes(passage, other, id_to_other, nodes, remarks=remarks)
+        attach_punct(other_l0, other_l1)
         for j, paragraph in enumerate(paragraphs, start=1):
             other_l0.doc(j)[:] = l0.doc(paragraph)
         other.frozen = passage.frozen
