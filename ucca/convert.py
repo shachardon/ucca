@@ -637,8 +637,11 @@ def from_standard(root, extra_funcs=None):
                  layer1.NodeTags.Punctuation: layer1.PunctNode}
 
     def _get_attrib(elem):
-        return {k: attribute_converters.get(k, str)(v)
-                for k, v in elem.find('attributes').items()}
+        try:
+            return {k: attribute_converters.get(k, str)(v)
+                    for k, v in elem.find('attributes').items()}
+        except AttributeError:
+            raise core.UCCAError("Element %s has no attributes" % elem.get("ID"))
 
     def _add_extra(obj, elem):
         if elem.find('extra') is not None:
