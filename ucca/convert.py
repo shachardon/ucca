@@ -11,15 +11,16 @@ The possible other formats are:
     sdp (SemEval 2015 semantic dependency parsing shared task)
 """
 
+import sys
+from collections import defaultdict
+from itertools import repeat
+
 import json
 import os
 import pickle
 import re
-import sys
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
-from collections import defaultdict
-from itertools import repeat
 from operator import attrgetter, itemgetter
 
 from ucca import textutil, core, layer0, layer1
@@ -451,15 +452,22 @@ def to_site(passage):
         linkage_elem = ET.Element(SiteCfg.Tags.Linkage, {'args': ','.join(args)})
         linker_elem.insert(0, linkage_elem)
 
+    def _fparent(node):
+        primary, remotes = [[e.parent for e in node.incoming if e.attrib.get("remote", False) is v]
+                            for v in (False, True)]
+        for parents in primary, remotes:
+            try:
+                return parents[0]
+            except IndexError:
+                pass
+        return None
+
     def _get_parent(node):
-        try:
-            ret = node.parents[0]
-            if ret.tag == layer1.NodeTags.Punctuation:
-                ret = ret.parents[0]
-            if ret in passage.layer(layer1.LAYER_ID).heads:
-                ret = None  # the parent is the fake FNodes head
-        except IndexError:
-            ret = None
+        ret = _fparent(node)
+        if ret and ret.tag == layer1.NodeTags.Punctuation:
+            ret = _fparent(ret)
+        if ret and ret in passage.layer(layer1.LAYER_ID).heads:
+            ret = None  # the parent is the fake FNodes head
         return ret
 
     para_elems = []
