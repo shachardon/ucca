@@ -16,6 +16,10 @@ CONNECTION = None
 def fromstring(text):
     text = text.replace(r"\u2019", "&apos;")
     text = text.replace(r"\u2013", "-")
+    text = text.replace(r"\u2014", "-")
+    text = text.replace(r"\u2032", "'")
+    text = text.replace(r"\u201C", '"')
+    text = text.replace(r"\u201D", '"')
     if r"\u" in text:
         raise Exception("Unescaped unicode: " + text)
     return fromstring_xml(text)
