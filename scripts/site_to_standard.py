@@ -23,7 +23,7 @@ or using filenames of a site-formatted XML file.
 def site2passage(filename):
     """Opens a file and returns its parsed Passage object"""
     with open(filename, encoding="utf-8") as f:
-        print("Opening: "+filename)
+        print("Reading '%s'..." % filename)
         return ucca.convert.from_site(ElementTree().parse(f))
 
 
@@ -44,8 +44,7 @@ def main(args):
 
 def check_illegal_combinations(args):
     if args.db and not (args.pids and args.user):
-        argparser.error("Must specify a username and a passage ID when " +
-                        "using DB file option")
+        argparser.error("Must specify a username and a passage ID when using DB file option")
     if (args.pids or args.user) and not args.db:
         argparser.error("Cannot use user and passage ID options without DB file")
     return args
