@@ -11,7 +11,7 @@ from enum import Enum
 from operator import attrgetter, itemgetter
 from tqdm import tqdm
 
-from ucca import layer0, layer1
+from ucca import layer0, layer1, ioutil
 
 MODEL_ENV_VAR = "SPACY_MODEL"  # Determines the default spaCy model to load
 DEFAULT_MODEL = {"en": "en_core_web_md", "fr": "fr_core_news_md", "de": "de_core_news_sm"}
@@ -71,7 +71,7 @@ def get_nlp(lang="en"):
             models[lang] = model = os.environ.get("_".join((MODEL_ENV_VAR, lang.upper()))) or \
                                    os.environ.get(MODEL_ENV_VAR) or DEFAULT_MODEL.get(lang, "xx")
         started = time.time()
-        with tqdm.external_write_mode():
+        with ioutil.external_write_mode():
             print("Loading spaCy model '%s'... " % model, end="", flush=True)
             try:
                 nlp[lang] = instance = spacy.load(model)

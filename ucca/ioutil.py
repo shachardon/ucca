@@ -5,6 +5,7 @@ from collections import defaultdict
 from itertools import filterfalse, chain
 
 import os
+from contextlib import contextmanager
 from glob import glob
 from tqdm import tqdm
 from xml.etree.ElementTree import ParseError
@@ -59,7 +60,7 @@ class LazyLoadedPassages:
             else:  # A file
                 attempts = self.attempts
                 while not os.path.exists(file):
-                    with tqdm.external_write_mode(file=sys.stderr):
+                    with external_write_mode(file=sys.stderr):
                         if attempts == 0:
                             print("File not found: %s" % file, file=sys.stderr)
                             return None
@@ -167,7 +168,7 @@ def write_passage(passage, output_format=None, binary=False, outdir=".", prefix=
     suffix = output_format if output_format and output_format != "ucca" else ("pickle" if binary else "xml")
     outfile = os.path.join(outdir, prefix + (basename or passage.ID) + "." + suffix)
     if verbose:
-        with tqdm.external_write_mode():
+        with external_write_mode():
             print("%s '%s'..." % ("Appending to" if append else "Writing passage", outfile))
     if output_format is None or output_format in ("ucca", "pickle", "xml"):
         passage2file(passage, outfile, binary=binary)
@@ -175,3 +176,12 @@ def write_passage(passage, output_format=None, binary=False, outdir=".", prefix=
         with open(outfile, "a" if append else "w", encoding="utf-8") as f:
             f.writelines(map("{}\n".format, (converter or to_text)(passage)))
     return outfile
+
+
+@contextmanager
+def external_write_mode(*args, **kwargs):
+    try:
+        with tqdm.external_write_mode(*args, **kwargs):
+            yield
+    except AttributeError:
+        yield

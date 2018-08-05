@@ -1,16 +1,14 @@
 from argparse import ArgumentParser
 
-from tqdm import tqdm
-
 from ucca import constructions
-from ucca.ioutil import get_passages_with_progress_bar
+from ucca.ioutil import get_passages_with_progress_bar, external_write_mode
 
 
 def main(args):
     for passage in get_passages_with_progress_bar(args.passages):
         extracted = constructions.extract_edges(passage, constructions=args.constructions, verbose=args.verbose)
         if any(extracted.values()):
-            with tqdm.external_write_mode():
+            with external_write_mode():
                 if not args.verbose:
                     print("%s:" % passage.ID)
                 for construction, edges in extracted.items():

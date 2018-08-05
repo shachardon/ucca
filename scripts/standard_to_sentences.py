@@ -4,10 +4,9 @@ import sys
 
 import argparse
 import os
-from tqdm import tqdm
 
 from ucca.convert import split2sentences, split_passage
-from ucca.ioutil import passage2file, get_passages_with_progress_bar
+from ucca.ioutil import passage2file, get_passages_with_progress_bar, external_write_mode
 from ucca.textutil import extract_terminals
 
 desc = """Parses XML files in UCCA standard format, and writes a passage per sentence."""
@@ -39,7 +38,7 @@ def main(args):
         for sentence in split(passage, order) if order else split2sentences(
                 passage, remarks=args.remarks, lang=args.lang):
             outfile = os.path.join(args.outdir, args.prefix + sentence.ID + (".pickle" if args.binary else ".xml"))
-            with tqdm.external_write_mode():
+            with external_write_mode():
                 print("Writing passage file for sentence '%s'..." % outfile, file=sys.stderr)
             passage2file(sentence, outfile, binary=args.binary)
 

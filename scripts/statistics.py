@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-
 import numpy as np
-from tqdm import tqdm
 
 from ucca import layer0, layer1
-from ucca.ioutil import get_passages_with_progress_bar
+from ucca.ioutil import get_passages_with_progress_bar, external_write_mode
 from ucca.layer1 import NodeTags
 from ucca.textutil import break2sentences
 
@@ -44,7 +42,7 @@ def main(args):
                   len([n for n in non_linkage if len([p for p in n.parents if p.ID != "1.1"]) > 1]),
                   )
         if not args.summary:
-            with tqdm.external_write_mode():
+            with external_write_mode():
                 print(",".join("%d" % f for f in fields))
         data.append(fields)
     data = np.array(data, dtype=int)

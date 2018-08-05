@@ -1,9 +1,8 @@
 import os
 from argparse import ArgumentParser
-from tqdm import tqdm
 
 from ucca import visualization, layer0
-from ucca.ioutil import get_passages_with_progress_bar
+from ucca.ioutil import get_passages_with_progress_bar, external_write_mode
 
 if __name__ == "__main__":
     argparser = ArgumentParser(description="Visualize the given passages as graphs.")
@@ -25,7 +24,7 @@ if __name__ == "__main__":
                 with open(os.path.join(args.out_dir, passage.ID + ".tikz.txt"), "w") as f:
                     print(tikz, file=f)
             else:
-                with tqdm.external_write_mode():
+                with external_write_mode():
                     print(tikz)
         else:
             import matplotlib.pyplot as plt
