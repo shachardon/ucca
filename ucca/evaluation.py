@@ -227,8 +227,9 @@ class EvaluatorResults:
         :param results: dict: Construction -> SummaryStatistics
         :param default: map of default constructions (default is primary and remote)
         """
-        self.results = OrderedDict(results)
         self.default = default or DEFAULT
+        self.results = OrderedDict(results)
+        self.results.update(((c, self[c]) for c in self.default.values()))  # Make sure there are entries for defaults
 
     def print(self, **kwargs):
         for construction, stats in self.results.items():
