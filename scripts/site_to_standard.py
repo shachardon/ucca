@@ -23,6 +23,7 @@ or using filenames of a site-formatted XML file.
 def site2passage(filename):
     """Opens a file and returns its parsed Passage object"""
     with open(filename, encoding="utf-8") as f:
+        print("Opening: "+filename)
         return ucca.convert.from_site(ElementTree().parse(f))
 
 

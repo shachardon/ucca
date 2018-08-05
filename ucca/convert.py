@@ -251,8 +251,10 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
     # Unit tag means its a regular, hierarchically built unit
     if elem.tag == SiteCfg.Tags.Unit:
         node = _get_node(elem)
+
         # Only nodes created by now are the terminals, or discontiguous units
         if node is not None:
+
             if node.tag == layer0.NodeTags.Word:
                 parent.add(EdgeTags.Terminal, node)
             elif node.tag == layer0.NodeTags.Punct:
@@ -262,6 +264,10 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
                 # discontiguous unit, whose node was already created.
                 # So, we don't need to create the node, just keep processing
                 # our subelements (as subelements of the discontiguous unit)
+
+                # Added by Omri to address cases where remote units direct at the chunks of discontiguous units
+                SiteUtil.set_node(elem, node, elem2node)
+
                 for subelem in elem:
                     tbd += _parse_site_units(subelem, node, passage,
                                              groups, elem2node)
@@ -274,6 +280,10 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
                 SiteCfg.Attr.ElemTag)]
             node = l1.add_fnode(parent, edge_tag)
             SiteUtil.set_node(work_elem, node, elem2node)
+
+            # Added by Omri to address cases where remote units direct at the chunks of discontiguous units
+            SiteUtil.set_node(elem, node, elem2node)
+
             _fill_attributes(work_elem, node)
             # For iterating the subelements, we don't use work_elem, as it may
             # out of the current XML hierarchy we are processing (discont...)
