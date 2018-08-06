@@ -1,5 +1,4 @@
 import sys
-from itertools import islice
 
 import argparse
 from multiprocessing import Pool
@@ -10,30 +9,39 @@ from ucca.validation import validate
 
 
 class Validator:
-    def __init__(self, normalization=False, extra=False, linkage=True):
+    def __init__(self, normalization=False, extra=False, linkage=True, strict=False):
         self.normalization = normalization
         self.extra = extra
         self.linkage = linkage
+        self.strict = strict
 
     def validate_passage(self, passage):
         if self.normalization:
             normalize(passage, extra=self.extra)
-        return passage.ID, list(validate(passage, linkage=self.linkage))
+        errors = list(validate(passage, linkage=self.linkage))
+        if self.strict:
+            print_errors(passage.ID, errors)
+        return passage.ID, errors
 
 
 def main(args):
+    validator = Validator(args.normalize, args.extra, linkage=args.linkage, strict=args.strict)
     with Pool(10) as pool:
-        errors = pool.map(Validator(args.normalize, args.extra, linkage=args.linkage).validate_passage,
+        errors = pool.map(validator.validate_passage,
                           get_passages_with_progress_bar(args.filenames, desc="Validating", converters={}))
-    errors = dict(islice(((k, v) for k, v in errors if v), 1 if args.strict else None))
+    errors = dict((k, v) for k, v in errors if v)
     if errors:
         id_len = max(map(len, errors))
         for passage_id, es in sorted(errors.items()):
-            for i, e in enumerate(es):
-                print("%-*s|%s" % (id_len, "" if i else passage_id, e))
+            print_errors(passage_id, es, id_len)
         sys.exit(1)
     else:
         print("No errors found.")
+
+
+def print_errors(passage_id, errors, id_len=None):
+    for i, e in enumerate(errors):
+        print("%-*s|%s" % (id_len or len(passage_id), "" if i else passage_id, e))
 
 
 def check_args(parser, args):
