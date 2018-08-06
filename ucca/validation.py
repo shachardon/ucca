@@ -112,7 +112,7 @@ class NodeValidator:
 
     def validate_foundational(self):
         if self.node.participants and not self.node.is_scene():
-            yield "Node (%s) with participants but without main relation" % self.node.ID
+            yield "Node (%s) with participants but without main relation: %s" % (self.node.ID, self.node)
         if self.node.process and self.node.state:
             yield "Node (%s) with both process (%s) and state (%s)" % (self.node.ID, self.node.process, self.node.state)
         if self.node.parallel_scenes:
