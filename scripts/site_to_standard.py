@@ -3,6 +3,7 @@
 import argparse
 import os
 import sqlite3
+from glob import glob
 from xml.etree.ElementTree import ElementTree, fromstring
 
 import ucca.convert
@@ -37,7 +38,8 @@ def db2passage(handle, pid, user):
 
 def main(args):
     os.makedirs(args.out_dir, exist_ok=True)
-    for filename, passage in ((filename, site2passage(filename)) for filename in args.filenames) if args.filenames \
+    for filename, passage in ((filename, site2passage(filename)) for pattern in args.filenames
+                              for filename in glob(pattern) or pattern) if args.filenames \
             else ((pid, db2passage(sqlite3.connect(args.db).cursor(), pid, args.user)) for pid in args.pids):
         write_passage(passage, outdir=args.out_dir, binary=args.binary)
 
