@@ -80,9 +80,39 @@ def is_punct(text):
     return all(not c.isalnum() for c in text)
 
 
+def strip_context(tokenized_context, context, start_offset, end_offset):
+    """
+    >>> strip_context(["I", "'ve", "done"], ["I", "'ve", "done"], 1, 1)
+    ["'ve"]
+    >>> strip_context(["I", "'ve,", "done"], ["I", "'ve", ",", "done"], 1, 1)
+    ["'ve", ","]
+    >>> strip_context(["'ve", "done"], ["'", "ve", "done"], 0, 1)
+    ["'", "ve"]
+    >>> strip_context(["I", "'ve,"], ["I", "'ve", ","], 1, 0)
+    ["'ve", ","]
+    """
+    start = 0
+    if start_offset:
+        start_chars = 0
+        while start_chars < len(context[0]):
+            start_chars += len(tokenized_context[start])
+            start += 1
+    end = len(tokenized_context)
+    if end_offset:
+        end_chars = 0
+        while end_chars < len(context[-1]):
+            end_chars += len(tokenized_context[end - 1])
+            end -= 1
+    return tokenized_context[start:end]
+
+
 def retokenize(i, start, end, terminals, preterminals, preterminal_parents, passage_id, tokenizer, state, cw):
-    old_tokens = [SiteUtil.unescape(t.text) for t in terminals[start:end]]
-    tokenized = [t.orth_ for t in tokenizer(" ".join(old_tokens))]
+    start_offset = 0 if start == 0 else 1
+    end_offset = 0 if end == len(terminals) else 1
+    context = [SiteUtil.unescape(t.text) for t in terminals[start - start_offset:end + end_offset]]
+    old_tokens = context[start_offset:len(context) - end_offset]
+    tokenized_context = [t.orth_ for t in tokenizer(" ".join(context))]
+    tokenized = strip_context(tokenized_context, context, start_offset, end_offset)
     if old_tokens != tokenized:
         non_punct_indices = false_indices(map(is_punct, tokenized))
         if len(non_punct_indices) == 1:  # Only one token in the sequence is not punctuation
