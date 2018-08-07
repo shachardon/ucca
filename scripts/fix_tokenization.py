@@ -80,7 +80,7 @@ def is_punct(text):
     return all(not c.isalnum() for c in text)
 
 
-def strip_context(tokenized_context, context, start_offset, end_offset):
+def strip_context(new_context, old_context, start_offset, end_offset):
     """
     >>> strip_context(["I", "'ve", "done"], ["I", "'ve", "done"], 1, 1)
     ["'ve"]
@@ -90,20 +90,33 @@ def strip_context(tokenized_context, context, start_offset, end_offset):
     ["'", "ve"]
     >>> strip_context(["I", "'ve,"], ["I", "'ve", ","], 1, 0)
     ["'ve", ","]
+    >>> strip_context(["can", "'t", "see"], ["ca", "n't", "see"], 1, 1)
+    ["'t"]
+    >>> strip_context(["I", "can", "'t"], ["I", "ca", "n't"], 1, 1)
+    ["can"]
     """
     start = 0
     if start_offset:
-        start_chars = 0
-        while start_chars < len(context[0]):
-            start_chars += len(tokenized_context[start])
+        prefix = ""
+        while old_context[0].startswith(prefix + new_context[start]):
+            prefix += new_context[start]
             start += 1
-    end = len(tokenized_context)
+        diff = len(old_context[0]) - len(prefix)
+        if diff:
+            new_context[start - 1] += new_context[start][:diff]
+            new_context[start] = new_context[start][diff:]
+    end = len(new_context)
     if end_offset:
-        end_chars = 0
-        while end_chars < len(context[-1]):
-            end_chars += len(tokenized_context[end - 1])
+        suffix = ""
+        while old_context[-1].endswith(new_context[end - 1] + suffix):
+            suffix = new_context[end - 1] + suffix
             end -= 1
-    return tokenized_context[start:end]
+        diff = len(old_context[-1]) - len(suffix)
+        if diff:
+            end -= 1
+            new_context[end - 1] += new_context[end][:-diff]
+            new_context[end] = new_context[end][-diff:]
+    return new_context[start:end]
 
 
 CLITICS = {"'m", "'ll", "'s", "'ve", "'d", "'re", "n't", "'t"}
@@ -121,24 +134,28 @@ def insert_spaces(tokens):
 def retokenize(i, start, end, terminals, preterminals, preterminal_parents, passage_id, tokenizer, state, cw):
     start_offset = 0 if start == 0 else 1
     end_offset = 0 if end == len(terminals) else 1
-    context = [SiteUtil.unescape(t.text) for t in terminals[start - start_offset:end + end_offset]]
-    old_tokens = context[start_offset:len(context) - end_offset]
-    tokenized_context = [t.orth_ for t in tokenizer("".join(insert_spaces(context)))]
-    tokenized = strip_context(tokenized_context, context, start_offset, end_offset)
-    if old_tokens != tokenized:
-        non_punct_indices = false_indices(map(is_punct, tokenized))
-        if len(non_punct_indices) == 1:  # Only one token in the sequence is not punctuation
-            non_punct_index = non_punct_indices[0]
-            new_tokens = (decode_special_chars(tokenized[:non_punct_index]) + [tokenized[non_punct_index]] +
-                          decode_special_chars(tokenized[non_punct_index + 1:]))  # Replace special charas in punct
-            index_in_preterminal_parent = preterminal_parents[i].getchildren().index(preterminals[i])
-            for j in list(range(start, i)) + list(range(i + 1, end)):  # Remove all surrounding punct
-                preterminal_parents[j].remove(preterminals[j])
-            insert_retokenized(terminals[i], preterminal_parents[i], new_tokens, index_in_preterminal_parent,
-                               non_punct_index, state)
-            cw.writerow(("Fixed", passage_id, " ".join(old_tokens), " ".join(new_tokens)))
-            return True
-        cw.writerow(("Unhandled", passage_id, " ".join(old_tokens), " ".join(tokenized)))
+    old_context = [s for t in terminals[start - start_offset:end + end_offset]
+                   for s in SiteUtil.unescape(t.text).split()]  # In case a token happens to contain a space by mistake
+    new_context = [t.orth_ for t in tokenizer("".join(insert_spaces(old_context)))]
+    if old_context == new_context:
+        return False
+    old_tokens = old_context[start_offset:len(old_context) - end_offset]
+    new_tokens = strip_context(new_context, old_context, start_offset, end_offset)
+    if not new_tokens or old_tokens == new_tokens:
+        return False
+    non_punct_indices = false_indices(map(is_punct, new_tokens))
+    if len(non_punct_indices) == 1:  # Only one token in the sequence is not punctuation
+        non_punct_index = non_punct_indices[0]
+        new_tokens = (decode_special_chars(new_tokens[:non_punct_index]) + [new_tokens[non_punct_index]] +
+                      decode_special_chars(new_tokens[non_punct_index + 1:]))  # Replace special charas in punct
+        index_in_preterminal_parent = preterminal_parents[i].getchildren().index(preterminals[i])
+        for j in list(range(start, i)) + list(range(i + 1, end)):  # Remove all surrounding punct
+            preterminal_parents[j].remove(preterminals[j])
+        insert_retokenized(terminals[i], preterminal_parents[i], new_tokens, index_in_preterminal_parent,
+                           non_punct_index, state)
+        cw.writerow(("Fixed", passage_id, " ".join(old_tokens), " ".join(new_tokens)))
+        return True
+    cw.writerow(("Unhandled", passage_id, " ".join(old_tokens), " ".join(new_tokens)))
     return False
 
 
