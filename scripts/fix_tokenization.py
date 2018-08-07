@@ -106,28 +106,44 @@ def strip_context(tokenized_context, context, start_offset, end_offset):
     return tokenized_context[start:end]
 
 
+CLITICS = {"'m", "'ll", "'s", "'ve", "'d", "'re"}
+
+
+def insert_spaces(tokens):
+    for token, next_token in zip(tokens[:-1], tokens[1:]):
+        yield token
+        if next_token not in CLITICS:
+            yield " "
+    if tokens:
+        yield tokens[-1]
+
+
 def retokenize(i, start, end, terminals, preterminals, preterminal_parents, passage_id, tokenizer, state, cw):
     start_offset = 0 if start == 0 else 1
     end_offset = 0 if end == len(terminals) else 1
     context = [SiteUtil.unescape(t.text) for t in terminals[start - start_offset:end + end_offset]]
     old_tokens = context[start_offset:len(context) - end_offset]
-    tokenized_context = [t.orth_ for t in tokenizer(" ".join(context))]
+    tokenized_context = [t.orth_ for t in tokenizer("".join(insert_spaces(context)))]
     tokenized = strip_context(tokenized_context, context, start_offset, end_offset)
     if old_tokens != tokenized:
         non_punct_indices = false_indices(map(is_punct, tokenized))
         if len(non_punct_indices) == 1:  # Only one token in the sequence is not punctuation
             non_punct_index = non_punct_indices[0]
-            new_tokens = (list(map(unidecode, tokenized[:non_punct_index])) + [tokenized[non_punct_index]] +
-                          list(map(unidecode, tokenized[non_punct_index + 1:])))  # Replace special charas in punct
+            new_tokens = (decode_special_chars(tokenized[:non_punct_index]) + [tokenized[non_punct_index]] +
+                          decode_special_chars(tokenized[non_punct_index + 1:]))  # Replace special charas in punct
             index_in_preterminal_parent = preterminal_parents[i].getchildren().index(preterminals[i])
             for j in list(range(start, i)) + list(range(i + 1, end)):  # Remove all surrounding punct
                 preterminal_parents[j].remove(preterminals[j])
             insert_retokenized(terminals[i], preterminal_parents[i], new_tokens, index_in_preterminal_parent,
                                non_punct_index, state)
-            cw.writerow(("Fixed", passage_id, old_tokens, new_tokens))
+            cw.writerow(("Fixed", passage_id, " ".join(old_tokens), " ".join(new_tokens)))
             return True
-        cw.writerow(("Unhandled", passage_id, old_tokens, tokenized))
+        cw.writerow(("Unhandled", passage_id, " ".join(old_tokens), " ".join(tokenized)))
     return False
+
+
+def decode_special_chars(tokens):  # Replace special chars with ascii variants but only if length is preserved
+    return [d if len(t) == len(d) else t for t, d in zip(tokens, (unidecode(t) for t in tokens))]
 
 
 def fix_tokenization(passage, lang, cw):
