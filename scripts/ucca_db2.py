@@ -8,6 +8,7 @@ from tqdm import tqdm
 from xml.etree.ElementTree import tostring, fromstring as fromstring_xml
 
 from ucca import convert
+from ucca.ioutil import external_write_mode
 
 UNK_LINKAGE_TYPE = 'UNK'
 CONNECTION = None
@@ -48,7 +49,7 @@ def get_xml_trees(host_name, db_name, pid):
     return xmls
 
 
-def get_by_xids(host_name, db_name, xids):
+def get_by_xids(host_name, db_name, xids, verbose=False):
     """Returns the passages that correspond to xids (which is a list of them)"""
     c = get_cursor(host_name, db_name)
     xmls = []
@@ -62,16 +63,21 @@ def get_by_xids(host_name, db_name, xids):
     return xmls
 
 
-def get_most_recent_passage_by_uid(uid, passage_id, host_name, db_name):
+def get_most_recent_passage_by_uid(uid, passage_id, host_name, db_name, verbose=False):
     c = get_cursor(host_name, db_name)
-    c.execute("SELECT xml,status FROM xmls WHERE uid=%s AND paid = %s ORDER BY ts DESC",
+    c.execute("SELECT xml,status,ts FROM xmls WHERE uid=%s AND paid = %s ORDER BY ts DESC",
               (uid, passage_id))
     raw_xml = c.fetchone()
     if raw_xml is None:
         raise Exception("The user " + uid + " did not annotate passage " + passage_id)
-    if int(raw_xml[1]) != 1:  # if not submitted
-        print("The most recent xml for uid "+uid+" and paid "+passage_id+" is not submitted.", file=sys.stderr)
-    return fromstring(raw_xml[0])
+    xml, status, ts = raw_xml
+    if int(status) != 1:  # if not submitted
+        with external_write_mode():
+            print("The most recent xml for uid "+uid+" and paid "+passage_id+" is not submitted.", file=sys.stderr)
+    if verbose:
+        with external_write_mode():
+            print("Timestamp: %s" % ts)
+    return fromstring(xml)
 
 
 def get_uid(host_name, db_name, username):

@@ -1,10 +1,11 @@
 import os
 from argparse import ArgumentParser
+from tqdm import tqdm
 from xml.etree.ElementTree import tostring
 
 from scripts.ucca_db2 import get_by_xids, get_most_recent_passage_by_uid
 from ucca import convert
-from ucca.ioutil import write_passage
+from ucca.ioutil import write_passage, external_write_mode
 
 desc = "Download passages to old UCCA annotation app"
 
@@ -19,11 +20,14 @@ def download_most_recent_passage_by_uid(uid, passage_id, **kwargs):
 
 def main(args):
     os.makedirs(args.outdir, exist_ok=True)
-    kwargs = dict(db_name=args.db_name, host_name=args.host_name)
+    kwargs = dict(db_name=args.db_name, host_name=args.host_name, verbose=args.verbose)
     with open(args.filename, encoding="utf-8") as f:
-        for passage_id, id_field in map(str.split, f):
+        t = tqdm(list(map(str.split, f)), desc="Downloading", unit=" passages")
+        for passage_id, id_field in t:
+            t.set_postfix({"passage_id": passage_id, args.method: id_field})
             if args.verbose:
-                print("Getting passage " + passage_id + " from user " + id_field)
+                with external_write_mode():
+                    print("Getting passage " + passage_id + " with " + args.method + "=" + id_field)
             if args.method == "xid":
                 xml_root = download_passage(id_field, **kwargs)
             elif args.method == "uid":
@@ -35,7 +39,8 @@ def main(args):
                 with open(site_filename, "w", encoding="utf-8") as fsite:
                     print(tostring(xml_root).decode(), file=fsite)
                 if args.verbose:
-                    print("Wrote '%s'" % site_filename)
+                    with external_write_mode():
+                        print("Wrote '%s'" % site_filename)
             write_passage(convert.from_site(xml_root), outdir=args.outdir, verbose=args.verbose)
 
 
