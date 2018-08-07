@@ -120,7 +120,7 @@ def strip_context(new_context, old_context, start_offset, end_offset):
 
 
 END_CLITICS = {"'m", "'ll", "'s", "'ve", "'d", "'re", "n't", "'t"}
-START_CLITICS = {"l'", "qu'", "n'", "d'", "s'", "m'", "c'", "t'", "jusqu'"}
+START_CLITICS = {"l'", "qu'", "n'", "d'", "s'", "m'", "c'", "t'", "jusqu'", "j'"}
 
 
 def insert_spaces(tokens):
