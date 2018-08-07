@@ -3,7 +3,7 @@ import sys
 import argparse
 from multiprocessing import Pool
 
-from ucca.ioutil import get_passages_with_progress_bar
+from ucca.ioutil import get_passages_with_progress_bar, external_write_mode
 from ucca.normalization import normalize
 from ucca.validation import validate
 
@@ -31,9 +31,10 @@ def main(args):
                           get_passages_with_progress_bar(args.filenames, desc="Validating", converters={}))
     errors = dict((k, v) for k, v in errors if v)
     if errors:
-        id_len = max(map(len, errors))
-        for passage_id, es in sorted(errors.items()):
-            print_errors(passage_id, es, id_len)
+        if not args.strict:
+            id_len = max(map(len, errors))
+            for passage_id, es in sorted(errors.items()):
+                print_errors(passage_id, es, id_len)
         sys.exit(1)
     else:
         print("No errors found.")
@@ -41,7 +42,8 @@ def main(args):
 
 def print_errors(passage_id, errors, id_len=None):
     for i, e in enumerate(errors):
-        print("%-*s|%s" % (id_len or len(passage_id), "" if i else passage_id, e))
+        with external_write_mode():
+            print("%-*s|%s" % (id_len or len(passage_id), "" if i else passage_id, e), flush=True)
 
 
 def check_args(parser, args):
