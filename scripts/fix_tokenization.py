@@ -136,7 +136,7 @@ def retokenize(i, start, end, terminals, preterminals, preterminal_parents, pass
     start_offset = 0 if start == 0 else 1
     end_offset = 0 if end == len(terminals) else 1
     old_context = [s for t in terminals[start - start_offset:end + end_offset]
-                   for s in SiteUtil.unescape(t.text).split()]  # In case a token happens to contain a space by mistake
+                   for s in SiteUtil.unescape(t.text).strip().split()]  # In case a token happens to contain a space
     new_context = [t.orth_ for t in tokenizer("".join(insert_spaces(old_context)))]
     if old_context == new_context:
         return False
