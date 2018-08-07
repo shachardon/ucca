@@ -119,13 +119,14 @@ def strip_context(new_context, old_context, start_offset, end_offset):
     return new_context[start:end]
 
 
-CLITICS = {"'m", "'ll", "'s", "'ve", "'d", "'re", "n't", "'t"}
+END_CLITICS = {"'m", "'ll", "'s", "'ve", "'d", "'re", "n't", "'t"}
+START_CLITICS = {"l'", "qu'", "n'", "d'", "s'", "m'", "c'", "t'", "jusqu'"}
 
 
 def insert_spaces(tokens):
     for token, next_token in zip(tokens[:-1], tokens[1:]):
         yield token
-        if next_token not in CLITICS:
+        if token.lower() not in START_CLITICS and next_token.lower() not in END_CLITICS:
             yield " "
     if tokens:
         yield tokens[-1]
@@ -160,7 +161,8 @@ def retokenize(i, start, end, terminals, preterminals, preterminal_parents, pass
 
 
 def decode_special_chars(tokens):  # Replace special chars with ascii variants but only if length is preserved
-    return [d if len(t) == len(d) else t for t, d in zip(tokens, (unidecode(t) for t in tokens))]
+    return [d if len(t) == len(d) or all(c == "." for c in d) else t
+            for t, d in zip(tokens, (unidecode(t) for t in tokens))]
 
 
 def fix_tokenization(passage, lang, cw):
