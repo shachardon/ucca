@@ -97,7 +97,7 @@ class NodeValidator:
         if ETags.Function in self.incoming:
             s = self.outgoing_tags.difference((ETags.Terminal, ETags.Punctuation))
             if s:
-                yield "%s node (%s) with outgoing %s edge" % (ETags.Function, self.node.ID, join(s))
+                yield "%s node (%s) with outgoing %s edge: %s" % (ETags.Function, self.node.ID, join(s), self.node)
         if ETags.Linker in self.incoming_tags and linkage and ETags.LinkRelation not in self.incoming_tags:
             yield "%s node (%s) with no incoming %s" % (ETags.Linker, self.node.ID, ETags.LinkRelation)
 
