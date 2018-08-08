@@ -194,6 +194,17 @@ def flatten_functions(node):
             destroy(node)
 
 
+def flatten_participants(node):
+    """
+    Whenever there is an A as an only child, remove it.
+    """
+    if node.tag == L1Tags.Foundational:
+        if len(node.participants) == len(node.children) == 1:
+            for edge in node.incoming:
+                copy_edge(edge, child=node.participants[0])
+            destroy(node)
+
+
 def normalize_node(node, l1, extra):
     if node.tag == L1Tags.Foundational:
         if extra:
@@ -203,6 +214,7 @@ def normalize_node(node, l1, extra):
         separate_scenes(node, l1, top_level=node in l1.heads)
         flatten_centers(node)
         flatten_functions(node)
+        flatten_participants(node)
 
 
 def normalize(passage, extra=False):
