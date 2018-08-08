@@ -26,7 +26,7 @@ def main(args):
     os.makedirs(args.out_dir, exist_ok=True)
     exceptions = []
     for pattern in args.filenames:
-        for filename in glob(pattern) or pattern:
+        for filename in glob(pattern) or [pattern]:
             print("Reading '%s'..." % filename)
             try:
                 passage = pickle_site2passage(filename)

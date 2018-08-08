@@ -20,7 +20,7 @@ def main(args):
     os.makedirs(args.out_dir, exist_ok=True)
     replacement_dict = read_dictionary_from_file(args.dict)
     for pattern in args.filenames:
-        for filename in glob(pattern) or pattern:
+        for filename in glob(pattern) or [pattern]:
             basename = os.path.basename(filename)
             with open(os.path.join(args.out_dir, basename), "w", encoding="utf-8") as outfile:
                 with open(filename, encoding="utf-8") as infile:
