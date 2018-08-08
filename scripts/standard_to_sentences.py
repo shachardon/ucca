@@ -7,6 +7,7 @@ import os
 
 from ucca.convert import split2sentences, split_passage
 from ucca.ioutil import passage2file, get_passages_with_progress_bar, external_write_mode
+from ucca.normalization import normalize
 from ucca.textutil import extract_terminals
 
 desc = """Parses XML files in UCCA standard format, and writes a passage per sentence."""
@@ -40,6 +41,8 @@ def main(args):
             outfile = os.path.join(args.outdir, args.prefix + sentence.ID + (".pickle" if args.binary else ".xml"))
             with external_write_mode():
                 print("Writing passage file for sentence '%s'..." % outfile, file=sys.stderr)
+            if args.normalize:
+                normalize(sentence)
             passage2file(sentence, outfile, binary=args.binary)
 
 
@@ -52,4 +55,6 @@ if __name__ == "__main__":
     argparser.add_argument("-l", "--lang", default="en", help="language two-letter code for sentence model")
     argparser.add_argument("-b", "--binary", action="store_true", help="write in pickle binary format (.pickle)")
     argparser.add_argument("-s", "--sentences", help="optional input file with sentence at each line to split by")
+    argparser.add_argument("-N", "--no-normalize", dest="normalize", action="store_false",
+                           help="do not normalize passages after splitting")
     main(argparser.parse_args())
