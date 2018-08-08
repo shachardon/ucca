@@ -94,6 +94,10 @@ def strip_context(new_context, old_context, start_offset, end_offset):
     ["'t"]
     >>> strip_context(["I", "can", "'t"], ["I", "ca", "n't"], 1, 1)
     ["can"]
+    >>> strip_context(["because", "somebody", "'d"], ["because", "somebody'd"], 1, 1)
+    []
+    >>> strip_context(["somebody", "'d", "always"], ["somebody'd", "always"], 1, 1)
+    []
     """
     start = 0
     if start_offset:
@@ -103,7 +107,8 @@ def strip_context(new_context, old_context, start_offset, end_offset):
             start += 1
         diff = len(old_context[0]) - len(prefix)
         if diff:
-            new_context[start - 1] += new_context[start][:diff]
+            if start > 0:
+                new_context[start - 1] += new_context[start][:diff]
             new_context[start] = new_context[start][diff:]
     end = len(new_context)
     if end_offset:
@@ -114,7 +119,8 @@ def strip_context(new_context, old_context, start_offset, end_offset):
         diff = len(old_context[-1]) - len(suffix)
         if diff:
             end -= 1
-            new_context[end - 1] += new_context[end][:-diff]
+            if end > 0:
+                new_context[end - 1] += new_context[end][:-diff]
             new_context[end] = new_context[end][-diff:]
     return new_context[start:end]
 
