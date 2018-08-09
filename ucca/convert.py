@@ -1015,25 +1015,26 @@ def passage2file(passage, filename, indent=True, binary=False):
             h.write(output)
 
 
-def split2sentences(passage, remarks=False, lang="en"):
-    return split2segments(passage, is_sentences=True, remarks=remarks, lang=lang)
+def split2sentences(passage, remarks=False, lang="en", ids=None):
+    return split2segments(passage, is_sentences=True, remarks=remarks, lang=lang, ids=ids)
 
 
-def split2paragraphs(passage, remarks=False, lang="en"):
-    return split2segments(passage, is_sentences=False, remarks=remarks, lang=lang)
+def split2paragraphs(passage, remarks=False, lang="en", ids=None):
+    return split2segments(passage, is_sentences=False, remarks=remarks, lang=lang, ids=ids)
 
 
-def split2segments(passage, is_sentences, remarks=False, lang="en"):
+def split2segments(passage, is_sentences, remarks=False, lang="en", ids=None):
     """
     Split passage to sub-passages
     :param passage: Passage object
     :param is_sentences: if True, split to sentences; otherwise, paragraphs
     :param remarks: Whether to add remarks with original node IDs
     :param lang: language to use for sentence splitting model
+    :param ids: optional iterable of ids to set passage IDs for each split
     :return: sequence of passages
     """
     ends = (textutil.break2sentences if is_sentences else textutil.break2paragraphs)(passage, lang=lang)
-    return split_passage(passage, ends, remarks=remarks)
+    return split_passage(passage, ends, remarks=remarks, ids=ids)
 
 
 def split_passage(passage, ends, remarks=False, ids=None):
