@@ -1,3 +1,5 @@
+import string
+
 from ucca import layer0, layer1
 from ucca.layer0 import NodeTags as L0Tags
 from ucca.layer1 import EdgeTags as ETags, NodeTags as L1Tags
@@ -44,6 +46,10 @@ class NodeValidator:
         self.outgoing_tags = set(self.outgoing)
 
     def validate_terminal(self):
+        if not self.node.text:
+            yield "Empty terminal text (%s)" % self.node.ID
+        if set(self.node.text).intersection(string.whitespace):
+            yield "Whitespace in terminal text (%s): '%s'" % (self.node.ID, self.node)
         if not self.incoming:
             yield "Orphan %s terminal (%s) '%s'" % (self.node.tag, self.node.ID, self.node)
         elif len(self.node.incoming) > 1:
