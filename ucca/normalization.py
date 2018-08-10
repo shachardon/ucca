@@ -197,12 +197,17 @@ def flatten_functions(node):
 def flatten_participants(node):
     """
     Whenever there is an A as an only child, remove it.
+    If there is an implicit A in a scene without a main relation, remove it.
     """
     if node.tag == L1Tags.Foundational:
         if len(node.participants) == len(node.children) == 1:
             for edge in node.incoming:
                 copy_edge(edge, child=node.participants[0])
             destroy(node)
+        elif node.participants and not node.is_scene():
+            for child in node.participants:
+                if child.attrib.get("implicit"):
+                    destroy(node)
 
 
 def normalize_node(node, l1, extra):
