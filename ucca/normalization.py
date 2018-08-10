@@ -182,7 +182,7 @@ def flatten_functions(node):
     """
     Whenever there is an F as an only child, remove it. If an F has non-terminal children, move them up.
     """
-    if node.tag == L1Tags.Foundational:
+    if node.tag == L1Tags.Foundational and node.incoming:  # Avoid creating root->terminal edge
         for child in node.functions:
             if len(child.children) > len(child.terminals):
                 for edge in child:
