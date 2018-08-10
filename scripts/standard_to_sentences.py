@@ -39,7 +39,7 @@ def main(args):
     i = 0
     for passage in get_passages_with_progress_bar(args.filenames, "Splitting"):
         for sentence in split(passage, order, enum=args.enumerate) if order else split2sentences(
-                passage, remarks=args.remarks, lang=args.lang, ids=count(i)):
+                passage, remarks=args.remarks, lang=args.lang, ids=map(str, count(i))):
             i += 1
             outfile = os.path.join(args.outdir, args.prefix + sentence.ID + (".pickle" if args.binary else ".xml"))
             with external_write_mode():
