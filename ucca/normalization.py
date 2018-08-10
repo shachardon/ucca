@@ -207,7 +207,7 @@ def flatten_participants(node):
         elif node.participants and not node.is_scene():
             for child in node.participants:
                 if child.attrib.get("implicit"):
-                    destroy(node)
+                    destroy(child)
 
 
 def normalize_node(node, l1, extra):
