@@ -222,7 +222,11 @@ def normalize_node(node, l1, extra):
             move_sub_scene_elements(node)
         separate_scenes(node, l1, top_level=node in l1.heads)
         node = flatten_centers(node)
+        if node is None:
+            return
         node = flatten_functions(node)
+        if node is None:
+            return
         flatten_participants(node)
 
 
