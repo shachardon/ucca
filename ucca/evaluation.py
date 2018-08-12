@@ -306,7 +306,7 @@ class SummaryStatistics:
         """
         return SummaryStatistics(*map(sum, [map(attrgetter(attr), stats)
                                             for attr in ("num_matches", "num_only_guessed", "num_only_ref")]),
-                                 Counter({k: sum(s.errors.get(k, 0) for s in stats)
+                                 Counter({k: sum((s.errors or {}).get(k, 0) for s in stats)
                                           for k in set.union(*[set(s.errors or ()) for s in stats])}))
 
 
