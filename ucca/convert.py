@@ -28,6 +28,7 @@ from ucca.layer1 import EdgeTags
 from ucca.normalization import attach_punct
 
 try:
+    # noinspection PyPackageRequirements
     from simplejson.scanner import JSONDecodeError
 except ImportError:
     from json.decoder import JSONDecodeError
@@ -676,8 +677,8 @@ def from_standard(root, extra_funcs=None):
             if node is None:
                 node = node_objs[tag](root=passage, ID=node_id, tag=tag, attrib=_get_attrib(node_elem))
             else:
-                for k, v in _get_attrib(node_elem).items():
-                    node.attrib[k] = v
+                for key, value in _get_attrib(node_elem).items():
+                    node.attrib[key] = value
             _add_extra(node, node_elem)
             edge_elems += [(node, x) for x in node_elem.findall('edge')]
 
@@ -1009,8 +1010,8 @@ def passage2file(passage, filename, indent=True, binary=False):
             pickle.dump(passage, h)
     else:  # xml
         root = to_standard(passage)
-        xml = ET.tostring(root).decode()
-        output = textutil.indent_xml(xml) if indent else xml
+        xml_string = ET.tostring(root).decode()
+        output = textutil.indent_xml(xml_string) if indent else xml_string
         with open(filename, "w", encoding="utf-8") as h:
             h.write(output)
 
@@ -1145,27 +1146,33 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
             heads.append(node)
             other_node = other_l1.heads[0]
         for edge in node:
-            child = edge.child
-            if include is None or child in include or _unanchored(child):
-                if edge.attrib.get("remote"):
+            is_remote = edge.attrib.get("remote", False)
+            if include is None or edge.child in include or _unanchored(edge.child):
+                if is_remote:
                     remotes.append((edge, other_node))
                     continue
-                if child.layer.ID == layer0.LAYER_ID:
-                    other_node.add(edge.tag, id_to_other[child.ID])
+                if edge.child.layer.ID == layer0.LAYER_ID:
+                    other_node.add(edge.tag, id_to_other[edge.child.ID])
                     continue
-                if child.tag == layer1.NodeTags.Punctuation:
-                    grandchild = child.children[0]
+                if edge.child.tag == layer1.NodeTags.Punctuation:
+                    grandchild = edge.child.children[0]
                     other_child = other_l1.add_punct(other_node, id_to_other[grandchild.ID])
                     other_child.incoming[0].tag = edge.tag
                 else:
-                    other_child = other_l1.add_fnode(other_node, edge.tag, implicit=child.attrib.get("implicit"))
-                    queue.append((child, other_child))
-                id_to_other[child.ID] = other_child
-                _copy_extra(child, other_child, remarks)  # Add remotes
-            elif edge.attrib.get("remote"):  # Cross-paragraph remote edge -> create implicit child instead
+                    other_child = other_l1.add_fnode(other_node, edge.tag, implicit=edge.child.attrib.get("implicit"))
+                    queue.append((edge.child, other_child))
+                id_to_other[edge.child.ID] = other_child
+                _copy_extra(edge.child, other_child, remarks)  # Add remotes
+            elif is_remote:  # Cross-paragraph remote edge -> create implicit child instead
                 other_l1.add_fnode(other_node, edge.tag, implicit=True)
     for edge, parent in remotes:
-        other_l1.add_remote(parent, edge.tag, id_to_other[edge.child.ID])
+        other_child = id_to_other.get(edge.child.ID)
+        if other_child is None:  # Promote remote edge to primary if the original primary parent is gone due to split
+            id_to_other[edge.child.ID] = other_child = \
+                other_l1.add_fnode(parent, edge.tag, implicit=edge.child.attrib.get("implicit"))
+            _copy_extra(edge.child, other_child, remarks)
+        else:
+            other_l1.add_remote(parent, edge.tag, other_child)
     # Add linkages
     for linkage in linkages:
         try:
