@@ -174,7 +174,7 @@ def _from_site_terminals(elem, passage, elem2node):
     """Extract the Terminals from the site XML format.
 
     Some of the terminals metadata (remarks, type) is saved in a wrapper unit
-    which excapsulates each terminal, so we use both for creating our
+    which encapsulates each terminal, so we use both for creating our
     :class:layer0.Terminal objects.
 
     :param elem: root element of the XML hierarchy
@@ -206,12 +206,12 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
     """Parses the given element in the site annotation.
 
     The parser works recursively by determining how to parse the current XML
-    element, then adding it with a core.Edge onject to the parent given.
+    element, then adding it with a core.Edge object to the parent given.
     After creating (or retrieving) the current node, which corresponds to the
-    XML element given, we iterate its subelements and parse them recuresively.
+    XML element given, we iterate its subelements and parse them recursively.
 
     :param elem: the XML element to parse
-    :param parent: layer1.FouncdationalNode parent of the current XML element
+    :param parent: layer1.FoundationalNode parent of the current XML element
     :param passage: the core.Passage we are converting to
     :param groups: the main XML element of the discontiguous units (unitGroups)
     :param elem2node: mapping between site IDs and Nodes, updated here
@@ -232,7 +232,7 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
         return SiteUtil.get_node(node_elem, elem2node) if gid is None else elem2node.get(gid)
 
     def _get_work_elem(node_elem):
-        """Given XML element, return either itself or its discontiguos unit."""
+        """Given XML element, return either itself or its discontiguous unit."""
         gid = node_elem.get(SiteCfg.Attr.GroupID)
         return (node_elem if gid is None
                 else [group_elem for group_elem in groups
