@@ -26,8 +26,11 @@ def main(args):
                 with open(filename, encoding="utf-8") as infile:
                     xml_string = infile.read()
                 for k, v in replacement_dict.items():
-                    xml_string = xml_string.replace("text=\"" + k + "\"", "text=\"" + v + "\"")
-                print(xml_string, file=outfile)
+                    if args.whole_word:
+                        xml_string = xml_string.replace("text=\"" + k + "\"", "text=\"" + v + "\"")
+                    else:
+                        xml_string = xml_string.replace(k, v)
+                print(xml_string, file=outfile, end="")
     print("Done")
 
 
@@ -38,4 +41,5 @@ if __name__ == "__main__":
     argparser.add_argument("-d", "--dict",
                            help="filename to read the dictionary from. the file should have one line per entry, in the"
                                 " format of <original text> <replaced text>")
+    argparser.add_argument("-w", "--whole-word", action="store_true", help="replace whole word")
     main(argparser.parse_args())
