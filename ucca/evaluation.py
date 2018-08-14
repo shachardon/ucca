@@ -275,7 +275,7 @@ class EvaluatorResults:
         return SummaryStatistics.aggregate([self[c] for c in self.default.values()])
 
     def __bool__(self):
-        return self.results and any(self.results.values())
+        return bool(self.results and any(self.results.values()))
 
     def __getitem__(self, construction):
         return self.results.get(construction, SummaryStatistics(0, 0, 0, Counter()))
@@ -310,7 +310,7 @@ class SummaryStatistics:
                                           for k in set.union(*[set(s.errors or ()) for s in stats])}))
 
     def __bool__(self):
-        return self.num_matches or self.num_only_guessed or self.num_only_ref or self.errors
+        return bool(self.num_matches or self.num_only_guessed or self.num_only_ref or self.errors)
 
 
 def evaluate(guessed, ref, converter=None, verbose=False, constructions=DEFAULT,
