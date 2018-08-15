@@ -32,52 +32,53 @@ def fromstring(text):
 #######################################################################################
 def get_xmls_by_username(host_name, db_name, username):
     c = get_cursor(host_name, db_name)
-    xmls = []
     uid = get_uid(host_name, db_name, username)
     c.execute("SELECT xml FROM xmls WHERE uid=%s AND ts IN (SELECT MAX(ts) from xmls GROUP BY paid)", (uid,))
-    for raw_xml in c.fetchall():
-        yield fromstring(raw_xml[0])
+    for queryset in c.fetchall():
+        yield fromstring(queryset[0])
 
 
 def get_xml_trees(host_name, db_name, pid):
     c = get_cursor(host_name, db_name)
     xmls = []
     c.execute("SELECT xml FROM xmls WHERE paid=%s ORDER BY ts DESC", (pid,))
-    raw_xml = c.fetchone()
-    if raw_xml is not None:
-        xmls.append(fromstring(raw_xml[0]))
+    queryset = c.fetchone()
+    if queryset is not None:
+        xmls.append(fromstring(queryset[0]))
     return xmls
 
 
-def get_by_xids(host_name, db_name, xids, verbose=False):
+def get_by_xids(host_name, db_name, xids, **kwargs):
     """Returns the passages that correspond to xids (which is a list of them)"""
     c = get_cursor(host_name, db_name)
     xmls = []
     for xid in xids:
         c.execute("SELECT xml FROM xmls WHERE id=%s", (int(xid),))
-        raw_xml = c.fetchone()
-        if raw_xml is None:
+        queryset = c.fetchone()
+        if queryset is None:
             raise Exception("The xid " + xid + " does not exist")
         else:
-            xmls.append(fromstring(raw_xml[0]))
+            xmls.append(fromstring(queryset[0]))
     return xmls
 
 
-def get_most_recent_passage_by_uid(uid, passage_id, host_name, db_name, verbose=False):
+def get_most_recent_passage_by_uid(uid, passage_id, host_name, db_name, verbose=False, write_xids=None,**kwargs):
     c = get_cursor(host_name, db_name)
-    c.execute("SELECT xml,status,ts FROM xmls WHERE uid=%s AND paid = %s ORDER BY ts DESC",
-              (uid, passage_id))
-    raw_xml = c.fetchone()
-    if raw_xml is None:
+    c.execute("SELECT xml,status,ts,id FROM xmls WHERE uid=%s AND paid = %s ORDER BY ts DESC", (uid, passage_id))
+    queryset = c.fetchone()
+    if queryset is None:
         raise Exception("The user " + uid + " did not annotate passage " + passage_id)
-    xml, status, ts = raw_xml
+    raw_xml, status, ts, xid = queryset
     if int(status) != 1:  # if not submitted
         with external_write_mode():
             print("The most recent xml for uid "+uid+" and paid "+passage_id+" is not submitted.", file=sys.stderr)
     if verbose:
         with external_write_mode():
-            print("Timestamp: %s" % ts)
-    return fromstring(xml)
+            print("Timestamp: %s, xid: %d" % (ts, xid))
+    if write_xids:
+        with open(write_xids, "a") as f:
+            print(xid, file=f)
+    return fromstring(raw_xml)
 
 
 def get_uid(host_name, db_name, username):
@@ -107,9 +108,9 @@ def write_to_db(host_name, db_name, xml, new_pid, new_prid, username, status=1):
     c.execute("INSERT INTO xmls (reviewOf, xml, paid, prid, uid, comment, status, ts) "
               "VALUES (-1, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
               (xml, new_pid, new_prid, cur_uid, '', status, now))
-    output = c.fetchone()
+    queryset = c.fetchone()
     con.commit()
-    return None if output is None else output[0]
+    return None if queryset is None else queryset[0]
 
 
 def get_most_recent_xids(host_name, db_name, username):
@@ -131,10 +132,10 @@ def get_passage(host_name, db_name, pid):
     """Returns the passages with the given id numbers"""
     c = get_cursor(host_name, db_name)
     c.execute("SELECT passage FROM passages WHERE id=%s", (pid,))
-    output = c.fetchone()
-    if output is None:
+    queryset = c.fetchone()
+    if queryset is None:
         raise Exception("No passage with ID=" + pid)
-    return output[0]
+    return queryset[0]
 
 
 def linkage_type(u):
