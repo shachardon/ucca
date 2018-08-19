@@ -53,6 +53,7 @@ def copy_edge(edge, parent=None, child=None, tag=None, attrib=None):
         #     "->".join(n.ID for n in child.iter() if parent in n.iter()), child.ID, parent))
         return False
     parent.add(tag, child, edge_attrib=attrib)
+    return True
 
 
 def replace_center(edge):
