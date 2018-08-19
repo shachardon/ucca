@@ -48,6 +48,9 @@ def copy_edge(edge, parent=None, child=None, tag=None, attrib=None):
         tag = edge.tag
     if attrib is None:
         attrib = edge.attrib
+    if parent in child.iter():
+        raise ValueError("Created cycle (%s->%s) when trying to normalize '%s'" % (
+            "->".join(n.ID for n in child.iter() if parent in n.iter()), child.ID, parent))
     parent.add(tag, child, edge_attrib=attrib)
 
 
