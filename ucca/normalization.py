@@ -49,8 +49,9 @@ def copy_edge(edge, parent=None, child=None, tag=None, attrib=None):
     if attrib is None:
         attrib = edge.attrib
     if parent in child.iter():
-        raise ValueError("Created cycle (%s->%s) when trying to normalize '%s'" % (
-            "->".join(n.ID for n in child.iter() if parent in n.iter()), child.ID, parent))
+        # raise ValueError("Created cycle (%s->%s) when trying to normalize '%s'" % (
+        #     "->".join(n.ID for n in child.iter() if parent in n.iter()), child.ID, parent))
+        return False
     parent.add(tag, child, edge_attrib=attrib)
 
 
@@ -79,8 +80,8 @@ def move_elements(node, tags, parent_tags, forward=True):
                 continue
             if parent_edge.tag in ((parent_tags,) if isinstance(parent_tags, str) else parent_tags):
                 parent = parent_edge.child
-                copy_edge(edge, parent=parent)
-                remove(node, edge)
+                if copy_edge(edge, parent=parent):
+                    remove(node, edge)
 
 
 def move_scene_elements(node):
@@ -99,8 +100,8 @@ def separate_scenes(node, l1, top_level=False):
         scene = l1.add_fnode(node, ETags.ParallelScene)
         for edge in edges:
             if edge.tag not in (ETags.ParallelScene, ETags.Punctuation, ETags.Linker, ETags.Ground):
-                copy_edge(edge, parent=scene)
-                remove(node, edge)
+                if copy_edge(edge, parent=scene):
+                    remove(node, edge)
 
 
 def lowest_common_ancestor(*nodes):
@@ -153,8 +154,8 @@ def attach_terminals(l0, l1):
             for edge in terminal.incoming:
                 if any(e.tag != ETags.Terminal for e in edge.parent):
                     node = l1.add_fnode(edge.parent, layer1.EdgeTags.Center)
-                    copy_edge(edge, parent=node)
-                    remove(edge.parent, edge)
+                    if copy_edge(edge, parent=node):
+                        remove(edge.parent, edge)
         else:
             node = l1.add_fnode(nearest_parent(l0, terminal), layer1.EdgeTags.Function)
             node.add(layer1.EdgeTags.Terminal, terminal)
