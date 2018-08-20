@@ -1,3 +1,5 @@
+import string
+
 from ucca import layer0, layer1
 from ucca.layer0 import NodeTags as L0Tags
 from ucca.layer1 import EdgeTags as ETags, NodeTags as L1Tags
@@ -44,6 +46,10 @@ class NodeValidator:
         self.outgoing_tags = set(self.outgoing)
 
     def validate_terminal(self):
+        if not self.node.text:
+            yield "Empty terminal text (%s)" % self.node.ID
+        if set(self.node.text).intersection(string.whitespace):
+            yield "Whitespace in terminal text (%s): '%s'" % (self.node.ID, self.node)
         if not self.incoming:
             yield "Orphan %s terminal (%s) '%s'" % (self.node.tag, self.node.ID, self.node)
         elif len(self.node.incoming) > 1:
@@ -85,7 +91,7 @@ class NodeValidator:
         elif self.node.tag in (L1Tags.Foundational, L1Tags.Linkage, L1Tags.Punctuation) and \
                 all(e.attrib.get("remote") for e in self.node):
             yield "Non-implicit node (%s) with no primary children" % (self.node.ID)
-        for tag in (ETags.Function, ETags.Ground, ETags.ParallelScene, ETags.Linker, ETags.LinkRelation,
+        for tag in (ETags.Function, ETags.ParallelScene, ETags.Linker, ETags.LinkRelation,
                     ETags.Connector, ETags.Punctuation, ETags.Terminal):
             s = self.incoming.get(tag, ())
             if len(s) > 1:

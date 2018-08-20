@@ -36,6 +36,7 @@ def destroy(node_or_edge):
         parent.remove(node_or_edge)
     if parent is not None:
         remove_unmarked_implicits(parent)
+    return parent
 
 
 def copy_edge(edge, parent=None, child=None, tag=None, attrib=None):
@@ -47,7 +48,12 @@ def copy_edge(edge, parent=None, child=None, tag=None, attrib=None):
         tag = edge.tag
     if attrib is None:
         attrib = edge.attrib
+    if parent in child.iter():
+        # raise ValueError("Created cycle (%s->%s) when trying to normalize '%s'" % (
+        #     "->".join(n.ID for n in child.iter() if parent in n.iter()), child.ID, parent))
+        return False
     parent.add(tag, child, edge_attrib=attrib)
+    return True
 
 
 def replace_center(edge):
@@ -75,8 +81,8 @@ def move_elements(node, tags, parent_tags, forward=True):
                 continue
             if parent_edge.tag in ((parent_tags,) if isinstance(parent_tags, str) else parent_tags):
                 parent = parent_edge.child
-                copy_edge(edge, parent=parent)
-                remove(node, edge)
+                if copy_edge(edge, parent=parent):
+                    remove(node, edge)
 
 
 def move_scene_elements(node):
@@ -95,8 +101,8 @@ def separate_scenes(node, l1, top_level=False):
         scene = l1.add_fnode(node, ETags.ParallelScene)
         for edge in edges:
             if edge.tag not in (ETags.ParallelScene, ETags.Punctuation, ETags.Linker, ETags.Ground):
-                copy_edge(edge, parent=scene)
-                remove(node, edge)
+                if copy_edge(edge, parent=scene):
+                    remove(node, edge)
 
 
 def lowest_common_ancestor(*nodes):
@@ -149,8 +155,8 @@ def attach_terminals(l0, l1):
             for edge in terminal.incoming:
                 if any(e.tag != ETags.Terminal for e in edge.parent):
                     node = l1.add_fnode(edge.parent, layer1.EdgeTags.Center)
-                    copy_edge(edge, parent=node)
-                    remove(edge.parent, edge)
+                    if copy_edge(edge, parent=node):
+                        remove(edge.parent, edge)
         else:
             node = l1.add_fnode(nearest_parent(l0, terminal), layer1.EdgeTags.Function)
             node.add(layer1.EdgeTags.Terminal, terminal)
@@ -168,21 +174,22 @@ def flatten_centers(node):
                     copy_edge(edge, child=node.centers[0])
             for edge in node:
                 copy_edge(edge, parent=fparent(node))
-            node.destroy()
+            return destroy(node)
         elif len(node.children) == 1:  # Center as only child
             for edge in node.incoming:
                 attrib = edge.attrib
                 if node.outgoing[0].attrib.get("remote"):
                     attrib["remote"] = True
                 copy_edge(edge, child=node.centers[0], attrib=attrib)
-            node.destroy()
+            return destroy(node)
+    return node
 
 
 def flatten_functions(node):
     """
     Whenever there is an F as an only child, remove it. If an F has non-terminal children, move them up.
     """
-    if node.tag == L1Tags.Foundational:
+    if node.tag == L1Tags.Foundational and node.incoming:  # Avoid creating root->terminal edge
         for child in node.functions:
             if len(child.children) > len(child.terminals):
                 for edge in child:
@@ -191,7 +198,25 @@ def flatten_functions(node):
         if len(node.functions) == len(node.children) == 1:
             for edge in node.incoming:
                 copy_edge(edge, child=node.functions[0])
-            destroy(node)
+            return destroy(node)
+    return node
+
+
+def flatten_participants(node):
+    """
+    Whenever there is an A as an only child, remove it.
+    If there is an implicit A in a scene without a main relation, remove it.
+    """
+    if node.tag == L1Tags.Foundational:
+        if len(node.participants) == len(node.children) == 1:
+            for edge in node.incoming:
+                copy_edge(edge, child=node.participants[0])
+            return destroy(node)
+        elif node.participants and not node.is_scene():
+            for child in node.participants:
+                if child.attrib.get("implicit"):
+                    destroy(child)
+    return node
 
 
 def normalize_node(node, l1, extra):
@@ -201,8 +226,13 @@ def normalize_node(node, l1, extra):
             move_scene_elements(node)
             move_sub_scene_elements(node)
         separate_scenes(node, l1, top_level=node in l1.heads)
-        flatten_centers(node)
-        flatten_functions(node)
+        node = flatten_centers(node)
+        if node is None:
+            return
+        node = flatten_functions(node)
+        if node is None:
+            return
+        flatten_participants(node)
 
 
 def normalize(passage, extra=False):

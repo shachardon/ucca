@@ -28,6 +28,7 @@ from ucca.layer1 import EdgeTags
 from ucca.normalization import attach_punct
 
 try:
+    # noinspection PyPackageRequirements
     from simplejson.scanner import JSONDecodeError
 except ImportError:
     from json.decoder import JSONDecodeError
@@ -173,7 +174,7 @@ def _from_site_terminals(elem, passage, elem2node):
     """Extract the Terminals from the site XML format.
 
     Some of the terminals metadata (remarks, type) is saved in a wrapper unit
-    which excapsulates each terminal, so we use both for creating our
+    which encapsulates each terminal, so we use both for creating our
     :class:layer0.Terminal objects.
 
     :param elem: root element of the XML hierarchy
@@ -205,12 +206,12 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
     """Parses the given element in the site annotation.
 
     The parser works recursively by determining how to parse the current XML
-    element, then adding it with a core.Edge onject to the parent given.
+    element, then adding it with a core.Edge object to the parent given.
     After creating (or retrieving) the current node, which corresponds to the
-    XML element given, we iterate its subelements and parse them recuresively.
+    XML element given, we iterate its subelements and parse them recursively.
 
     :param elem: the XML element to parse
-    :param parent: layer1.FouncdationalNode parent of the current XML element
+    :param parent: layer1.FoundationalNode parent of the current XML element
     :param passage: the core.Passage we are converting to
     :param groups: the main XML element of the discontiguous units (unitGroups)
     :param elem2node: mapping between site IDs and Nodes, updated here
@@ -231,7 +232,7 @@ def _parse_site_units(elem, parent, passage, groups, elem2node):
         return SiteUtil.get_node(node_elem, elem2node) if gid is None else elem2node.get(gid)
 
     def _get_work_elem(node_elem):
-        """Given XML element, return either itself or its discontiguos unit."""
+        """Given XML element, return either itself or its discontiguous unit."""
         gid = node_elem.get(SiteCfg.Attr.GroupID)
         return (node_elem if gid is None
                 else [group_elem for group_elem in groups
@@ -676,8 +677,8 @@ def from_standard(root, extra_funcs=None):
             if node is None:
                 node = node_objs[tag](root=passage, ID=node_id, tag=tag, attrib=_get_attrib(node_elem))
             else:
-                for k, v in _get_attrib(node_elem).items():
-                    node.attrib[k] = v
+                for key, value in _get_attrib(node_elem).items():
+                    node.attrib[key] = value
             _add_extra(node, node_elem)
             edge_elems += [(node, x) for x in node_elem.findall('edge')]
 
@@ -1009,31 +1010,32 @@ def passage2file(passage, filename, indent=True, binary=False):
             pickle.dump(passage, h)
     else:  # xml
         root = to_standard(passage)
-        xml = ET.tostring(root).decode()
-        output = textutil.indent_xml(xml) if indent else xml
+        xml_string = ET.tostring(root).decode()
+        output = textutil.indent_xml(xml_string) if indent else xml_string
         with open(filename, "w", encoding="utf-8") as h:
             h.write(output)
 
 
-def split2sentences(passage, remarks=False, lang="en"):
-    return split2segments(passage, is_sentences=True, remarks=remarks, lang=lang)
+def split2sentences(passage, remarks=False, lang="en", ids=None):
+    return split2segments(passage, is_sentences=True, remarks=remarks, lang=lang, ids=ids)
 
 
-def split2paragraphs(passage, remarks=False, lang="en"):
-    return split2segments(passage, is_sentences=False, remarks=remarks, lang=lang)
+def split2paragraphs(passage, remarks=False, lang="en", ids=None):
+    return split2segments(passage, is_sentences=False, remarks=remarks, lang=lang, ids=ids)
 
 
-def split2segments(passage, is_sentences, remarks=False, lang="en"):
+def split2segments(passage, is_sentences, remarks=False, lang="en", ids=None):
     """
     Split passage to sub-passages
     :param passage: Passage object
     :param is_sentences: if True, split to sentences; otherwise, paragraphs
     :param remarks: Whether to add remarks with original node IDs
     :param lang: language to use for sentence splitting model
+    :param ids: optional iterable of ids to set passage IDs for each split
     :return: sequence of passages
     """
     ends = (textutil.break2sentences if is_sentences else textutil.break2paragraphs)(passage, lang=lang)
-    return split_passage(passage, ends, remarks=remarks)
+    return split_passage(passage, ends, remarks=remarks, ids=ids)
 
 
 def split_passage(passage, ends, remarks=False, ids=None):
@@ -1144,27 +1146,33 @@ def _copy_l1_nodes(passage, other, id_to_other, include=None, remarks=False):
             heads.append(node)
             other_node = other_l1.heads[0]
         for edge in node:
-            child = edge.child
-            if include is None or child in include or _unanchored(child):
-                if edge.attrib.get("remote"):
+            is_remote = edge.attrib.get("remote", False)
+            if include is None or edge.child in include or _unanchored(edge.child):
+                if is_remote:
                     remotes.append((edge, other_node))
                     continue
-                if child.layer.ID == layer0.LAYER_ID:
-                    other_node.add(edge.tag, id_to_other[child.ID])
+                if edge.child.layer.ID == layer0.LAYER_ID:
+                    other_node.add(edge.tag, id_to_other[edge.child.ID])
                     continue
-                if child.tag == layer1.NodeTags.Punctuation:
-                    grandchild = child.children[0]
+                if edge.child.tag == layer1.NodeTags.Punctuation:
+                    grandchild = edge.child.children[0]
                     other_child = other_l1.add_punct(other_node, id_to_other[grandchild.ID])
                     other_child.incoming[0].tag = edge.tag
                 else:
-                    other_child = other_l1.add_fnode(other_node, edge.tag, implicit=child.attrib.get("implicit"))
-                    queue.append((child, other_child))
-                id_to_other[child.ID] = other_child
-                _copy_extra(child, other_child, remarks)  # Add remotes
-            elif edge.attrib.get("remote"):  # Cross-paragraph remote edge -> create implicit child instead
+                    other_child = other_l1.add_fnode(other_node, edge.tag, implicit=edge.child.attrib.get("implicit"))
+                    queue.append((edge.child, other_child))
+                id_to_other[edge.child.ID] = other_child
+                _copy_extra(edge.child, other_child, remarks)  # Add remotes
+            elif is_remote:  # Cross-paragraph remote edge -> create implicit child instead
                 other_l1.add_fnode(other_node, edge.tag, implicit=True)
     for edge, parent in remotes:
-        other_l1.add_remote(parent, edge.tag, id_to_other[edge.child.ID])
+        other_child = id_to_other.get(edge.child.ID)
+        if other_child is None:  # Promote remote edge to primary if the original primary parent is gone due to split
+            id_to_other[edge.child.ID] = other_child = \
+                other_l1.add_fnode(parent, edge.tag, implicit=edge.child.attrib.get("implicit"))
+            _copy_extra(edge.child, other_child, remarks)
+        else:
+            other_l1.add_remote(parent, edge.tag, other_child)
     # Add linkages
     for linkage in linkages:
         try:

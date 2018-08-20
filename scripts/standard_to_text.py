@@ -32,7 +32,7 @@ def main(args):
                 write_text(passage, f, lang=args.lang)
     else:  # one file per passage
         for pattern in args.filenames:
-            for filename in tqdm(glob(pattern) or pattern, desc="Converting", unit=" passages"):
+            for filename in tqdm(glob(pattern) or [pattern], desc="Converting", unit=" passages"):
                 passage = file2passage(filename)
                 basename = os.path.splitext(os.path.basename(filename))[0]
                 with open(os.path.join(args.outdir, basename + ".txt"), "w", encoding="utf-8") as f:
