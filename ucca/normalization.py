@@ -109,7 +109,7 @@ def lowest_common_ancestor(*nodes):
     parents = [nodes[0]] if nodes else []
     while parents:
         for parent in parents:
-            if parent.tag == L1Tags.Foundational and not parent.terminals \
+            if parent.tag == L1Tags.Foundational and (not parent.terminals or nodes[1:]) \
                     and all(n in parent.iter() for n in nodes[1:]):
                 return parent
         parents = [p for n in parents for p in n.parents]
