@@ -149,15 +149,19 @@ def detach_punct(l1):
             destroy(node)
 
 
+def reattach_terminals(l0, l1):
+    attach_terminals(l0, l1)
+    for terminal in l0.all:
+        for edge in terminal.incoming:
+            if any(e.tag != ETags.Terminal for e in edge.parent):
+                node = l1.add_fnode(edge.parent, layer1.EdgeTags.Center)
+                if copy_edge(edge, parent=node):
+                    remove(edge.parent, edge)
+
+
 def attach_terminals(l0, l1):
     for terminal in l0.all:
-        if terminal.incoming:
-            for edge in terminal.incoming:
-                if any(e.tag != ETags.Terminal for e in edge.parent):
-                    node = l1.add_fnode(edge.parent, layer1.EdgeTags.Center)
-                    if copy_edge(edge, parent=node):
-                        remove(edge.parent, edge)
-        else:
+        if not terminal.incoming:
             node = l1.add_fnode(nearest_parent(l0, terminal), layer1.EdgeTags.Function)
             node.add(layer1.EdgeTags.Terminal, terminal)
 
@@ -265,4 +269,4 @@ def normalize(passage, extra=False):
             stack.pop()
     reattach_punct(l0, l1)
     if extra:
-        attach_terminals(l0, l1)
+        reattach_terminals(l0, l1)
