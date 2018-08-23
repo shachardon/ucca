@@ -211,6 +211,50 @@ def unanalyzable_punct():
     return p
 
 
+def punct_inside_unanalyzable():
+    p, l1, terms = create_passage(5, 4)
+    ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
+    a2 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    attach_terminals(terms, a1, p1, a2)
+    a2.add(layer1.EdgeTags.Terminal, terms[4])
+    l1.add_punct(a2, terms[3])
+    return p
+
+
+def unattached_punct_inside_unanalyzable():
+    p, l1, terms = create_passage(5, 4)
+    ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
+    a2 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    attach_terminals(terms, a1, p1, a2)
+    a2.add(layer1.EdgeTags.Terminal, terms[4])
+    return p
+
+
+def punct_outside_unanalyzable():
+    p, l1, terms = create_passage(5, 5)
+    ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
+    a2 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    attach_terminals(terms, a1, p1, a2, a2)
+    l1.add_punct(ps1, terms[4])
+    return p
+
+
+def unattached_punct_outside_unanalyzable():
+    p, l1, terms = create_passage(5, 5)
+    ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
+    a1 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    p1 = l1.add_fnode(ps1, layer1.EdgeTags.Process)
+    a2 = l1.add_fnode(ps1, layer1.EdgeTags.Participant)
+    attach_terminals(terms, a1, p1, a2, a2)
+    return p
+
+
 def unattached_terms():
     p, l1, terms = create_passage()
     ps1 = l1.add_fnode(None, layer1.EdgeTags.ParallelScene)
@@ -254,6 +298,10 @@ def normalize_and_compare(unnormalized, normalized, extra=False):
         (cycle, top_scene),
         (unanalyzable, unanalyzable),
         (unanalyzable_punct, unanalyzable_punct),
+        (punct_inside_unanalyzable, punct_inside_unanalyzable),
+        (unattached_punct_inside_unanalyzable, punct_inside_unanalyzable),
+        (punct_outside_unanalyzable, punct_outside_unanalyzable),
+        (unattached_punct_outside_unanalyzable, punct_outside_unanalyzable),
 ))
 def test_normalize(unnormalized, normalized):
     normalize_and_compare(unnormalized, normalized)
