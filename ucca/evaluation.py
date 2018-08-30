@@ -210,7 +210,7 @@ class Scores:
         return ["%.3f" % float(getattr(x, y)) for x in e.results.values() for y in ("p", "r", "f1")]
 
     def titles(self, eval_type=LABELED):
-        return self.field_titles(self[eval_type].results.keys())
+        return self.field_titles(self[eval_type].results.keys(), eval_type=eval_type)
 
     @staticmethod
     def field_titles(constructions=DEFAULT, eval_type=LABELED):
