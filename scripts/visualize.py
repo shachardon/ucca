@@ -10,6 +10,7 @@ if __name__ == "__main__":
     argparser.add_argument("-t", "--tikz", action="store_true", help="print tikz code rather than showing plots")
     argparser.add_argument("-o", "--out-dir", help="directory to save figures in (otherwise displayed immediately)")
     argparser.add_argument("-i", "--node-ids", action="store_true", help="print tikz code rather than showing plots")
+    argparser.add_argument("-f", "--format", choices=("png", "svg"), default="png", help="image format")
     args = argparser.parse_args()
 
     if args.out_dir:
@@ -32,7 +33,7 @@ if __name__ == "__main__":
             plt.figure(figsize=(width, width * 10/19))
             visualization.draw(passage, node_ids=args.node_ids)
             if args.out_dir:
-                plt.savefig(os.path.join(args.out_dir, passage.ID + ".png"))
+                plt.savefig(os.path.join(args.out_dir, passage.ID + "." + args.format))
                 plt.close()
             else:
                 plt.show()
