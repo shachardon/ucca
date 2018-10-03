@@ -1,7 +1,5 @@
 from collections import OrderedDict
 
-from operator import attrgetter
-
 from ucca import textutil, layer0, layer1
 from ucca.layer1 import EdgeTags, NodeTags
 
@@ -56,13 +54,10 @@ class Candidate:
         self.reference = reference
         self.reference_yield_tags = reference_yield_tags
         self.verbose = verbose
-        try:
-            self.terminals = self.edge.child.get_terminals(punct=False)
-        except (AttributeError, ValueError):
-            self.terminals = ()
-        self.terminal_yield = frozenset(map(attrgetter("position"), self.terminals))
+        self.terminals = self.edge.child.get_terminals()
+        self.terminal_yield, self.terminal_yield_no_punct = [frozenset(t.position for t in ts) for ts in (
+            self.terminals, self.edge.child.get_terminals(punct=False))]
         if self.reference is not None:
-            # noinspection PyTypeChecker
             self.terminals = [self.reference.by_id(t.ID) for t in self.terminals]
         self.extra = {}
 
@@ -246,8 +241,10 @@ def extract_edges(passage, constructions=None, reference=None, reference_yield_t
                        if candidates)
 
 
-def create_passage_yields(p, *args, **kwargs):
+def create_passage_yields(p, *args, punct=False, **kwargs):
     """
+    :param p: passage to find terminal yields of
+    :param punct: whether to include punctuation in terminal yield
     :returns dict: Construction ->
                    dict: set of terminal indices (excluding punctuation) ->
                          list of edges of the Construction whose yield (excluding remotes and punctuation) is that set
@@ -255,5 +252,6 @@ def create_passage_yields(p, *args, **kwargs):
     yield_tags = OrderedDict()
     for construction, candidates in extract_candidates(p, *args, **kwargs).items():
         for candidate in candidates:
-            yield_tags.setdefault(construction, {}).setdefault(candidate.terminal_yield, []).append(candidate.edge.tag)
+            terminal_yield = candidate.terminal_yield if punct else candidate.terminal_yield_no_punct
+            yield_tags.setdefault(construction, {}).setdefault(terminal_yield, []).append(candidate.edge.tag)
     return yield_tags
