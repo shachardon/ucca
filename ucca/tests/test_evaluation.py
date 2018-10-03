@@ -135,10 +135,10 @@ def passage2():
 
 
 def check_primary_remote(scores, primary_labeled_f1, remote_labeled_f1, primary_unlabeled_f1, remote_unlabeled_f1):
-    assert scores[LABELED]["primary"].f1 == primary_labeled_f1
-    assert scores[LABELED]["remote"].f1 == remote_labeled_f1
-    assert scores[UNLABELED]["primary"].f1 == primary_unlabeled_f1
-    assert scores[UNLABELED]["remote"].f1 == remote_unlabeled_f1
+    assert primary_labeled_f1 == scores[LABELED]["primary"].f1, "primary_labeled_f1"
+    assert remote_labeled_f1 == scores[LABELED]["remote"].f1, "remote_labeled_f1"
+    assert primary_unlabeled_f1 == scores[UNLABELED]["primary"].f1, "primary_unlabeled_f1"
+    assert remote_unlabeled_f1 == scores[UNLABELED]["remote"].f1, "remote_unlabeled_f1"
 
 
 @pytest.mark.parametrize("create", PASSAGES + (passage1, passage2))
@@ -148,12 +148,12 @@ def check_primary_remote(scores, primary_labeled_f1, remote_labeled_f1, primary_
 def test_evaluate_self(create, units, errors, normalize):
     p = create()
     scores = evaluate(p, p, units=units, errors=errors, normalize=normalize)
-    assert scores.average_f1() == 1.0
+    assert 1.0 == scores.average_f1()
     for eval_type, results in scores.evaluators.items():
         for construction, stats in results.results.items():
-            assert stats.f1 == 1.0, (eval_type, construction)
-            assert stats.p == 1.0, (eval_type, construction)
-            assert stats.r == 1.0, (eval_type, construction)
+            assert 1.0 == stats.f1, (eval_type, construction)
+            assert 1.0 == stats.p, (eval_type, construction)
+            assert 1.0 == stats.r, (eval_type, construction)
     check_primary_remote(scores, 1.0, 1.0, 1.0, 1.0)
 
 
