@@ -1,8 +1,13 @@
+from itertools import repeat
+
 import pytest
 
 from ucca import core, layer0, layer1
-from ucca.evaluation import evaluate, LABELED, UNLABELED
+from ucca.evaluation import evaluate, LABELED, UNLABELED, WEAK_LABELED
 from .conftest import PASSAGES
+
+PRIMARY = "primary"
+REMOTE = "remote"
 
 """Tests the evaluation module functions and classes."""
 
@@ -134,11 +139,10 @@ def passage2():
     return p
 
 
-def check_primary_remote(scores, primary_labeled_f1, remote_labeled_f1, primary_unlabeled_f1, remote_unlabeled_f1):
-    assert scores[LABELED]["primary"].f1 == primary_labeled_f1
-    assert scores[LABELED]["remote"].f1 == remote_labeled_f1
-    assert scores[UNLABELED]["primary"].f1 == primary_unlabeled_f1
-    assert scores[UNLABELED]["remote"].f1 == remote_unlabeled_f1
+def check_primary_remote(scores, expected):
+    for (labeled, construction), score in expected.items() if hasattr(expected, "items") else \
+            zip([(l, c) for l, e in scores.evaluators.items() for c in e.results], repeat(expected)):
+        assert score == pytest.approx(scores[labeled][construction].f1), "%s_%s_f1" % (construction, labeled)
 
 
 @pytest.mark.parametrize("create", PASSAGES + (passage1, passage2))
@@ -148,22 +152,22 @@ def check_primary_remote(scores, primary_labeled_f1, remote_labeled_f1, primary_
 def test_evaluate_self(create, units, errors, normalize):
     p = create()
     scores = evaluate(p, p, units=units, errors=errors, normalize=normalize)
-    assert scores.average_f1() == 1.0
+    assert 1.0 == scores.average_f1()
     for eval_type, results in scores.evaluators.items():
         for construction, stats in results.results.items():
-            assert stats.f1 == 1.0, (eval_type, construction)
-            assert stats.p == 1.0, (eval_type, construction)
-            assert stats.r == 1.0, (eval_type, construction)
-    check_primary_remote(scores, 1.0, 1.0, 1.0, 1.0)
+            assert 1.0 == stats.f1, (eval_type, construction)
+            assert 1.0 == stats.p, (eval_type, construction)
+            assert 1.0 == stats.r, (eval_type, construction)
+    check_primary_remote(scores, 1.0)
 
 
-@pytest.mark.parametrize("create1, create2, primary_labeled_f1, remote_labeled_f1,"
-                         "primary_unlabeled_f1, remote_unlabeled_f1", (
-                                 (passage1, passage2, 0.5, 0.4, 0.75, 0.8),
+@pytest.mark.parametrize("create1, create2, f1", (
+                                 (passage1, passage2, {(LABELED, PRIMARY): 0.5, (LABELED, REMOTE): 0.4,
+                                                       (UNLABELED, PRIMARY): 0.75, (UNLABELED, REMOTE): 0.8,
+                                                       (WEAK_LABELED, PRIMARY): 7/12, (WEAK_LABELED, REMOTE): 0.8}),
                          ))
 @pytest.mark.parametrize("units", (True, False), ids=("units", ""))
 @pytest.mark.parametrize("errors", (True, False), ids=("errors", ""))
-def test_evaluate(create1, create2, primary_labeled_f1, remote_labeled_f1, primary_unlabeled_f1, remote_unlabeled_f1,
-                  units, errors):
+def test_evaluate(create1, create2, f1, units, errors):
     scores = evaluate(create1(), create2(), units=units, errors=errors)
-    check_primary_remote(scores, primary_labeled_f1, remote_labeled_f1, primary_unlabeled_f1, remote_unlabeled_f1)
+    check_primary_remote(scores, f1)

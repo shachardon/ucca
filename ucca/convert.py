@@ -717,7 +717,7 @@ def from_text(text, passage_id="1", tokenized=False, one_per_line=False, extra_f
             line = line.strip()
         if line or one_per_line:
             if p is None:
-                p = core.Passage("%s_%d" % (passage_id, i))
+                p = core.Passage("%s_%d" % (passage_id, i), attrib=dict(lang=lang))
                 if extra_format is not None:
                     p.extra["format"] = extra_format
                 l0 = layer0.Layer0(p)
