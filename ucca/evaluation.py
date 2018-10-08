@@ -116,6 +116,8 @@ class Evaluator:
         :param r: reference passage for fine-grained evaluation
         :returns EvaluatorResults object if self.fscore is True, otherwise None
         """
+        self.mutual.clear()
+        self.error_counters.clear()
         reference_yield_tags = None if r is None else create_passage_yields(r, punct=True)[ALL_EDGES.name]
         maps = [{}, create_passage_yields(p2, self.constructions,
                                           reference_yield_tags=reference_yield_tags)]
