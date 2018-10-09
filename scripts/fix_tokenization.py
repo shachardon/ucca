@@ -61,15 +61,15 @@ def create_unit_element(state, text, tag):
     elem.text = text
     preterminal_elem = Element(SiteCfg.Tags.Unit,
                                {SiteCfg.Attr.SiteID: state.get_id()})
-    pretermoinal_parent = Element(SiteCfg.Tags.Unit,
+    preterminal_parent = Element(SiteCfg.Tags.Unit,
                                   {
                                     SiteCfg.Attr.ElemTag: tag,
                                     SiteCfg.Attr.SiteID: state.get_id(),
                                     SiteCfg.Attr.Unanalyzable: SiteCfg.FALSE,
                                     SiteCfg.Attr.Uncertain: SiteCfg.FALSE})
     preterminal_elem.append(elem)
-    pretermoinal_parent.append(preterminal_elem)
-    return pretermoinal_parent
+    preterminal_parent.append(preterminal_elem)
+    return preterminal_parent
 
 
 def create_token_element(state, text, is_punct):
@@ -107,14 +107,14 @@ def insert_retokenized_currency(i, terminals, preterminals,
                                 tokens, state):
     if len(tokens) == 2 and tokens[0] in CURRENCIES and \
             (tokens[1].replace('.', '', 1).isdigit() or
-             tokens[1].replace(',', '')):
+             tokens[1].replace(',', '')).isdigit():
         terminals[i].text = tokens[1]
         index_to_insert = preterminal_parents[i].getchildren(). \
             index(preterminals[i])
         preterminal_parents[i].insert(index_to_insert,
                                       create_token_element(state,
                                                            tokens[0],
-                                                           False))
+                                                           is_punct=False))
         return True
     return False
 
@@ -196,7 +196,7 @@ def split_possessive_s_unanalyzable(i, terminals, preterminals,
         i].getchildren().index(preterminals[i])
     preterminal_parents[i].insert(index_to_insert,
                                   create_token_element(state, without,
-                                                       False))
+                                                       is_punct=False))
     terminals[i].text = "'s"
 
 
@@ -209,7 +209,7 @@ def split_apostrophe_unanalyzable(i, terminals, preterminals,
         i].getchildren().index(preterminals[i])
     preterminal_parents[i].insert(index_to_insert,
                                   create_token_element(state, split_list[0]+"'",
-                                                       False))
+                                                       is_punct=False))
     terminals[i].text = split_list[1]
 
 
@@ -224,12 +224,12 @@ def split_hyphen_unanalyzable(i, terminals, preterminals,
     counter = 1
     preterminal_parents[i].insert(index_to_insert,
                                   create_token_element(state, divided[0],
-                                                       False))
+                                                       is_punct=False))
     for word in words:
         preterminal_parents[i].insert(index_to_insert + counter,
-                                      create_token_element(state, "-", True))
+                                      create_token_element(state, "-", is_punct=True))
         preterminal_parents[i].insert(index_to_insert + counter + 1,
-                                      create_token_element(state, word, False))
+                                      create_token_element(state, word, is_punct=False))
         counter += 2
     preterminal_parents[i].remove(preterminals[i])
 
@@ -258,7 +258,7 @@ def split_hyphen_to_units(i, terminals, preterminals, preterminal_parents, tag1,
                                   create_unit_element(state, divided[1],
                                                       tag2))
     preterminal_parents[i].insert(index_to_insert,
-                                  create_token_element(state, "-", True))
+                                  create_token_element(state, "-", is_punct=True))
     preterminal_parents[i].insert(index_to_insert,
                                   create_unit_element(state, divided[0],
                                                       tag1))
